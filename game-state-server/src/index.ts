@@ -92,6 +92,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
     {
+      name: 'remove_item',
+      description: 'Remove item from inventory',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item_id: { type: 'number' }
+        },
+        required: ['item_id']
+      }
+    },
+    {
+      name: 'update_item',
+      description: 'Update item quantity or equipped status',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          item_id: { type: 'number' },
+          quantity: { type: 'number' },
+          equipped: { type: 'boolean' }
+        },
+        required: ['item_id']
+      }
+    },
+    {
       name: 'list_characters',
       description: 'List all characters',
       inputSchema: {
@@ -193,6 +217,25 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const items = db.getInventory((args as any).character_id);
         return {
           content: [{ type: 'text', text: JSON.stringify(items, null, 2) }]
+        };
+      }
+
+      case 'remove_item': {
+        db.removeItem((args as any).item_id);
+        return {
+          content: [{ type: 'text', text: 'Item removed from inventory' }]
+        };
+      }
+
+      case 'update_item': {
+        const { item_id, quantity, equipped } = args as any;
+        const updates: any = {};
+        if (quantity !== undefined) updates.quantity = quantity;
+        if (equipped !== undefined) updates.equipped = equipped;
+        
+        db.updateItem(item_id, updates);
+        return {
+          content: [{ type: 'text', text: 'Item updated successfully' }]
         };
       }
 

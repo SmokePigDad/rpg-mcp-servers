@@ -1,6 +1,15 @@
 # RPG MCP Servers for Roo Code AI Dungeon
 
-This project implements MCP (Model Context Protocol) servers for creating an AI Dungeon-style RPG experience in Roo Code. These servers are designed to be used with the [AI Dungeon Experiment](https://github.com/Mnehmos/AI-Dungeon-Experiment) repository, which manages the campaigns, Roo modes, and overall game orchestration.
+This project implements MCP (Model Context Protocol) servers for creating an AI Dungeon-style RPG experience in Roo Code.
+
+## 🎲 Latest Updates
+
+- **Fixed dice notation**: Now supports `2d20kh1` (advantage) and `2d20kl1` (disadvantage)
+- **Added `roll_check` tool**: Simplified ability/skill checks
+- **Enhanced inventory**: Added `remove_item` and `update_item` tools
+- **Corrected advantage/disadvantage**: Properly implements D&D 5e rules
+
+See `update-summary.md` for full details.
 
 ## Project Structure
 
