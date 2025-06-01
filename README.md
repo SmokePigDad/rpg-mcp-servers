@@ -1,6 +1,6 @@
 # RPG MCP Servers for Roo Code AI Dungeon
 
-This project implements MCP (Model Context Protocol) servers for creating an AI Dungeon-style RPG experience in Roo Code.
+This project implements MCP (Model Context Protocol) servers for creating an AI Dungeon-style RPG experience in Roo Code. These servers are designed to be used with the [AI Dungeon Experiment](https://github.com/Mnehmos/AI-Dungeon-Experiment) repository, which manages the campaigns, Roo modes, and overall game orchestration.
 
 ## Project Structure
 
@@ -91,6 +91,7 @@ This project implements MCP (Model Context Protocol) servers for creating an AI 
            "damage_roll",
            "saving_throw",
            "get_combat_log",
+           "start_combat"
          ]
        }
        // ... other servers ...
@@ -100,8 +101,9 @@ This project implements MCP (Model Context Protocol) servers for creating an AI 
    **Note**:
    - Replace `PATH_TO_YOUR_PROJECT` with the actual absolute path to the `rpg-mcp-servers` directory on your system. For example, if you cloned it to `C:\projects\rpg-mcp-servers`, then `cwd` for `game-state-server` would be `C:/projects/rpg-mcp-servers/game-state-server`.
    - The `alwaysAllow` arrays list tools that Roo Code can use without explicit user permission each time. You can customize this list.
+   - The `start_combat` tool was present in your `mcp_settings.json` for `rpg-combat-engine-server` and has been added to this example. Ensure this tool is actually implemented in the server.
 
-5. **Create a custom mode** for the AI Dungeon Master (e.g., using a `dungeon-master-mode.json` configuration) to interact with these servers through Roo.
+5. **Create a custom mode** for the AI Dungeon Master (e.g., using a `dungeon-master-mode.json` configuration within the [AI Dungeon Experiment](https://github.com/Mnehmos/AI-Dungeon-Experiment) repository) to interact with these servers through Roo.
 
 ## Usage
 
