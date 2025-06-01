@@ -7,6 +7,16 @@ This project implements MCP (Model Context Protocol) servers for creating an AI 
 - **game-state-server/**: SQLite-based persistent game state management
 - **combat-engine-server/**: D&D-style combat mechanics and dice rolling
 
+## Prerequisites
+
+Before you begin, ensure you have Roo Code installed and configured in your VS Code environment. Roo Code is the AI-powered coding assistant that will interact with these MCP servers.
+
+-   **Install Roo Code**:
+    -   From the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline).
+    -   Or via CLI: `code --install-extension RooVeterinaryInc.roo-cline`
+-   **Configure AI Provider**: After installation, add your AI model API keys (e.g., OpenAI, Anthropic) in the Roo Code extension settings.
+-   For more details on Roo Code, visit the [Roo Code website](https://roocode.com) or the [official documentation](https://docs.roocode.com).
+
 ## Setup Instructions
 
 1. **Install dependencies** for both servers:
