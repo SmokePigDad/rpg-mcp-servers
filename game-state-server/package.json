@@ -1,0 +1,23 @@
+{
+  "name": "rpg-game-state-server",
+  "version": "1.0.0",
+  "description": "MCP server for RPG game state management using SQLite",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "sqlite3": "^5.1.6",
+    "better-sqlite3": "^9.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/better-sqlite3": "^7.6.8",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}
