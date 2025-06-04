@@ -396,6 +396,76 @@ const toolDefinitions = [
         },
         required: ["character_id", "chapter", "checkpoint", "summary"]
       }
+    },
+    // Quest Management Tools
+    {
+      name: 'add_quest',
+      description: 'Add a new quest to the game master list',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Title of the quest' },
+          description: { type: 'string', description: 'Detailed description of the quest' },
+          objectives: {
+            type: 'array',
+            items: { type: 'string' }, // Or more complex objects: { type: 'object', properties: { id: {type: 'string'}, text: {type: 'string'}, completed: {type: 'boolean'}}}
+            description: 'List of objectives for the quest (e.g., ["Defeat the dragon", "Retrieve the artifact"])'
+          },
+          rewards: {
+            type: 'object',
+            properties: {
+              gold: { type: 'number' },
+              experience: { type: 'number' },
+              items: { type: 'array', items: { type: 'string' }, description: "Array of item names or IDs" }
+            },
+            description: 'Rewards for completing the quest'
+          }
+        },
+        required: ['title', 'description', 'objectives', 'rewards']
+      }
+    },
+    {
+      name: 'get_active_quests',
+      description: 'Get all active quests for a specific character',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          character_id: { type: 'number', description: 'ID of the character' }
+        },
+        required: ['character_id']
+      }
+    },
+    {
+      name: 'update_quest_state',
+      description: 'Update the status or progress of a character\'s quest',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          character_quest_id: { type: 'number', description: 'ID of the character-quest link (from character_quests table)' },
+          status: { type: 'string', enum: ['active', 'completed', 'failed'], description: 'New status of the quest' },
+          progress: {
+            type: 'object',
+            // Example: { "obj1_id": true, "obj2_id": false } or { "kill_count": 5, "total_needed": 10 }
+            additionalProperties: true,
+            description: 'JSON object detailing progress on specific objectives (optional)'
+          }
+        },
+        required: ['character_quest_id', 'status']
+      }
+    },
+    // New tool definition for assign_quest_to_character
+    {
+      name: 'assign_quest_to_character',
+      description: 'Assign an existing quest to a character',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          character_id: { type: 'number', description: 'ID of the character' },
+          quest_id: { type: 'number', description: 'ID of the quest to assign' },
+          status: { type: 'string', enum: ['active', 'completed', 'failed'], default: 'active', description: 'Initial status of the quest for the character' }
+        },
+        required: ['character_id', 'quest_id']
+      }
     }
   ];
 
@@ -713,6 +783,68 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: 'text', text: `Story progress saved for character ${character_id}: Chapter ${chapter}, Checkpoint ${checkpoint}` }]
         };
+      }
+
+      // Quest Management Handlers
+      case 'add_quest': {
+        const { title, description, objectives, rewards } = args as any;
+        const quest = db.addQuest({ title, description, objectives, rewards });
+        return {
+          content: [{ type: 'text', text: `Quest added: ${JSON.stringify(quest, null, 2)}` }]
+        };
+      }
+
+      case 'get_active_quests': {
+        const { character_id } = args as any;
+        // First, ensure the character exists to provide a better error message.
+        const character = db.getCharacter(character_id);
+        if (!character) {
+          throw new Error(`Character with ID ${character_id} not found.`);
+        }
+        const activeQuests = db.getCharacterActiveQuests(character_id);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(activeQuests, null, 2) }]
+        };
+      }
+
+      case 'update_quest_state': {
+        const { character_quest_id, status, progress } = args as any;
+        // Ensure the character_quest entry exists
+        const existingCharacterQuest = db.getCharacterQuestById(character_quest_id);
+        if (!existingCharacterQuest) {
+            throw new Error(`Character quest link with ID ${character_quest_id} not found.`);
+        }
+
+        const updatedQuest = db.updateCharacterQuestStatus(character_quest_id, status, progress);
+        if (updatedQuest) {
+          return {
+            content: [{ type: 'text', text: `Quest state updated: ${JSON.stringify(updatedQuest, null, 2)}` }]
+          };
+        } else {
+          throw new Error(`Failed to update quest state for ID ${character_quest_id}.`);
+        }
+      }
+
+      case 'assign_quest_to_character': {
+        const { character_id, quest_id, status } = args as any;
+        const assignedQuest = db.assignQuestToCharacter(character_id, quest_id, status);
+        if (assignedQuest) {
+          return {
+            content: [{ type: 'text', text: `Quest assigned: ${JSON.stringify(assignedQuest, null, 2)}` }]
+          };
+        } else {
+          // If assignQuestToCharacter returns null, it implies the assignment didn't proceed as expected
+          // (e.g., quest already completed/failed and not overridden, or character/quest not found - though those should throw).
+          // We can try to fetch the existing record to provide more context.
+          // The db.assignQuestToCharacter method itself already tries to fetch the character_quest_id.
+          // A simpler approach here is to rely on the fact that if it's null, an error or specific condition was met.
+          // The method db.getCharacterQuestById requires the character_quest.id, not character_id and quest_id.
+          // Let's refine the error message.
+          return {
+            content: [{ type: 'text', text: `Quest assignment for character ${character_id} and quest ${quest_id} resulted in no changes or an issue. The quest might already be in a terminal state (completed/failed) or one of the IDs is invalid.` }],
+            isError: true
+          };
+        }
       }
 
       default:

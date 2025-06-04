@@ -59,6 +59,30 @@ interface EncounterParticipant {
   max_hp: number;
 }
 
+interface Quest {
+  id: number;
+  title: string;
+  description: string;
+  objectives: string; // JSON string
+  rewards: string; // JSON string
+  created_at: string;
+}
+
+interface CharacterQuest {
+  id: number;
+  character_id: number;
+  quest_id: number;
+  status: 'active' | 'completed' | 'failed';
+  progress?: string | null; // JSON string for detailed objective tracking
+  assigned_at: string;
+  updated_at: string;
+  // Properties from JOIN with quests table
+  title?: string;
+  description?: string;
+  objectives?: string; // JSON string
+  rewards?: string; // JSON string
+}
+
 // Create data directory in user's home folder
 const DATA_DIR = join(homedir(), '.rpg-dungeon-data');
 if (!existsSync(DATA_DIR)) {
@@ -215,12 +239,40 @@ export class GameDatabase {
         result TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
-      )
-    `);
-
-    // Create indexes
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_inventory_character ON inventory(character_id);
+            )
+          `);
+      
+          // Quests table
+          this.db.exec(`
+            CREATE TABLE IF NOT EXISTS quests (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              title TEXT NOT NULL,
+              description TEXT,
+              objectives TEXT, -- JSON string, e.g., [{id: "obj1", text: "Do X", completed: false}]
+              rewards TEXT,    -- JSON string, e.g., {gold: 100, exp: 50, items: ["item_id_1"]}
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+      
+          // Character Quests table (join table)
+          this.db.exec(`
+            CREATE TABLE IF NOT EXISTS character_quests (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              character_id INTEGER NOT NULL,
+              quest_id INTEGER NOT NULL,
+              status TEXT NOT NULL DEFAULT 'active', -- 'active', 'completed', 'failed'
+              progress TEXT, -- JSON string for detailed objective tracking
+              assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+              FOREIGN KEY (quest_id) REFERENCES quests(id) ON DELETE CASCADE,
+              UNIQUE (character_id, quest_id)
+            )
+          `);
+      
+          // Create indexes
+          this.db.exec(`
+            CREATE INDEX IF NOT EXISTS idx_inventory_character ON inventory(character_id);
       CREATE INDEX IF NOT EXISTS idx_story_character ON story_progress(character_id);
       CREATE INDEX IF NOT EXISTS idx_world_character ON world_state(character_id);
       CREATE INDEX IF NOT EXISTS idx_combat_character ON combat_log(character_id);
@@ -230,6 +282,10 @@ export class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_encounter_status ON encounters(status);
       CREATE INDEX IF NOT EXISTS idx_participants_encounter ON encounter_participants(encounter_id);
       CREATE INDEX IF NOT EXISTS idx_participants_order ON encounter_participants(encounter_id, initiative_order);
+      CREATE INDEX IF NOT EXISTS idx_quests_title ON quests(title);
+      CREATE INDEX IF NOT EXISTS idx_character_quests_character_id ON character_quests(character_id);
+      CREATE INDEX IF NOT EXISTS idx_character_quests_quest_id ON character_quests(quest_id);
+      CREATE INDEX IF NOT EXISTS idx_character_quests_status ON character_quests(status);
     `);
   }
 
@@ -808,6 +864,124 @@ export class GameDatabase {
       stmt.run(damage, targetId);
       return this.getCharacter(targetId);
     }
+  }
+
+  // Quest Operations
+  addQuest(data: {
+    title: string;
+    description: string;
+    objectives: Record<string, any>[] | string[]; // Array of objective strings or objects
+    rewards: Record<string, any>; // e.g., { gold: 100, experience: 50, items: ["item_id_1"] }
+  }) {
+    const stmt = this.db.prepare(`
+      INSERT INTO quests (title, description, objectives, rewards)
+      VALUES (?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      data.title,
+      data.description,
+      JSON.stringify(data.objectives),
+      JSON.stringify(data.rewards)
+    );
+    return this.getQuestById(result.lastInsertRowid as number);
+  }
+
+  getQuestById(id: number): Quest | null {
+    const stmt = this.db.prepare('SELECT * FROM quests WHERE id = ?');
+    const quest = stmt.get(id) as Quest | undefined;
+    if (quest) {
+      // objectives and rewards are stored as JSON, parse them if needed by caller
+      // For now, return as stored. Parsing can be done in handler or by caller.
+    }
+    return quest || null;
+  }
+
+  assignQuestToCharacter(characterId: number, questId: number, status: 'active' | 'completed' | 'failed' = 'active') {
+    // Check if character and quest exist
+    const character = this.getCharacter(characterId);
+    if (!character) throw new Error(`Character with ID ${characterId} not found.`);
+    const quest = this.getQuestById(questId);
+    if (!quest) throw new Error(`Quest with ID ${questId} not found.`);
+
+    const stmt = this.db.prepare(`
+      INSERT INTO character_quests (character_id, quest_id, status, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id, quest_id) DO UPDATE SET
+      status = excluded.status,
+      updated_at = CURRENT_TIMESTAMP
+      WHERE character_quests.status != 'completed' AND character_quests.status != 'failed'
+            OR excluded.status = 'active' -- Allow re-activating if previously completed/failed for some reason
+    `);
+    const result = stmt.run(characterId, questId, status);
+    if (result.changes > 0) {
+        // Need to get the ID of the inserted/updated row.
+        // If it was an insert, result.lastInsertRowid works.
+        // If it was an update due to conflict, we need to query it.
+        const cqStmt = this.db.prepare('SELECT id FROM character_quests WHERE character_id = ? AND quest_id = ?');
+        const cq = cqStmt.get(characterId, questId) as { id: number } | undefined;
+        return cq ? this.getCharacterQuestById(cq.id) : null;
+    }
+    // If no changes, it means the quest was already completed/failed and we tried to assign it as active again without override.
+    // Or some other edge case. Return existing record.
+    const cqStmt = this.db.prepare('SELECT id FROM character_quests WHERE character_id = ? AND quest_id = ?');
+    const cq = cqStmt.get(characterId, questId) as { id: number } | undefined;
+    return cq ? this.getCharacterQuestById(cq.id) : null;
+  }
+
+  getCharacterQuestById(characterQuestId: number): CharacterQuest | null {
+    const stmt = this.db.prepare(`
+      SELECT cq.*, q.title, q.description, q.objectives, q.rewards
+      FROM character_quests cq
+      JOIN quests q ON cq.quest_id = q.id
+      WHERE cq.id = ?
+    `);
+    const cq = stmt.get(characterQuestId) as CharacterQuest | undefined;
+    if (cq) {
+      // Parse JSON fields
+      if (cq.objectives) cq.objectives = JSON.parse(cq.objectives as string);
+      if (cq.rewards) cq.rewards = JSON.parse(cq.rewards as string);
+      if (cq.progress) cq.progress = JSON.parse(cq.progress as string);
+    }
+    return cq || null;
+  }
+
+  getCharacterActiveQuests(characterId: number): CharacterQuest[] {
+    const stmt = this.db.prepare(`
+      SELECT cq.*, q.title, q.description, q.objectives, q.rewards
+      FROM character_quests cq
+      JOIN quests q ON cq.quest_id = q.id
+      WHERE cq.character_id = ? AND cq.status = 'active'
+      ORDER BY cq.assigned_at DESC
+    `);
+    const quests = stmt.all(characterId) as CharacterQuest[];
+    return quests.map(q => {
+      if (q.objectives) q.objectives = JSON.parse(q.objectives as string);
+      if (q.rewards) q.rewards = JSON.parse(q.rewards as string);
+      if (q.progress) q.progress = JSON.parse(q.progress as string);
+      return q;
+    });
+  }
+
+  updateCharacterQuestStatus(characterQuestId: number, status: 'active' | 'completed' | 'failed', progress?: Record<string, any> | null) {
+    const fieldsToUpdate: string[] = ['status = ?', 'updated_at = CURRENT_TIMESTAMP'];
+    const values: any[] = [status];
+
+    if (progress !== undefined) {
+      fieldsToUpdate.push('progress = ?');
+      values.push(progress ? JSON.stringify(progress) : null);
+    }
+    values.push(characterQuestId);
+
+    const stmt = this.db.prepare(`
+      UPDATE character_quests
+      SET ${fieldsToUpdate.join(', ')}
+      WHERE id = ?
+    `);
+    const result = stmt.run(...values);
+    if (result.changes > 0) {
+      return this.getCharacterQuestById(characterQuestId);
+    }
+    return null; // Or throw error if not found/not updated
   }
 
   close() {
