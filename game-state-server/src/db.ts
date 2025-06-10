@@ -111,6 +111,7 @@ export class GameDatabase {
         experience INTEGER DEFAULT 0,
         current_hp INTEGER,
         max_hp INTEGER,
+        armor_class INTEGER DEFAULT 10,
         strength INTEGER DEFAULT 10,
         dexterity INTEGER DEFAULT 10,
         constitution INTEGER DEFAULT 10,
@@ -287,6 +288,25 @@ export class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_character_quests_quest_id ON character_quests(quest_id);
       CREATE INDEX IF NOT EXISTS idx_character_quests_status ON character_quests(status);
     `);
+
+    // Migrations for existing tables
+    this.addColumnIfNotExists('characters', 'armor_class', 'INTEGER DEFAULT 10');
+    this.addColumnIfNotExists('inventory', 'equipped', 'BOOLEAN DEFAULT FALSE');
+this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_ENDED\'');
+    this.addColumnIfNotExists('encounters', 'currentActorActions', 'TEXT');
+  }
+
+  private addColumnIfNotExists(tableName: string, columnName: string, columnDefinition: string) {
+    const stmt = this.db.prepare(`PRAGMA table_info(\`${tableName}\`)`);
+    const columns = stmt.all() as { name: string }[];
+    if (!columns.some(col => col.name === columnName)) {
+      try {
+        this.db.exec(`ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnDefinition}`);
+        console.log(`Added column ${columnName} to ${tableName}`);
+      } catch (error) {
+        console.error(`Failed to add column ${columnName} to ${tableName}:`, error);
+      }
+    }
   }
 
   // Character operations
@@ -299,15 +319,16 @@ export class GameDatabase {
     intelligence?: number;
     wisdom?: number;
     charisma?: number;
+    armor_class?: number;
   }) {
     const maxHp = 10 + (data.constitution || 10);
     
     const stmt = this.db.prepare(`
       INSERT INTO characters (
-        name, class, max_hp, current_hp,
+        name, class, max_hp, current_hp, armor_class,
         strength, dexterity, constitution,
         intelligence, wisdom, charisma
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -315,6 +336,7 @@ export class GameDatabase {
       data.class,
       maxHp,
       maxHp,
+      data.armor_class || 10,
       data.strength || 10,
       data.dexterity || 10,
       data.constitution || 10,
@@ -362,10 +384,11 @@ export class GameDatabase {
     type: string;
     quantity?: number;
     properties?: Record<string, any>;
+    equipped?: boolean;
   }) {
     const stmt = this.db.prepare(`
-      INSERT INTO inventory (character_id, item_name, item_type, quantity, properties)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO inventory (character_id, item_name, item_type, quantity, properties, equipped)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -373,7 +396,8 @@ export class GameDatabase {
       item.name,
       item.type,
       item.quantity || 1,
-      item.properties ? JSON.stringify(item.properties) : null
+      item.properties ? JSON.stringify(item.properties) : null,
+      item.equipped || false
     );
 
     return { id: result.lastInsertRowid, ...item };
@@ -572,6 +596,17 @@ export class GameDatabase {
       )
     `);
 
+    // Serialize complex objects to JSON if they are not already strings
+    const attacksValue = typeof npcData.attacks === 'object' && npcData.attacks !== null
+                         ? JSON.stringify(npcData.attacks)
+                         : npcData.attacks || null;
+    const abilitiesValue = typeof npcData.abilities === 'object' && npcData.abilities !== null
+                           ? JSON.stringify(npcData.abilities)
+                           : npcData.abilities || null;
+    const conditionsValue = typeof npcData.conditions === 'object' && npcData.conditions !== null
+                            ? JSON.stringify(npcData.conditions)
+                            : npcData.conditions || null;
+
     const result = stmt.run(
       npcData.name,
       npcData.type,
@@ -589,9 +624,9 @@ export class GameDatabase {
       npcData.charisma || 10,
       npcData.proficiency_bonus || 2,
       npcData.initiative_modifier,
-      npcData.attacks || null,
-      npcData.abilities || null,
-      npcData.conditions || null,
+      attacksValue,
+      abilitiesValue,
+      conditionsValue,
       npcData.challenge_rating || 0,
       npcData.experience_value || 0,
       data.template || null
@@ -705,8 +740,11 @@ export class GameDatabase {
   }
 
   getEncounter(id: number) {
+    // console.log(`[GameDatabase.getEncounter] Querying for encounter ID: ${id}`);
     const stmt = this.db.prepare('SELECT * FROM encounters WHERE id = ?');
-    return stmt.get(id);
+    const row = stmt.get(id);
+    // console.log(`[GameDatabase.getEncounter] Raw row data for ID ${id}: ${JSON.stringify(row)}`);
+    return row;
   }
 
   getActiveEncounter(characterId: number) {
@@ -774,49 +812,74 @@ export class GameDatabase {
     return stmt.all(encounterId) as EncounterParticipant[];
   }
 
-  nextTurn(encounterId: number) {
+  nextTurn(encounterId: number): EncounterParticipant | null {
     const encounter = this.getEncounter(encounterId) as any;
-    if (!encounter || encounter.status !== 'active') return null;
-    
-    // Get active participants
-    const participants: EncounterParticipant[] = this.getEncounterParticipants(encounterId);
-    if (participants.length === 0) return null;
-    
-    // Mark current participant as having acted
-    if (encounter.current_turn > 0) {
-      const currentParticipant: EncounterParticipant | undefined = participants.find((p: EncounterParticipant) => p.initiative_order === encounter.current_turn);
-      if (currentParticipant) {
-        this.db.prepare(`
-          UPDATE encounter_participants SET has_acted = TRUE WHERE id = ?
-        `).run(currentParticipant.id);
-      }
+    if (!encounter || encounter.status !== 'active') {
+      console.log(`Encounter ${encounterId} not active or not found.`);
+      return null;
+    }
+
+    let participants: EncounterParticipant[] = this.getEncounterParticipants(encounterId);
+    if (participants.length === 0) {
+      console.log(`No active participants in encounter ${encounterId}.`);
+      return null;
+    }
+
+    // Mark current participant as having acted, if there was a current turn
+    const currentTurnOrder = encounter.current_turn;
+    if (currentTurnOrder > 0 && currentTurnOrder <= participants.length) {
+        // Find the participant by their *current* initiative_order, which might have shifted if others became inactive
+        const currentParticipantInOriginalOrder = participants.find(p => p.initiative_order === currentTurnOrder);
+        if (currentParticipantInOriginalOrder && currentParticipantInOriginalOrder.is_active) {
+             this.db.prepare(
+                `UPDATE encounter_participants SET has_acted = TRUE WHERE id = ?`
+            ).run(currentParticipantInOriginalOrder.id);
+        }
     }
     
-    // Find next participant
-    let nextTurn = encounter.current_turn + 1;
-    
-    // If we've gone through all participants, start new round
-    if (nextTurn > participants.length) {
-      nextTurn = 1;
-      encounter.current_round += 1;
-      
-      // Reset has_acted for all participants
-      this.db.prepare(`
-        UPDATE encounter_participants 
-        SET has_acted = FALSE 
-        WHERE encounter_id = ?
-      `).run(encounterId);
+    // Determine the next turn order
+    let nextTurnOrder = currentTurnOrder + 1;
+    let nextParticipant: EncounterParticipant | undefined = undefined;
+
+    // Loop to find the next *active* participant
+    let attempts = 0; // Safety break for infinite loops
+    while (attempts < participants.length * 2) { // Allow to loop through participants twice (for round change)
+        if (nextTurnOrder > participants.length) { // End of round, start new round
+            nextTurnOrder = 1;
+            encounter.current_round += 1;
+            
+            // Reset has_acted for all *active* participants for the new round
+            this.db.prepare(
+                `UPDATE encounter_participants SET has_acted = FALSE WHERE encounter_id = ? AND is_active = TRUE`
+            ).run(encounterId);
+            // Re-fetch participants as their has_acted status changed
+            participants = this.getEncounterParticipants(encounterId);
+        }
+
+        nextParticipant = participants.find(p => p.initiative_order === nextTurnOrder && p.is_active);
+
+        if (nextParticipant) {
+            break; // Found next active participant
+        }
+        
+        nextTurnOrder++; // Try next in order
+        attempts++;
     }
+
+    if (!nextParticipant) {
+      // This could happen if all participants become inactive
+      console.log(`No active participant found for next turn in encounter ${encounterId}. Ending encounter.`);
+      this.endEncounter(encounterId, 'stalemate'); // Or some other appropriate status
+      return null;
+    }
+
+    // Update encounter with new turn and round
+    this.db.prepare(
+        `UPDATE encounters SET current_turn = ?, current_round = ? WHERE id = ?`
+    ).run(nextTurnOrder, encounter.current_round, encounterId);
     
-    // Update encounter
-    this.db.prepare(`
-      UPDATE encounters 
-      SET current_turn = ?, current_round = ? 
-      WHERE id = ?
-    `).run(nextTurn, encounter.current_round, encounterId);
-    
-    // Return the participant whose turn it is
-    return participants.find((p: EncounterParticipant) => p.initiative_order === nextTurn);
+    // The nextParticipant object already contains all necessary details from getEncounterParticipants
+    return nextParticipant;
   }
 
   endEncounter(id: number, outcome: string = 'completed') {
@@ -834,36 +897,61 @@ export class GameDatabase {
     
     if (targetType === 'character') {
       stmt = this.db.prepare(`
-        UPDATE characters 
-        SET current_hp = MAX(0, current_hp - ?) 
+        UPDATE characters
+        SET current_hp = MAX(0, current_hp - ?)
         WHERE id = ?
       `);
+      stmt.run(damage, targetId);
+      const character = this.getCharacter(targetId) as any;
+      if (character && character.current_hp <= 0) {
+        // Character is incapacitated, mark as inactive in encounters
+        const activeEncounters = this.db.prepare(`
+          SELECT encounter_id FROM encounter_participants
+          WHERE participant_type = 'character' AND participant_id = ? AND is_active = TRUE
+        `).all(targetId) as { encounter_id: number }[];
+
+        for (const enc of activeEncounters) {
+          this.db.prepare(`
+            UPDATE encounter_participants
+            SET is_active = FALSE
+            WHERE participant_type = 'character' AND participant_id = ? AND encounter_id = ?
+          `).run(targetId, enc.encounter_id);
+          this.updateInitiativeOrder(enc.encounter_id); // Recalculate initiative order
+        }
+      }
+      return character;
+
     } else if (targetType === 'npc') {
       stmt = this.db.prepare(`
-        UPDATE npcs 
+        UPDATE npcs
         SET current_hp = MAX(0, current_hp - ?),
             is_alive = CASE WHEN current_hp - ? <= 0 THEN FALSE ELSE TRUE END
         WHERE id = ?
       `);
       stmt.run(damage, damage, targetId);
       
-      // Check if NPC died and remove from active encounters
-      const npc = this.getNPC(targetId);
+      const npc = this.getNPC(targetId) as any;
       if (npc && !npc.is_alive) {
-        this.db.prepare(`
-          UPDATE encounter_participants 
-          SET is_active = FALSE 
-          WHERE participant_type = 'npc' AND participant_id = ?
-        `).run(targetId);
+         // NPC died, mark as inactive in encounters
+        const activeEncounters = this.db.prepare(`
+          SELECT encounter_id FROM encounter_participants
+          WHERE participant_type = 'npc' AND participant_id = ? AND is_active = TRUE
+        `).all(targetId) as { encounter_id: number }[];
+
+        for (const enc of activeEncounters) {
+          this.db.prepare(`
+            UPDATE encounter_participants
+            SET is_active = FALSE
+            WHERE participant_type = 'npc' AND participant_id = ? AND encounter_id = ?
+          `).run(targetId, enc.encounter_id);
+          this.updateInitiativeOrder(enc.encounter_id); // Recalculate initiative order
+        }
       }
-      
       return npc;
     }
     
-    if (stmt && targetType === 'character') {
-      stmt.run(damage, targetId);
-      return this.getCharacter(targetId);
-    }
+    // Should not reach here if targetType is valid
+    return null;
   }
 
   // Quest Operations

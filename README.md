@@ -7,6 +7,8 @@ This project implements MCP (Model Context Protocol) servers for creating an AI 
 - **Fixed dice notation**: Now supports `2d20kh1` (advantage) and `2d20kl1` (disadvantage)
 - **Added `roll_check` tool**: Simplified ability/skill checks
 - **Enhanced inventory**: Added `remove_item` and `update_item` tools
+- **Monster Management**: Added tools for creating, getting, updating, and listing NPCs/monsters.
+- **Story and Quest Management**: Added tools for saving story progress and managing quests.
 - **Corrected advantage/disadvantage**: Properly implements D&D 5e rules
 
 See `update-summary.md` for full details.
@@ -93,7 +95,18 @@ Before you begin, ensure you have Roo Code installed and configured in your VS C
            "add_item",
            "get_inventory",
            "save_world_state",
-           "get_world_state"
+           "get_world_state",
+           "create_npc",
+           "create_npc_group",
+           "get_npc",
+           "list_npcs",
+           "update_npc",
+           "remove_npc",
+           "save_story_progress",
+           "add_quest",
+           "get_active_quests",
+           "update_quest_state",
+           "assign_quest_to_character"
          ]
        },
        "rpg-combat-engine": {
@@ -110,7 +123,9 @@ Before you begin, ensure you have Roo Code installed and configured in your VS C
            "damage_roll",
            "saving_throw",
            "get_combat_log",
-           "start_combat"
+           "start_combat",
+           "end_turn",
+           "next_turn"
          ]
        }
        // ... other servers ...

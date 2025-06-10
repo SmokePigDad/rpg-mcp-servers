@@ -4,6 +4,36 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { GameDatabase } from './db.js';
 
 // Define interfaces for stronger typing
+interface Character {
+  id: number;
+  name: string;
+  class: string;
+  level: number;
+  experience: number;
+  current_hp: number;
+  max_hp: number;
+  armor_class: number;
+  strength: number;
+  dexterity: number;
+  constitution: number;
+  intelligence: number;
+  wisdom: number;
+  charisma: number;
+  gold: number;
+  created_at: string;
+  last_played: string;
+}
+
+interface Item {
+  id: number;
+  character_id: number;
+  item_name: string;
+  item_type: string;
+  quantity: number;
+  equipped: boolean;
+  properties: Record<string, any> | null;
+}
+
 interface Encounter {
   id: number;
   character_id: number;
@@ -489,11 +519,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case 'create_character': {
-        const { name: charName, class: charClass, stats = {} } = args as any;
+        const { name: charName, class: charClass, stats = {}, armor_class } = args as any;
         
         const character = db.createCharacter({
           name: charName,
           class: charClass,
+          armor_class: armor_class, // Pass armor_class if provided
           ...stats
         });
         
@@ -503,9 +534,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_character': {
-        const character = db.getCharacter((args as any).character_id);
+        const characterId = (args as any).character_id;
+        const character = db.getCharacter(characterId) as Character | undefined;
+        if (!character) {
+          throw new Error(`Character with ID ${characterId} not found.`);
+        }
+        const inventory = db.getInventory(characterId) as Item[];
+        const equippedItems = inventory.filter(item => item.equipped);
+        
+        const characterDetails = {
+          ...character,
+          equipped_items: equippedItems
+        };
+        
         return {
-          content: [{ type: 'text', text: JSON.stringify(character, null, 2) }]
+          content: [{ type: 'text', text: JSON.stringify(characterDetails, null, 2) }]
         };
       }
 
@@ -526,7 +569,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         const addedItemsResults = [];
         for (const item_to_add of items) {
-          const { item_name: name, item_type = 'misc', quantity = 1, properties = {} } = item_to_add;
+          const { item_name: name, item_type = 'misc', quantity = 1, properties = {}, equipped = false } = item_to_add;
           if (!name) {
             // Skip item if name is missing, or throw an error for the whole batch
             console.warn('Skipping item due to missing name:', item_to_add);
@@ -537,9 +580,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             name,
             type: item_type,
             quantity,
-            properties
+            properties,
+            equipped // Pass the equipped status
           });
-          addedItemsResults.push({ name, quantity, status: 'added' });
+          addedItemsResults.push({ name, quantity, equipped, status: 'added' });
         }
         
         return {
