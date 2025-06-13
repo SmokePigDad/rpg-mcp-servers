@@ -531,6 +531,93 @@ const toolDefinitions = [
       },
       required: ['character_id', 'quest_id']
     }
+  },
+  // Batch Operations for Efficiency
+  {
+    name: 'batch_create_npcs',
+    description: 'Create multiple NPCs at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npcs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              template: { type: 'string', description: 'Use a preset: goblin, orc, skeleton, etc.' },
+              type: {
+                type: 'string',
+                enum: ['enemy', 'ally', 'neutral']
+              },
+              customStats: { type: 'object', description: 'Override template stats' }
+            },
+            required: ['name']
+          }
+        }
+      },
+      required: ['npcs']
+    }
+  },
+  {
+    name: 'batch_update_npcs',
+    description: 'Update multiple NPCs at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        updates: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              npc_id: { type: 'number' },
+              updates: { type: 'object' }
+            },
+            required: ['npc_id', 'updates']
+          }
+        }
+      },
+      required: ['updates']
+    }
+  },
+  {
+    name: 'batch_apply_damage',
+    description: 'Apply damage to multiple targets at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targets: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              target_type: {
+                type: 'string',
+                enum: ['character', 'npc']
+              },
+              target_id: { type: 'number' },
+              damage: { type: 'number' }
+            },
+            required: ['target_type', 'target_id', 'damage']
+          }
+        }
+      },
+      required: ['targets']
+    }
+  },
+  {
+    name: 'batch_remove_npcs',
+    description: 'Remove multiple NPCs at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        npc_ids: {
+          type: 'array',
+          items: { type: 'number' }
+        }
+      },
+      required: ['npc_ids']
+    }
   }
 ];
 
@@ -1550,6 +1637,177 @@ ${(args as any).outcome === 'victory' ? '🎉 Victory! Well fought!' :
 🆔 Assignment ID: ${assignment.id}
 
 ✅ Ready to begin the quest!`;
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      // Batch operations
+      case 'batch_create_npcs': {
+        const { npcs } = args as any;
+        const createdNpcs = [];
+        
+        for (const npcData of npcs) {
+          const npc = db.createNPC(npcData) as any;
+          createdNpcs.push(npc);
+        }
+        
+        let output = `👥 BATCH NPC CREATION COMPLETE!\n\n`;
+        output += `📊 Created ${createdNpcs.length} NPCs:\n\n`;
+        
+        createdNpcs.forEach((npc: any, index: number) => {
+          const typeIcon = npc.type === 'enemy' ? '👹' : npc.type === 'ally' ? '🤝' : '🧑';
+          output += `${index + 1}. ${typeIcon} ${npc.name} (${npc.template || 'Custom'}) - ID: ${npc.id}\n`;
+        });
+        
+        output += `\n✅ All NPCs successfully created and ready for encounters!`;
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_update_npcs': {
+        const { updates } = args as any;
+        const updatedNpcs = [];
+        
+        for (const update of updates) {
+          try {
+            const npc = db.updateNPC(update.npc_id, update.updates) as any;
+            updatedNpcs.push({ success: true, npc, npc_id: update.npc_id });
+          } catch (error: any) {
+            updatedNpcs.push({ success: false, error: error.message, npc_id: update.npc_id });
+          }
+        }
+        
+        let output = `🔄 BATCH NPC UPDATE COMPLETE!\n\n`;
+        const successful = updatedNpcs.filter(u => u.success);
+        const failed = updatedNpcs.filter(u => !u.success);
+        
+        output += `📊 Results: ${successful.length} successful, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `✅ SUCCESSFUL UPDATES:\n`;
+          successful.forEach((update: any, index: number) => {
+            const typeIcon = update.npc.type === 'enemy' ? '👹' : update.npc.type === 'ally' ? '🤝' : '🧑';
+            output += `${index + 1}. ${typeIcon} ${update.npc.name} (ID: ${update.npc_id})\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED UPDATES:\n`;
+          failed.forEach((update: any, index: number) => {
+            output += `${index + 1}. NPC ID: ${update.npc_id} - Error: ${update.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_apply_damage': {
+        const { targets } = args as any;
+        const results = [];
+        
+        for (const target of targets) {
+          try {
+            const result = db.applyDamage(target.target_type, target.target_id, target.damage) as any;
+            
+            // Get target name
+            let targetName = `${target.target_type.toUpperCase()} ${target.target_id}`;
+            if (target.target_type === 'character') {
+              const character = db.getCharacter(target.target_id) as any;
+              if (character) targetName = character.name;
+            } else if (target.target_type === 'npc') {
+              const npc = db.getNPC(target.target_id) as any;
+              if (npc) targetName = npc.name;
+            }
+            
+            results.push({
+              success: true,
+              targetName,
+              damage: target.damage,
+              current_hp: result.current_hp,
+              max_hp: result.max_hp,
+              target_type: target.target_type,
+              target_id: target.target_id
+            });
+          } catch (error: any) {
+            results.push({
+              success: false,
+              error: error.message,
+              target_type: target.target_type,
+              target_id: target.target_id,
+              damage: target.damage
+            });
+          }
+        }
+        
+        let output = `💥 BATCH DAMAGE APPLICATION COMPLETE!\n\n`;
+        const successful = results.filter(r => r.success);
+        const failed = results.filter(r => !r.success);
+        
+        output += `📊 Results: ${successful.length} successful, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `✅ DAMAGE APPLIED:\n`;
+          successful.forEach((result: any, index: number) => {
+            const typeIcon = result.target_type === 'character' ? '🎭' : '👹';
+            const hpStatus = result.current_hp <= 0 ? '💀' : result.current_hp < result.max_hp / 2 ? '🩸' : '💚';
+            output += `${index + 1}. ${typeIcon} ${result.targetName}: -${result.damage}HP → ${result.current_hp}/${result.max_hp} ${hpStatus}\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.target_type.toUpperCase()} ${result.target_id}: ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_remove_npcs': {
+        const { npc_ids } = args as any;
+        const results = [];
+        
+        for (const npc_id of npc_ids) {
+          try {
+            // Get NPC name before removing
+            const npc = db.getNPC(npc_id) as any;
+            const npcName = npc ? npc.name : `NPC ${npc_id}`;
+            
+            db.removeNPC(npc_id);
+            results.push({ success: true, npc_id, name: npcName });
+          } catch (error: any) {
+            results.push({ success: false, npc_id, error: error.message });
+          }
+        }
+        
+        let output = `🗑️ BATCH NPC REMOVAL COMPLETE!\n\n`;
+        const successful = results.filter(r => r.success);
+        const failed = results.filter(r => !r.success);
+        
+        output += `📊 Results: ${successful.length} removed, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `✅ REMOVED:\n`;
+          successful.forEach((result: any, index: number) => {
+            output += `${index + 1}. 👹 ${result.name} (ID: ${result.npc_id})\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. NPC ID: ${result.npc_id} - Error: ${result.error}\n`;
+          });
+        }
         
         return {
           content: [{ type: 'text', text: output }]

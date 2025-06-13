@@ -439,6 +439,132 @@ const toolDefinitions = [
     name: 'generate_battlefield_map',
     description: 'Generate an ASCII map visualization of the battlefield',
     inputSchema: { type: 'object', properties: {} }
+  },
+  // Batch Operations for Efficiency
+  {
+    name: 'batch_place_creatures',
+    description: 'Place multiple creatures on the battlefield at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        creatures: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              creature_id: { type: 'string' },
+              name: { type: 'string' },
+              x: { type: 'number' },
+              y: { type: 'number' },
+              z: { type: 'number', default: 0 },
+              size: {
+                type: 'string',
+                enum: ['tiny', 'small', 'medium', 'large', 'huge', 'gargantuan'],
+                default: 'medium'
+              },
+              speed: { type: 'number', default: 30 },
+              reach: { type: 'number', default: 5 }
+            },
+            required: ['creature_id', 'name', 'x', 'y']
+          }
+        }
+      },
+      required: ['creatures']
+    }
+  },
+  {
+    name: 'batch_move_creatures',
+    description: 'Move multiple creatures at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        movements: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              creature_id: { type: 'string' },
+              target_x: { type: 'number' },
+              target_y: { type: 'number' },
+              target_z: { type: 'number', default: 0 },
+              speed: { type: 'number' }
+            },
+            required: ['creature_id', 'target_x', 'target_y', 'speed']
+          }
+        }
+      },
+      required: ['movements']
+    }
+  },
+  {
+    name: 'batch_attack_rolls',
+    description: 'Make multiple attack rolls at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        attacks: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              attacker: { type: 'string' },
+              target: { type: 'string' },
+              modifier: { type: 'number' },
+              advantage: { type: 'boolean' },
+              disadvantage: { type: 'boolean' }
+            },
+            required: ['attacker', 'target', 'modifier']
+          }
+        }
+      },
+      required: ['attacks']
+    }
+  },
+  {
+    name: 'batch_damage_rolls',
+    description: 'Roll damage for multiple attacks at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        damage_rolls: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              notation: { type: 'string' },
+              damage_type: { type: 'string' },
+              critical: { type: 'boolean' },
+              source: { type: 'string', description: 'What caused this damage (optional)' }
+            },
+            required: ['notation', 'damage_type']
+          }
+        }
+      },
+      required: ['damage_rolls']
+    }
+  },
+  {
+    name: 'batch_saving_throws',
+    description: 'Make multiple saving throws at once',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        saves: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              character: { type: 'string' },
+              ability: { type: 'string' },
+              dc: { type: 'number' },
+              modifier: { type: 'number' }
+            },
+            required: ['character', 'ability', 'dc', 'modifier']
+          }
+        }
+      },
+      required: ['saves']
+    }
   }
 ];
 
@@ -1187,6 +1313,355 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         
         return {
           content: [{ type: 'text', text: map }]
+        };
+      }
+
+      // Batch operations
+      case 'batch_place_creatures': {
+        const { creatures } = args as any;
+        const placedCreatures = [];
+        
+        for (const creatureData of creatures) {
+          try {
+            const { creature_id, name, x, y, z = 0, size = 'medium', speed = 30, reach = 5 } = creatureData;
+            
+            const creature = {
+              id: creature_id,
+              name,
+              position: { x, y, z },
+              size: { category: size as any, squares: size === 'large' ? 2 : 1 },
+              speed,
+              reach
+            };
+            
+            spatialEngine.addCreature(creature);
+            placedCreatures.push({ success: true, creature_id, name, position: { x, y, z } });
+          } catch (error: any) {
+            placedCreatures.push({ success: false, creature_id: creatureData.creature_id, error: error.message });
+          }
+        }
+        
+        let output = `📍 BATCH CREATURE PLACEMENT COMPLETE!\n\n`;
+        const successful = placedCreatures.filter(p => p.success);
+        const failed = placedCreatures.filter(p => !p.success);
+        
+        output += `📊 Results: ${successful.length} placed, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `✅ SUCCESSFULLY PLACED:\n`;
+          successful.forEach((result: any, index: number) => {
+            output += `${index + 1}. 👹 ${result.name} at (${result.position.x}, ${result.position.y}, ${result.position.z})\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED PLACEMENTS:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.creature_id}: ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_move_creatures': {
+        const { movements } = args as any;
+        const moveResults = [];
+        
+        for (const movement of movements) {
+          try {
+            const { creature_id, target_x, target_y, target_z = 0, speed } = movement;
+            
+            const battlefield = spatialEngine.getBattlefieldState();
+            const creature = battlefield.creatures.get(creature_id);
+            
+            if (!creature) {
+              moveResults.push({ success: false, creature_id, error: 'Creature not found' });
+              continue;
+            }
+            
+            const from = creature.position;
+            const to = { x: target_x, y: target_y, z: target_z };
+            
+            const movementResult = spatialEngine.validateMovement(creature, from, to, speed);
+            
+            if (movementResult.isValid) {
+              spatialEngine.moveCreature(creature_id, to);
+              moveResults.push({
+                success: true,
+                creature_id,
+                name: creature.name,
+                from,
+                to,
+                distance: movementResult.pathLength,
+                opportunity_attacks: movementResult.opportunityAttacks
+              });
+            } else {
+              moveResults.push({
+                success: false,
+                creature_id,
+                name: creature.name,
+                error: `Cannot move - ${movementResult.pathLength > speed ? 'insufficient speed' : 'path blocked'}`
+              });
+            }
+          } catch (error: any) {
+            moveResults.push({ success: false, creature_id: movement.creature_id, error: error.message });
+          }
+        }
+        
+        let output = `🏃 BATCH CREATURE MOVEMENT COMPLETE!\n\n`;
+        const successful = moveResults.filter(m => m.success);
+        const failed = moveResults.filter(m => !m.success);
+        
+        output += `📊 Results: ${successful.length} moved, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `✅ SUCCESSFUL MOVEMENTS:\n`;
+          successful.forEach((result: any, index: number) => {
+            output += `${index + 1}. 👹 ${result.name}: (${result.from.x},${result.from.y}) → (${result.to.x},${result.to.y}) [${Math.round(result.distance)}ft]\n`;
+            if (result.opportunity_attacks.length > 0) {
+              output += `   ⚠️ Triggered opportunity attacks: ${result.opportunity_attacks.join(', ')}\n`;
+            }
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED MOVEMENTS:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.name || result.creature_id}: ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_attack_rolls': {
+        const { attacks } = args as any;
+        const attackResults = [];
+        
+        for (const attack of attacks) {
+          try {
+            const { attacker, target, modifier = 0, advantage: hasAdvantage, disadvantage: hasDisadvantage } = attack;
+
+            let roll1 = rollDice('1d20');
+            let roll2 = (hasAdvantage || hasDisadvantage) ? rollDice('1d20') : null;
+            
+            let selectedD20 = roll1.total;
+            let diceUsed = [roll1.total];
+            
+            if (hasAdvantage && roll2) {
+              selectedD20 = Math.max(roll1.total, roll2.total);
+              diceUsed = [roll1.total, roll2.total];
+            } else if (hasDisadvantage && roll2) {
+              selectedD20 = Math.min(roll1.total, roll2.total);
+              diceUsed = [roll1.total, roll2.total];
+            }
+            
+            const finalTotal = selectedD20 + modifier;
+            const critical = selectedD20 === 20;
+            const fumble = selectedD20 === 1;
+            
+            attackResults.push({
+              success: true,
+              attacker,
+              target,
+              roll: selectedD20,
+              modifier,
+              total: finalTotal,
+              critical,
+              fumble,
+              advantage: hasAdvantage ? 'advantage' : hasDisadvantage ? 'disadvantage' : 'normal',
+              diceUsed: diceUsed.length > 1 ? diceUsed : undefined
+            });
+            
+            const advantageText = hasAdvantage ? ' (ADVANTAGE)' : hasDisadvantage ? ' (DISADVANTAGE)' : '';
+            const logEntry = `${attacker} attacks ${target}: ${finalTotal}${advantageText} ${critical ? '(CRITICAL!)' : fumble ? '(FUMBLE!)' : ''}`;
+            combatLog.push(logEntry);
+            
+          } catch (error: any) {
+            attackResults.push({
+              success: false,
+              attacker: attack.attacker,
+              target: attack.target,
+              error: error.message
+            });
+          }
+        }
+        
+        let output = `⚔️ BATCH ATTACK ROLLS COMPLETE!\n\n`;
+        const successful = attackResults.filter(a => a.success);
+        const failed = attackResults.filter(a => !a.success);
+        
+        output += `📊 Results: ${successful.length} attacks rolled, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `🎲 ATTACK RESULTS:\n`;
+          successful.forEach((result: any, index: number) => {
+            const advantageIcon = result.advantage === 'advantage' ? ' ✨' : result.advantage === 'disadvantage' ? ' 🌩️' : '';
+            const specialIcon = result.critical ? ' 🎉' : result.fumble ? ' 💥' : '';
+            const rollText = result.diceUsed ? `[${result.diceUsed.join(', ')}]→${result.roll}` : result.roll;
+            output += `${index + 1}. ⚔️ ${result.attacker} → ${result.target}: ${rollText}+${result.modifier} = ${result.total}${advantageIcon}${specialIcon}\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED ATTACKS:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.attacker} → ${result.target}: ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_damage_rolls': {
+        const { damage_rolls } = args as any;
+        const damageResults = [];
+        
+        for (const damageRoll of damage_rolls) {
+          try {
+            const { notation, damage_type, critical, source } = damageRoll;
+            
+            let result = rollDice(notation);
+            if (critical) {
+              const critRoll = rollDice(notation);
+              result.total += critRoll.total;
+              result.rolls = [...result.rolls, ...critRoll.rolls];
+            }
+            
+            damageResults.push({
+              success: true,
+              notation,
+              damage_type,
+              critical: !!critical,
+              total: result.total,
+              rolls: result.rolls,
+              modifier: result.modifier,
+              source: source || 'Unknown'
+            });
+            
+            const logEntry = `Damage (${damage_type}): ${result.total}${critical ? ' (CRITICAL)' : ''}${source ? ` from ${source}` : ''}`;
+            combatLog.push(logEntry);
+            
+          } catch (error: any) {
+            damageResults.push({
+              success: false,
+              notation: damageRoll.notation,
+              damage_type: damageRoll.damage_type,
+              error: error.message
+            });
+          }
+        }
+        
+        let output = `💥 BATCH DAMAGE ROLLS COMPLETE!\n\n`;
+        const successful = damageResults.filter(d => d.success);
+        const failed = damageResults.filter(d => !d.success);
+        
+        output += `📊 Results: ${successful.length} damage rolls, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          output += `🎲 DAMAGE RESULTS:\n`;
+          successful.forEach((result: any, index: number) => {
+            const critText = result.critical ? ' 🎉 CRITICAL' : '';
+            const sourceText = result.source !== 'Unknown' ? ` (${result.source})` : '';
+            
+            if (result.critical) {
+              const normalRolls = result.rolls.slice(0, result.rolls.length / 2);
+              const critRolls = result.rolls.slice(result.rolls.length / 2);
+              output += `${index + 1}. 💀 ${result.notation}${critText}: [${normalRolls.join(', ')}]+[${critRolls.join(', ')}] = ${result.total} ${result.damage_type}${sourceText}\n`;
+            } else {
+              output += `${index + 1}. 💀 ${result.notation}: [${result.rolls.join(', ')}] = ${result.total} ${result.damage_type}${sourceText}\n`;
+            }
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED DAMAGE ROLLS:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.notation} (${result.damage_type}): ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
+        };
+      }
+
+      case 'batch_saving_throws': {
+        const { saves } = args as any;
+        const saveResults = [];
+        
+        for (const save of saves) {
+          try {
+            const { character, ability, dc, modifier } = save;
+            const result = rollDice(`1d20+${modifier}`);
+            const success = result.total >= dc;
+            const margin = result.total - dc;
+            
+            saveResults.push({
+              success: true,
+              character,
+              ability,
+              roll: result.rolls[0],
+              modifier,
+              total: result.total,
+              dc,
+              passed: success,
+              margin,
+              natural20: result.rolls[0] === 20,
+              natural1: result.rolls[0] === 1
+            });
+            
+            const logEntry = `${character} ${ability} save: ${result.total} vs DC ${dc} - ${success ? 'SUCCESS' : 'FAILURE'}`;
+            combatLog.push(logEntry);
+            
+          } catch (error: any) {
+            saveResults.push({
+              success: false,
+              character: save.character,
+              ability: save.ability,
+              error: error.message
+            });
+          }
+        }
+        
+        let output = `🛡️ BATCH SAVING THROWS COMPLETE!\n\n`;
+        const successful = saveResults.filter(s => s.success);
+        const failed = saveResults.filter(s => !s.success);
+        
+        output += `📊 Results: ${successful.length} saves rolled, ${failed.length} failed\n\n`;
+        
+        if (successful.length > 0) {
+          const passed = successful.filter(s => s.passed);
+          const failedSaves = successful.filter(s => !s.passed);
+          
+          output += `🎲 SAVING THROW RESULTS:\n`;
+          output += `✅ Passed: ${passed.length} | ❌ Failed: ${failedSaves.length}\n\n`;
+          
+          successful.forEach((result: any, index: number) => {
+            const successIcon = result.passed ? '✅' : '❌';
+            const specialIcon = result.natural20 ? ' 🎉' : result.natural1 ? ' 💥' : '';
+            const marginText = result.passed ? `(+${result.margin})` : `(-${Math.abs(result.margin)})`;
+            
+            output += `${index + 1}. ${successIcon} ${result.character} ${result.ability}: ${result.roll}+${result.modifier} = ${result.total} vs DC${result.dc} ${marginText}${specialIcon}\n`;
+          });
+        }
+        
+        if (failed.length > 0) {
+          output += `\n❌ FAILED SAVING THROWS:\n`;
+          failed.forEach((result: any, index: number) => {
+            output += `${index + 1}. ${result.character} ${result.ability}: ${result.error}\n`;
+          });
+        }
+        
+        return {
+          content: [{ type: 'text', text: output }]
         };
       }
 
