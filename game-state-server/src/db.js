@@ -234,10 +234,17 @@ export class GameDatabase {
     // Inventory operations
     addItem(characterId, item) {
         const stmt = this.db.prepare(`
-      INSERT INTO inventory (character_id, item_name, item_type, quantity, properties)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO inventory (character_id, item_name, item_type, quantity, properties, equipped)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
-        const result = stmt.run(characterId, item.name, item.type, item.quantity || 1, item.properties ? JSON.stringify(item.properties) : null);
+        const result = stmt.run(
+            characterId,
+            item.name,
+            item.type || 'misc',
+            item.quantity || 1,
+            item.properties ? JSON.stringify(item.properties) : null,
+            item.equipped ? 1 : 0  // Convert boolean to integer for SQLite
+        );
         return { id: result.lastInsertRowid, ...item };
     }
     getInventory(characterId) {

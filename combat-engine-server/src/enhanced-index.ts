@@ -125,9 +125,9 @@ function triggerReaction(triggerType: string, triggeringCreature: string, target
   return availableReactions;
 }
 
-// Create server
+// Create enhanced server
 const server = new Server({
-  name: 'rpg-combat-engine-server',
+  name: 'rpg-enhanced-combat-engine-server',
   version: '2.0.0',
 }, {
   capabilities: { 
@@ -136,7 +136,7 @@ const server = new Server({
 });
 
 // Enhanced tool definitions
-const toolDefinitions = [
+const enhancedToolDefinitions = [
   // Original dice tools
   {
     name: 'roll_dice',
@@ -417,34 +417,12 @@ const toolDefinitions = [
     name: 'clear_combat_log',
     description: 'Clear the combat log',
     inputSchema: { type: 'object', properties: {} }
-  },
-  // Human-readable battlefield description tools
-  {
-    name: 'describe_battlefield',
-    description: 'Get a human-readable overview of the entire battlefield with terrain and creature positions',
-    inputSchema: { type: 'object', properties: {} }
-  },
-  {
-    name: 'describe_detailed_tactical_situation',
-    description: 'Get an enhanced narrative description of a creature\'s tactical situation',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        creature_id: { type: 'string' }
-      },
-      required: ['creature_id']
-    }
-  },
-  {
-    name: 'generate_battlefield_map',
-    description: 'Generate an ASCII map visualization of the battlefield',
-    inputSchema: { type: 'object', properties: {} }
   }
 ];
 
 // Tool handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: toolDefinitions
+  tools: enhancedToolDefinitions
 }));
 
 // Enhanced tool request handler
@@ -453,30 +431,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
   
   try {
     switch (name) {
-      // Original dice rolling tools (enhanced)
+      // Original dice rolling tools (unchanged)
       case 'roll_dice': {
         const result = rollDice((args as any).notation);
         const reason = (args as any).reason || 'Dice roll';
-        
-        let output = `🎲 ${reason.toUpperCase()}\n\n`;
-        output += `🎯 Roll: ${(args as any).notation}\n`;
-        
-        if (result.kept) {
-          output += `🎲 Rolled: [${result.rolls.join(', ')}]\n`;
-          output += `✨ Kept: [${result.kept.join(', ')}] ${result.kept.length === 1 ? (result.kept[0] === Math.max(...result.rolls) ? '(HIGHEST)' : '(LOWEST)') : ''}\n`;
-        } else {
-          output += `🎲 Rolled: [${result.rolls.join(', ')}]\n`;
-        }
-        
-        if (result.modifier !== 0) {
-          output += `➕ Modifier: ${result.modifier > 0 ? '+' : ''}${result.modifier}\n`;
-        }
-        
-        output += `🏆 TOTAL: ${result.total}`;
-        
-        // Add special roll indicators
-        if (result.rolls.includes(20)) output += ` 🎉`;
-        if (result.rolls.includes(1)) output += ` 💥`;
         
         let logEntry: string;
         if (result.kept) {
@@ -488,7 +446,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         combatLog.push(logEntry);
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
@@ -679,49 +637,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const toCreature = battlefield.creatures.get(to_creature);
         
         if (!fromCreature || !toCreature) {
-          const available = Array.from(battlefield.creatures.keys()).join(', ');
-          return {
-            content: [{ type: 'text', text: `❌ CREATURE NOT FOUND\n\nOne or both creatures not found on battlefield.\n🔍 Available creatures: ${available || 'none'}` }],
-            isError: true
-          };
+          throw new Error('One or both creatures not found on battlefield');
         }
         
         const los = spatialEngine.calculateLineOfSight(fromCreature.position, toCreature.position);
         const distance = spatialEngine.getDistance(fromCreature.position, toCreature.position);
         const rangeCategory = spatialEngine.getRangeCategory(distance);
         
-        let output = `👁️ LINE OF SIGHT CHECK\n\n`;
-        output += `🎯 ${fromCreature.name} ➤ ${toCreature.name}\n\n`;
-        output += `📏 Distance: ${Math.round(distance)}ft (${rangeCategory} range)\n`;
-        
-        if (los.hasLineOfSight) {
-          output += `👁️ Line of Sight: ✅ CLEAR\n`;
-        } else {
-          output += `👁️ Line of Sight: ❌ BLOCKED\n`;
-        }
-        
-        output += `🛡️ Cover: ${los.coverType === 'none' ? 'No cover' : los.coverType.replace('_', ' ') + ' cover'}\n`;
-        
-        if (los.blockedBy && los.blockedBy.length > 0) {
-          output += `🚧 Blocked by: ${los.blockedBy.join(', ')}\n`;
-        }
-        
-        // Add tactical advice
-        output += `\n🎯 TACTICAL SUMMARY:\n`;
-        if (los.hasLineOfSight) {
-          if (los.coverType === 'none') {
-            output += `✨ Perfect shot! No penalties to attack rolls.`;
-          } else if (los.coverType === 'half') {
-            output += `🛡️ Target has half cover (+2 AC and Dex saves).`;
-          } else if (los.coverType === 'three_quarters') {
-            output += `🛡️ Target has 3/4 cover (+5 AC and Dex saves).`;
-          }
-        } else {
-          output += `❌ Cannot target with spells or ranged attacks.`;
-        }
+        const result = {
+          from_creature,
+          to_creature,
+          distance: Math.round(distance),
+          range_category: rangeCategory,
+          line_of_sight: los.hasLineOfSight,
+          cover_type: los.coverType,
+          blocked_by: los.blockedBy || [],
+          description: `${from_creature} to ${to_creature}: ${Math.round(distance)}ft (${rangeCategory}), ${los.hasLineOfSight ? 'clear line of sight' : 'blocked'}, ${los.coverType} cover`
+        };
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
@@ -739,185 +674,77 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
         
         const targets = spatialEngine.getTargetsInArea(areaEffect);
-        const battlefield = spatialEngine.getBattlefieldState();
         
-        let output = `💥 AREA EFFECT TARGETING\n\n`;
-        output += `📍 Center: (${center_x}, ${center_y}, ${center_z})\n`;
-        output += `🔶 Shape: ${shape.charAt(0).toUpperCase() + shape.slice(1)}\n`;
-        output += `📏 Size: ${size} feet`;
-        
-        if (direction !== undefined) {
-          output += `\n🧭 Direction: ${direction}°`;
-        }
-        
-        output += `\n\n🎯 TARGETS CAUGHT IN EFFECT:\n`;
-        
-        if (targets.length === 0) {
-          output += `❌ No creatures in the affected area.\n`;
-        } else {
-          targets.forEach((targetId, index) => {
-            const creature = battlefield.creatures.get(targetId);
-            if (creature) {
-              const distance = spatialEngine.getDistance(creature.position, areaEffect.center);
-              output += `${index + 1}. 👹 ${creature.name} at (${creature.position.x},${creature.position.y},${creature.position.z}) - ${Math.round(distance)}ft from center\n`;
-            }
-          });
-        }
-        
-        output += `\n📊 SUMMARY: ${targets.length} creature${targets.length !== 1 ? 's' : ''} affected`;
-        
-        if (targets.length > 0) {
-          output += `\n💡 *Remember to roll saving throws for each target!*`;
-        }
+        const result = {
+          area_effect: {
+            center: { x: center_x, y: center_y, z: center_z },
+            shape,
+            size
+          },
+          targets,
+          count: targets.length,
+          description: `${shape.charAt(0).toUpperCase() + shape.slice(1)} effect (${size}ft) at (${center_x}, ${center_y}) affects ${targets.length} creature${targets.length !== 1 ? 's' : ''}`
+        };
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
       case 'get_tactical_summary': {
         const { creature_id } = args as any;
         
-        const battlefield = spatialEngine.getBattlefieldState();
-        const creature = battlefield.creatures.get(creature_id);
-        
-        if (!creature) {
-          const available = Array.from(battlefield.creatures.keys()).join(', ');
-          return {
-            content: [{ type: 'text', text: `❌ CREATURE NOT FOUND\n\nCreature "${creature_id}" not found on battlefield.\n🔍 Available creatures: ${available || 'none'}` }],
-            isError: true
-          };
-        }
-        
         const description = spatialEngine.describeTacticalSituation(creature_id);
         const flanked = spatialEngine.isCreatureFlanked(creature_id);
         
-        let output = `🎯 TACTICAL SUMMARY\n\n`;
-        output += `👤 Creature: ${creature.name}\n`;
-        output += `📍 Position: (${creature.position.x}, ${creature.position.y}, ${creature.position.z})\n`;
-        output += `📏 Size: ${creature.size.category}\n`;
-        output += `🏃 Speed: ${creature.speed}ft\n`;
-        output += `🤏 Reach: ${creature.reach}ft\n\n`;
-        
-        output += `🔍 SITUATION ANALYSIS:\n${description}\n\n`;
-        
-        if (flanked) {
-          output += `⚠️ WARNING: This creature is FLANKED! Enemies have advantage on melee attacks.\n\n`;
-        }
-        
-        // Add quick combat tips
-        output += `💡 TACTICAL TIPS:\n`;
-        if (flanked) {
-          output += `• 🏃 Consider repositioning to break flanking\n`;
-        }
-        output += `• 🎯 Use ranged attacks for safer positioning\n`;
-        output += `• 🛡️ Look for cover to improve AC/saves`;
+        const result = {
+          creature_id,
+          tactical_situation: description,
+          flanked,
+          description
+        };
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
       case 'check_flanking': {
         const { creature_id } = args as any;
         
-        const battlefield = spatialEngine.getBattlefieldState();
-        const creature = battlefield.creatures.get(creature_id);
-        
-        if (!creature) {
-          const available = Array.from(battlefield.creatures.keys()).join(', ');
-          return {
-            content: [{ type: 'text', text: `❌ CREATURE NOT FOUND\n\nCreature "${creature_id}" not found on battlefield.\n🔍 Available creatures: ${available || 'none'}` }],
-            isError: true
-          };
-        }
-        
         const flanked = spatialEngine.isCreatureFlanked(creature_id);
         
-        let output = `🎯 FLANKING CHECK\n\n`;
-        output += `👤 Creature: ${creature.name}\n`;
-        output += `📍 Position: (${creature.position.x}, ${creature.position.y}, ${creature.position.z})\n\n`;
-        
-        if (flanked) {
-          output += `⚠️ FLANKED: YES!\n`;
-          output += `📊 Effect: Enemies have advantage on melee attack rolls\n`;
-          output += `🎲 Sneak Attack: Rogues can use sneak attack (if applicable)\n\n`;
-          output += `💡 TACTICAL ADVICE:\n`;
-          output += `• 🏃 Move to break flanking positioning\n`;
-          output += `• 🛡️ Use Disengage action to avoid opportunity attacks\n`;
-          output += `• 🎯 Consider using ranged attacks or spells`;
-        } else {
-          output += `✅ FLANKED: NO\n`;
-          output += `🛡️ Status: Secure positioning - no flanking advantage for enemies\n\n`;
-          output += `💡 TACTICAL ADVICE:\n`;
-          output += `• 💪 Good positioning - maintain your stance\n`;
-          output += `• ⚔️ Look for opportunities to flank enemies\n`;
-          output += `• 🎯 You can attack normally without disadvantage`;
-        }
+        const result = {
+          creature_id,
+          flanked,
+          advantage: flanked,
+          description: flanked 
+            ? `${creature_id} is flanked and enemies have advantage on attacks`
+            : `${creature_id} is not flanked`
+        };
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
       case 'check_height_advantage': {
         const { attacker_id, target_id } = args as any;
         
-        const battlefield = spatialEngine.getBattlefieldState();
-        const attacker = battlefield.creatures.get(attacker_id);
-        const target = battlefield.creatures.get(target_id);
-        
-        if (!attacker || !target) {
-          const available = Array.from(battlefield.creatures.keys()).join(', ');
-          return {
-            content: [{ type: 'text', text: `❌ CREATURES NOT FOUND\n\nOne or both creatures not found on battlefield.\n🔍 Available creatures: ${available || 'none'}` }],
-            isError: true
-          };
-        }
-        
         const hasAdvantage = spatialEngine.hasHeightAdvantage(attacker_id, target_id);
-        const heightDiff = attacker.position.z - target.position.z;
         
-        let output = `🏔️ HEIGHT ADVANTAGE CHECK\n\n`;
-        output += `⚔️ Attacker: ${attacker.name} at height ${attacker.position.z}ft\n`;
-        output += `🎯 Target: ${target.name} at height ${target.position.z}ft\n`;
-        output += `📏 Height Difference: ${Math.abs(heightDiff)}ft`;
-        
-        if (heightDiff > 0) {
-          output += ` (attacker higher)\n\n`;
-        } else if (heightDiff < 0) {
-          output += ` (target higher)\n\n`;
-        } else {
-          output += ` (same level)\n\n`;
-        }
-        
-        if (hasAdvantage) {
-          output += `✅ HEIGHT ADVANTAGE: YES!\n`;
-          output += `🎲 Effect: Attacker has advantage on attack rolls\n`;
-          output += `💪 Bonus: +2 bonus to ranged attacks (optional rule)\n\n`;
-          output += `💡 TACTICAL BENEFITS:\n`;
-          output += `• 🎯 Roll twice, take higher result\n`;
-          output += `• 🏹 Better angle for ranged attacks\n`;
-          output += `• 👁️ Improved line of sight over obstacles`;
-        } else {
-          output += `❌ HEIGHT ADVANTAGE: NO\n`;
-          
-          if (heightDiff < 0) {
-            output += `⚠️ Disadvantage: Target is higher - they might have advantage!\n\n`;
-            output += `💡 SUGGESTIONS:\n`;
-            output += `• 🧗 Find higher ground if possible\n`;
-            output += `• 🎯 Use spells that don't require attack rolls\n`;
-            output += `• 🛡️ Seek cover from elevated attacks`;
-          } else {
-            output += `📊 Status: Normal attack rolls (no height modifier)\n\n`;
-            output += `💡 SUGGESTIONS:\n`;
-            output += `• 🧗 Look for elevated positions nearby\n`;
-            output += `• 🎯 Standard combat tactics apply`;
-          }
-        }
+        const result = {
+          attacker_id,
+          target_id,
+          height_advantage: hasAdvantage,
+          advantage: hasAdvantage,
+          description: hasAdvantage 
+            ? `${attacker_id} has height advantage over ${target_id} (+2 to attack)`
+            : `${attacker_id} does not have height advantage over ${target_id}`
+        };
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
@@ -931,55 +758,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const result = rollDice(notation);
         const success = dc ? result.total >= dc : null;
         
-        let output = `🎯 ${ability.toUpperCase()} CHECK\n\n`;
-        output += `👤 Character: ${character}\n`;
-        output += `🎲 Roll: ${notation}`;
-        
-        if (advantage) output += ` ✨ ADVANTAGE`;
-        if (disadvantage) output += ` 🌩️ DISADVANTAGE`;
-        
-        output += `\n`;
-        
-        if (result.kept) {
-          output += `🎲 Rolled: [${result.rolls.join(', ')}]\n`;
-          output += `✨ Used: ${result.kept[0]} ${result.kept[0] === Math.max(...result.rolls) ? '(HIGHEST)' : '(LOWEST)'}\n`;
-        } else {
-          output += `🎲 Rolled: ${result.rolls[0]}\n`;
-        }
-        
-        output += `➕ Modifier: ${modifier >= 0 ? '+' : ''}${modifier}\n`;
-        output += `🏆 TOTAL: ${result.total}`;
-        
-        // Add difficulty assessment for context
-        if (dc) {
-          const margin = result.total - dc;
-          output += `\n🎯 DC: ${dc}\n`;
-          output += `📊 RESULT: ${success ? '✅ SUCCESS!' : '❌ FAILURE!'}`;
-          if (success && margin >= 10) {
-            output += ` 🌟 CRITICAL SUCCESS! (beat DC by ${margin})`;
-          } else if (success && margin >= 5) {
-            output += ` 🎉 Solid Success! (beat DC by ${margin})`;
-          } else if (!success && margin >= -5) {
-            output += ` 😤 Close Call! (missed by ${Math.abs(margin)})`;
-          } else if (!success) {
-            output += ` 💥 Clear Failure (missed by ${Math.abs(margin)})`;
-          }
-        } else {
-          // No DC - give context based on the roll
-          if (result.total >= 20) output += ` 🌟 EXCEPTIONAL!`;
-          else if (result.total >= 15) output += ` 🎉 GREAT ROLL!`;
-          else if (result.total >= 10) output += ` 👍 DECENT`;
-          else if (result.total >= 5) output += ` 😬 LOW`;
-          else output += ` 💥 TERRIBLE`;
-        }
-        
         const advantageText = advantage ? ' (ADVANTAGE)' : disadvantage ? ' (DISADVANTAGE)' : '';
         const dcText = dc ? ` vs DC ${dc} - ${success ? 'SUCCESS' : 'FAILURE'}` : '';
         const logEntry = `${character} ${ability} check${advantageText}: ${result.total}${dcText}`;
         combatLog.push(logEntry);
         
+        const response: any = {
+          character,
+          ability,
+          total: result.total,
+          modifier,
+          rolls: result.rolls
+        };
+        
+        if (result.kept) response.kept = result.kept;
+        if (advantage) response.advantage = true;
+        if (disadvantage) response.disadvantage = true;
+        if (dc) {
+          response.dc = dc;
+          response.success = success;
+        }
+        
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
         };
       }
 
@@ -988,24 +789,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const logEntry = `${(args as any).character} initiative: ${result.total}`;
         combatLog.push(logEntry);
         
-        let output = `⚡ INITIATIVE ROLL\n\n`;
-        output += `👤 Character: ${(args as any).character}\n`;
-        output += `🎲 Rolled: ${result.rolls[0]}\n`;
-        if (result.modifier !== 0) {
-          output += `➕ Modifier: ${result.modifier >= 0 ? '+' : ''}${result.modifier}\n`;
-        }
-        output += `🏆 INITIATIVE: ${result.total}`;
-        
-        if (result.rolls[0] === 20) output += ` 🎉 NATURAL 20!`;
-        if (result.rolls[0] === 1) output += ` 💥 NATURAL 1!`;
-        
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ 
+            type: 'text', 
+            text: JSON.stringify({ 
+              character: (args as any).character,
+              total: result.total,
+              roll: result.rolls[0],
+              modifier: result.modifier
+            }, null, 2) 
+          }]
         };
       }
 
       case 'attack_roll': {
-        const { attacker, target, modifier = 0, advantage: hasAdvantage, disadvantage: hasDisadvantage } = args as any;
+        const { attacker, target, modifier = 0, advantage: hasAdvantage, disadvantage: hasDisadvantage } = args as any; 
 
         let roll1 = rollDice('1d20');
         let roll2 = (hasAdvantage || hasDisadvantage) ? rollDice('1d20') : null;
@@ -1025,32 +823,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const critical = selectedD20 === 20;
         const fumble = selectedD20 === 1;
         
-        let output = `⚔️ ATTACK ROLL\n\n`;
-        output += `👤 ${attacker} ➤ 🎯 ${target}\n\n`;
-        
-        if (hasAdvantage || hasDisadvantage) {
-          output += `🎲 Rolled: [${diceUsed.join(', ')}]\n`;
-          output += `✨ Used: ${selectedD20} ${hasAdvantage ? '(HIGHEST)' : '(LOWEST)'}\n`;
-          output += `📊 Type: ${hasAdvantage ? '✨ ADVANTAGE' : '🌩️ DISADVANTAGE'}\n`;
-        } else {
-          output += `🎲 Rolled: ${selectedD20}\n`;
-        }
-        
-        if (modifier !== 0) {
-          output += `➕ Modifier: ${modifier >= 0 ? '+' : ''}${modifier}\n`;
-        }
-        
-        output += `🏆 TOTAL: ${finalTotal}`;
-        
-        if (critical) output += ` 🎉 CRITICAL HIT!`;
-        if (fumble) output += ` 💥 CRITICAL MISS!`;
-        
         const advantageText = hasAdvantage ? ' (ADVANTAGE)' : hasDisadvantage ? ' (DISADVANTAGE)' : '';
         const logEntry = `${attacker} attacks ${target}: ${finalTotal}${advantageText} ${critical ? '(CRITICAL!)' : fumble ? '(FUMBLE!)' : ''}`;
         combatLog.push(logEntry);
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              total: finalTotal,
+              d20: selectedD20,
+              modifier: modifier,
+              allRolls: diceUsed,
+              advantage: hasAdvantage,
+              disadvantage: hasDisadvantage,
+              critical,
+              fumble
+            }, null, 2)
+          }]
         };
       }
 
@@ -1062,97 +852,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           result.rolls = [...result.rolls, ...critRoll.rolls];
         }
         
-        let output = `💥 DAMAGE ROLL\n\n`;
-        output += `🎲 Roll: ${(args as any).notation}\n`;
-        output += `⚡ Type: ${(args as any).damage_type}`;
-        if ((args as any).critical) output += ` 🎉 CRITICAL`;
-        output += `\n`;
-        
-        if ((args as any).critical) {
-          const normalRolls = result.rolls.slice(0, result.rolls.length / 2);
-          const critRolls = result.rolls.slice(result.rolls.length / 2);
-          output += `🎲 Normal: [${normalRolls.join(', ')}]\n`;
-          output += `🎉 Critical: [${critRolls.join(', ')}]\n`;
-        } else {
-          output += `🎲 Rolled: [${result.rolls.join(', ')}]\n`;
-        }
-        
-        if (result.modifier !== 0) {
-          output += `➕ Modifier: ${result.modifier >= 0 ? '+' : ''}${result.modifier}\n`;
-        }
-        
-        output += `💀 TOTAL DAMAGE: ${result.total} ${(args as any).damage_type}`;
-        
         const logEntry = `Damage (${(args as any).damage_type}): ${result.total}${(args as any).critical ? ' (CRITICAL)' : ''}`;
         combatLog.push(logEntry);
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
         };
       }
 
       case 'saving_throw': {
-        const { character, ability, dc, modifier } = args as any;
-        const result = rollDice(`1d20+${modifier}`);
-        const success = result.total >= dc;
-        const margin = result.total - dc;
+        const result = rollDice(`1d20+${(args as any).modifier}`);
+        const success = result.total >= (args as any).dc;
         
-        let output = `🛡️ ${ability.toUpperCase()} SAVING THROW\n\n`;
-        output += `👤 Character: ${character}\n`;
-        output += `🎲 Rolled: ${result.rolls[0]}\n`;
-        if (result.modifier !== 0) {
-          output += `➕ Modifier: ${result.modifier >= 0 ? '+' : ''}${result.modifier}\n`;
-        }
-        output += `🏆 TOTAL: ${result.total}\n`;
-        output += `🎯 DC: ${dc}\n`;
-        output += `📊 RESULT: ${success ? '✅ SUCCESS!' : '❌ FAILURE!'}`;
-        
-        // Add contextual feedback
-        if (success && margin >= 10) {
-          output += ` 🌟 EXCEPTIONAL! (beat DC by ${margin})`;
-        } else if (success && margin >= 5) {
-          output += ` 🎉 Strong Save! (beat DC by ${margin})`;
-        } else if (success) {
-          output += ` 😅 Barely Made It! (beat DC by ${margin})`;
-        } else if (margin >= -5) {
-          output += ` 😤 So Close! (missed by ${Math.abs(margin)})`;
-        } else {
-          output += ` 💥 Failed Badly (missed by ${Math.abs(margin)})`;
-        }
-        
-        // Add natural 20/1 indicators
-        if (result.rolls[0] === 20) output += `\n🎉 NATURAL 20! Auto-success against most effects!`;
-        if (result.rolls[0] === 1) output += `\n💥 NATURAL 1! Critical failure!`;
-        
-        const logEntry = `${character} ${ability} save: ${result.total} vs DC ${dc} - ${success ? 'SUCCESS' : 'FAILURE'}`;
+        const logEntry = `${(args as any).character} ${(args as any).ability} save: ${result.total} vs DC ${(args as any).dc} - ${success ? 'SUCCESS' : 'FAILURE'}`;
         combatLog.push(logEntry);
         
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ 
+            type: 'text', 
+            text: JSON.stringify({ 
+              total: result.total, 
+              dc: (args as any).dc, 
+              success,
+              rolls: result.rolls,
+              modifier: result.modifier
+            }, null, 2) 
+          }]
         };
       }
 
       case 'get_combat_log': {
         const limit = (args as any).limit || 10;
         const recentLog = combatLog.slice(-limit);
-        
-        if (recentLog.length === 0) {
-          return {
-            content: [{ type: 'text', text: '📋 COMBAT LOG EMPTY\n\nNo combat actions recorded yet. Start making some moves! ⚔️' }]
-          };
-        }
-        
-        let output = '📋 COMBAT LOG (Last ' + Math.min(limit, recentLog.length) + ' entries)\n\n';
-        recentLog.forEach((entry, index) => {
-          output += `${index + 1}. ${entry}\n`;
-        });
-        
-        if (combatLog.length > limit) {
-          output += `\n💡 *Showing last ${limit} of ${combatLog.length} total entries*`;
-        }
-        
         return {
-          content: [{ type: 'text', text: output }]
+          content: [{ type: 'text', text: recentLog.join('\n') }]
         };
       }
 
@@ -1160,33 +893,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         combatLog = [];
         return {
           content: [{ type: 'text', text: 'Combat log cleared' }]
-        };
-      }
-
-      // Human-readable battlefield description tools
-      case 'describe_battlefield': {
-        const description = spatialEngine.describeBattlefield();
-        
-        return {
-          content: [{ type: 'text', text: description }]
-        };
-      }
-
-      case 'describe_detailed_tactical_situation': {
-        const { creature_id } = args as any;
-        
-        const description = spatialEngine.describeDetailedTacticalSituation(creature_id);
-        
-        return {
-          content: [{ type: 'text', text: description }]
-        };
-      }
-
-      case 'generate_battlefield_map': {
-        const map = spatialEngine.generateBattlefieldMap();
-        
-        return {
-          content: [{ type: 'text', text: map }]
         };
       }
 

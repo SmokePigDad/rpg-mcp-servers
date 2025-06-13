@@ -292,8 +292,14 @@ export class GameDatabase {
     // Migrations for existing tables
     this.addColumnIfNotExists('characters', 'armor_class', 'INTEGER DEFAULT 10');
     this.addColumnIfNotExists('inventory', 'equipped', 'BOOLEAN DEFAULT FALSE');
-this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_ENDED\'');
+    this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_ENDED\'');
     this.addColumnIfNotExists('encounters', 'currentActorActions', 'TEXT');
+    // Add D&D 5E character fields
+    this.addColumnIfNotExists('characters', 'race', 'TEXT DEFAULT \'Human\'');
+    this.addColumnIfNotExists('characters', 'background', 'TEXT DEFAULT \'Folk Hero\'');
+    this.addColumnIfNotExists('characters', 'alignment', 'TEXT DEFAULT \'Neutral\'');
+    this.addColumnIfNotExists('characters', 'hit_dice_remaining', 'INTEGER DEFAULT 1');
+    this.addColumnIfNotExists('characters', 'speed', 'INTEGER DEFAULT 30');
   }
 
   private addColumnIfNotExists(tableName: string, columnName: string, columnDefinition: string) {
@@ -320,29 +326,51 @@ this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_END
     wisdom?: number;
     charisma?: number;
     armor_class?: number;
+    race?: string;
+    background?: string;
+    alignment?: string;
+    level?: number;
   }) {
-    const maxHp = 10 + (data.constitution || 10);
+    const level = data.level || 1;
+    const constitution = data.constitution || 10;
+    const conMod = Math.floor((constitution - 10) / 2);
+    
+    // Calculate HP based on class and level (simplified)
+    const hitDieByClass: Record<string, number> = {
+      'Wizard': 6, 'Sorcerer': 6,
+      'Rogue': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Monk': 8, 'Warlock': 8,
+      'Fighter': 10, 'Paladin': 10, 'Ranger': 10,
+      'Barbarian': 12
+    };
+    const hitDie = hitDieByClass[data.class] || 8;
+    const maxHp = hitDie + conMod + ((level - 1) * (Math.floor(hitDie / 2) + 1 + conMod));
     
     const stmt = this.db.prepare(`
       INSERT INTO characters (
-        name, class, max_hp, current_hp, armor_class,
-        strength, dexterity, constitution,
-        intelligence, wisdom, charisma
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        name, class, level, max_hp, current_hp, armor_class,
+        strength, dexterity, constitution, intelligence, wisdom, charisma,
+        race, background, alignment, hit_dice_remaining, speed
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
       data.name,
       data.class,
+      level,
       maxHp,
       maxHp,
-      data.armor_class || 10,
+      data.armor_class || (10 + Math.floor(((data.dexterity || 10) - 10) / 2)), // AC = 10 + Dex mod
       data.strength || 10,
       data.dexterity || 10,
       data.constitution || 10,
       data.intelligence || 10,
       data.wisdom || 10,
-      data.charisma || 10
+      data.charisma || 10,
+      data.race || 'Human',
+      data.background || 'Folk Hero',
+      data.alignment || 'Neutral',
+      level, // Hit dice remaining = level
+      30 // Default speed
     );
 
     return this.getCharacter(result.lastInsertRowid as number);
@@ -397,7 +425,7 @@ this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_END
       item.type,
       item.quantity || 1,
       item.properties ? JSON.stringify(item.properties) : null,
-      item.equipped || false
+      item.equipped ? 1 : 0
     );
 
     return { id: result.lastInsertRowid, ...item };
@@ -423,6 +451,17 @@ this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_END
     const stmt = this.db.prepare(`UPDATE inventory SET ${setClause} WHERE id = ?`);
     
     stmt.run(...values, id);
+  }
+
+  getItem(id: number) {
+    const stmt = this.db.prepare('SELECT * FROM inventory WHERE id = ?');
+    const item = stmt.get(id) as any;
+    
+    if (item && item.properties) {
+      item.properties = JSON.parse(item.properties);
+    }
+    
+    return item;
   }
 
   removeItem(id: number) {
@@ -691,19 +730,73 @@ this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_END
   }
 
   updateNPC(id: number, updates: Record<string, any>) {
+    // Map common field names to database column names
+    const fieldMapping: Record<string, string> = {
+      'hit_points': 'current_hp',
+      'max_hit_points': 'max_hp',
+      'level': 'challenge_rating', // NPCs don't have levels, use CR instead
+      'special_abilities': 'abilities',
+      'damage_resistances': 'abilities', // Store in abilities JSON
+      'damage_immunities': 'abilities',
+      'condition_immunities': 'abilities'
+    };
+
+    // Apply field mapping
+    const mappedUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      const dbField = fieldMapping[key] || key;
+      
+      // Special handling for abilities-related fields
+      if (['special_abilities', 'damage_resistances', 'damage_immunities', 'condition_immunities'].includes(key)) {
+        // Get existing abilities or create new object
+        const existingNPC = this.getNPC(id);
+        let abilities = existingNPC?.abilities || {};
+        
+        // If it's an array, store it properly
+        if (Array.isArray(value)) {
+          abilities[key] = value;
+        } else if (typeof value === 'string') {
+          abilities[key] = value;
+        }
+        
+        mappedUpdates['abilities'] = abilities;
+      } else {
+        mappedUpdates[dbField] = value;
+      }
+    }
+
     // Handle JSON fields
-    if (updates.attacks && typeof updates.attacks === 'object') {
-      updates.attacks = JSON.stringify(updates.attacks);
+    if (mappedUpdates.attacks && typeof mappedUpdates.attacks === 'object') {
+      mappedUpdates.attacks = JSON.stringify(mappedUpdates.attacks);
     }
-    if (updates.abilities && typeof updates.abilities === 'object') {
-      updates.abilities = JSON.stringify(updates.abilities);
+    if (mappedUpdates.abilities && typeof mappedUpdates.abilities === 'object') {
+      mappedUpdates.abilities = JSON.stringify(mappedUpdates.abilities);
     }
-    if (updates.conditions && typeof updates.conditions === 'object') {
-      updates.conditions = JSON.stringify(updates.conditions);
+    if (mappedUpdates.conditions && typeof mappedUpdates.conditions === 'object') {
+      mappedUpdates.conditions = JSON.stringify(mappedUpdates.conditions);
     }
     
-    const fields = Object.keys(updates);
-    const values = Object.values(updates);
+    // Filter out any invalid fields that don't exist in the database
+    const validFields = [
+      'name', 'type', 'creature_type', 'size', 'current_hp', 'max_hp', 'armor_class', 'speed',
+      'strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma',
+      'proficiency_bonus', 'initiative_modifier', 'attacks', 'abilities', 'conditions',
+      'is_alive', 'challenge_rating', 'experience_value', 'template_id'
+    ];
+    
+    const filteredUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(mappedUpdates)) {
+      if (validFields.includes(key)) {
+        filteredUpdates[key] = value;
+      }
+    }
+    
+    if (Object.keys(filteredUpdates).length === 0) {
+      throw new Error('No valid fields provided for NPC update');
+    }
+    
+    const fields = Object.keys(filteredUpdates);
+    const values = Object.values(filteredUpdates);
     
     const setClause = fields.map(f => `${f} = ?`).join(', ');
     const stmt = this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`);
@@ -873,10 +966,19 @@ this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_END
       return null;
     }
 
-    // Update encounter with new turn and round
+    // Initialize turn state and actor actions
+    const initialActions = {
+      actionAvailable: true,
+      bonusActionAvailable: true,
+      movementRemaining: 30
+    };
+
+    // Update encounter with new turn, round, and proper state management
     this.db.prepare(
-        `UPDATE encounters SET current_turn = ?, current_round = ? WHERE id = ?`
-    ).run(nextTurnOrder, encounter.current_round, encounterId);
+        `UPDATE encounters
+         SET current_turn = ?, current_round = ?, currentState = ?, currentActorActions = ?
+         WHERE id = ?`
+    ).run(nextTurnOrder, encounter.current_round, 'TURN_STARTED', JSON.stringify(initialActions), encounterId);
     
     // The nextParticipant object already contains all necessary details from getEncounterParticipants
     return nextParticipant;
