@@ -1,0 +1,22 @@
+This major feature release refactors the entire MCP server suite from a Dungeons & Dragons 5e system to a generic, interactive engine for the classic World of Darkness (oWoD). The system now supports Vampire, Werewolf, Mage, Changeling, Wraith, and Mummy in a pre-Time of Judgment setting.
+
+The core design philosophy has shifted to a "choice-based progression" model, where the AI Storyteller guides the player through the narrative and mechanics with interactive choices.
+
+**Key Changes:**
+
+**1. `game-state-server` Overhaul:**
+- **Universal Data Model:** Replaced the D&D character schema with a unified WoD schema using flexible JSON fields for `attributes`, `abilities`, `powers`, and `resources`. This allows storing any supernatural type in a single table.
+- **WoD Health System:** Reworked the damage model from HP to a Health Level system (`damage_taken` JSON) that correctly tracks Bashing, Lethal, and Aggravated damage.
+- **New WoD Tools:** Replaced D&D-specific tools with new, generic WoD functions:
+    - `create_character`: Now builds characters based on the universal WoD schema.
+    - `update_character`: Now supports dot-notation for updating nested JSON stats.
+    - `inflict_damage`: A new tool to apply WoD-style damage.
+    - `spend_willpower` & `spend_resource`: For managing game-specific resources like Blood Pool, Gnosis, Rage, etc.
+
+**2. `combat-engine-server` Overhaul:**
+- **New Dice Engine:** Completely replaced the d20 dice roller with a d10 dice pool engine (`DiceEngine`) that correctly handles variable difficulties, successes, specialties, and botches per Storyteller System rules.
+- **Streamlined WoD Tools:** Removed all D&D-specific combat tools and replaced them with two powerful, generic functions:
+    - `perform_roll`: The universal workhorse for all non-combat actions.
+    - `perform_combat_roll`: A streamlined tool that handles the entire attack-damage-soak sequence in a single call, simplifying combat logic for the AI.
+
+This architectural shift creates a robust and flexible backend capable of running complex, crossover World of Darkness chronicles with a focus on player choice and narrative interaction.

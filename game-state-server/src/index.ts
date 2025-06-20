@@ -9,7 +9,7 @@ const db = new GameDatabase();
 // Create the server instance
 const server = new Server({
     name: 'rpg-game-state-server',
-    version: '2.0.0-wod',
+    version: '2.1.0-wod', // Version updated to reflect new tools
 }, {
     capabilities: {
         tools: {},
@@ -91,6 +91,41 @@ const toolDefinitions = [
             },
             required: ['character_id', 'resource_name', 'amount']
         }
+    },
+    // New UX and Progression Tools
+    {
+        name: 'display_health',
+        description: "Generates a visual string representing a character's current health levels, damage, and wound penalties.",
+        inputSchema: {
+            type: 'object',
+            properties: {
+                character_id: { type: 'number' }
+            },
+            required: ['character_id']
+        }
+    },
+    {
+        name: 'spend_experience',
+        description: 'Spend experience points to improve a character trait. The server calculates the cost automatically.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                character_id: { type: 'number' },
+                trait_to_improve: { type: 'string', description: 'The dot-notation path to the trait, e.g., "attributes.physical.strength" or "powers.disciplines.Auspex".' }
+            },
+            required: ['character_id', 'trait_to_improve']
+        }
+    },
+    {
+        name: 'generate_character_sheet_html',
+        description: 'Generates a stylized HTML file for a character sheet.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                character_id: { type: 'number' }
+            },
+            required: ['character_id']
+        }
     }
 ];
 
@@ -162,7 +197,25 @@ Remaining: ${character.willpower_current}/${character.willpower_permanent}`;
 Remaining: ${newAmount}.`;
                 return { content: [{ type: 'text', text: output }] };
             }
+
+            case 'display_health': {
+                const healthInfo = db.display_health((args as any).character_id);
+                return { content: [{ type: 'text', text: healthInfo.visual }] };
+            }
+
+            case 'spend_experience': {
+                const result = db.spend_experience((args as any).character_id, (args as any).trait_to_improve);
+                const output = `✅ ${result.message}\nRemaining XP: ${result.remainingXp}`;
+                return { content: [{ type: 'text', text: output }] };
+            }
             
+            case 'generate_character_sheet_html': {
+                const htmlContent = db.generate_character_sheet_html((args as any).character_id);
+                return {
+                    content: [{ type: 'html', html: htmlContent }]
+                };
+            }
+
             default:
                 throw new Error(`Unknown tool: ${name}`);
         }

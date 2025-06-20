@@ -1,7 +1,6 @@
 # 💀 Unified World of Darkness Engine - MCP Servers
 
-> **_Updated for the new World of Darkness project overhaul (June 2025)._**
-**A complete backend server suite for AI-powered World of Darkness chronicles.** Features a unified data model for 6+ game lines, an authentic d10 dice pool engine, and tools designed for interactive, choice-based storytelling.
+**A complete backend server suite for AI-powered World of Darkness chronicles.** Features a unified data model for 6+ game lines, an authentic d10 dice pool engine, and "intelligent" tools designed for robust, interactive storytelling.
 
 ## 🚀 **Core Features**
 
@@ -12,21 +11,21 @@ The system is built on a universal character schema that can handle Vampires, We
 - **d10 Dice Pool Engine:** A complete replacement of the d20 system. The new engine correctly handles variable difficulties, successes, specialties, and catastrophic botches.
 - **WoD Health & Damage:** The HP system has been removed in favor of a proper Health Level tracker that manages Bashing, Lethal, and Aggravated damage.
 
-### 💬 **Designed for Interactive Storytelling**
-The toolset has been streamlined to support a "Describe -> Ask -> Resolve" gameplay loop. The AI uses generic, powerful tools to resolve player choices, making for a more dynamic and collaborative narrative experience.
+### 🧠 **Intelligent & Automated Tools**
+- **Automated Combat Resolution:** A single `resolve_attack` tool fetches character stats, calculates dice pools, and resolves the entire attack-damage-soak sequence, reducing AI workload and errors.
+- **Rules-Aware Character Progression:** A dedicated `spend_experience` tool calculates and enforces the correct XP costs for improving traits, ensuring game balance.
+- **Dynamic Data Visualization:** Tools like `display_health` and `generate_character_sheet_html` offload complex formatting from the AI, providing rich, thematic feedback to the player.
 
 ## 🏗️ **Project Architecture**
 
-- **`game-state-server/`**: A SQLite-based server for persistent character data. Manages the universal character schema, resources (Blood, Gnosis, Rage, etc.), and damage states.
-- **`combat-engine-server/`**: A stateless mechanics engine that handles all dice rolls for the Storyteller System, including a streamlined combat resolver.
+- **`game-state-server/`**: A SQLite-based server for persistent character data. Manages the universal character schema, resources, damage states, and contains the logic for XP costs and data visualization.
+- **`combat-engine-server/`**: A mechanics engine that handles all dice rolls and uses the game-state server to resolve complex actions like combat.
 
 ## 🛠️ **Prerequisites**
 
 **Roo Code Installation Required:**
 - Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline)
-- Or via CLI: `code --install-extension RooVeterinaryInc.roo-cline`
-- Configure your AI provider (OpenAI, Anthropic, etc.).
-- Visit [Roo Code docs](https://docs.roocode.com) for setup details.
+- Configure your AI provider and visit [Roo Code docs](https://docs.roocode.com) for setup details.
 
 ## 🚀 **Quick Setup**
 
@@ -52,7 +51,7 @@ cd combat-engine-server && npm start
 
 ### 3. **Configure Roo Code MCP Settings**
 
-Add the following to your `mcp_settings.json` file. Replace `PATH_TO_YOUR_PROJECT` with the full, absolute path to your `oWoD-Game-Experiment` folder (e.g., `E:\\Tinker\\oWoD-Game-Experiment`) and `PATH_TO_NODE` with the path to your `node.exe` (e.g., `D:\\Program Files\\nodejs\\node.exe`).
+Add the following to your `mcp_settings.json` file. Replace `PATH_TO_YOUR_PROJECT` and `PATH_TO_NODE` with your specific local paths.
 
 ```json
 {
@@ -65,7 +64,8 @@ Add the following to your `mcp_settings.json` file. Replace `PATH_TO_YOUR_PROJEC
       "enabled": true,
       "alwaysAllow": [
         "create_character", "get_character", "update_character",
-        "inflict_damage", "spend_willpower", "spend_resource"
+        "inflict_damage", "spend_willpower", "spend_resource",
+        "display_health", "spend_experience", "generate_character_sheet_html"
       ]
     },
     "rpg-combat-engine-wod": {
@@ -75,54 +75,43 @@ Add the following to your `mcp_settings.json` file. Replace `PATH_TO_YOUR_PROJEC
       "cwd": "PATH_TO_YOUR_PROJECT\\rpg-mcp-servers\\combat-engine-server",
       "enabled": true,
       "alwaysAllow": [
-        "perform_roll", "perform_combat_roll"
+        "perform_roll", "resolve_attack"
       ]
     }
   }
 }
 ```
 
-## 🎯 **Usage Examples**
+## 🎯 **Tool API & Usage Examples**
 
-### **Create a Character**
+### **Intelligent Combat Resolution**
 ```javascript
-// Creates a new Vampire character with a full WoD stat block
-create_character({
-  "name": "Victor",
-  "character_type": "Vampire",
-  "splat1": "Ventrue",
-  "attributes": { "physical": {"strength": 2}, "social": {"charisma": 4}, "mental": {"wits": 3} },
-  "abilities": { "talents": {"subterfuge": 3}, "skills": {"etiquette": 2}, "knowledges": {"politics": 2} },
-  "willpower_permanent": 5,
-  "powers": { "disciplines": { "Dominate": 2, "Presence": 1 } },
-  "resources": { "blood_pool": 10 }
+// A single, simple call from the AI resolves a full combat sequence.
+resolve_attack({
+  "attacker_id": 1,
+  "defender_id": 2,
+  "attack_type": "brawl_punch"
 })
 ```
 
-### **Perform a Skill Check**
+### **Rules-Aware Character Progression**
 ```javascript
-// The AI constructs this call after the player decides to sneak
-perform_roll({
-  "pool_size": 6, // Dexterity 3 + Stealth 3
-  "difficulty": 7,
-  "reason": "Dexterity + Stealth to slip past the security camera"
+// The AI tells the server what to improve; the server handles the rules and cost.
+spend_experience({
+  "character_id": 1,
+  "trait_to_improve": "attributes.physical.strength"
 })
 ```
 
-### **Resolve a Combat Action**
+### **Data Visualization**
 ```javascript
-// A single call to handle an entire attack sequence
-perform_combat_roll({
-  "attacker_name": "Brujah Thug",
-  "defender_name": "Security Guard",
-  "attack_pool": 6, // Dex 3 + Brawl 3
-  "attack_difficulty": 6,
-  "damage_pool": 4, // Strength 4 + 0 for punch
-  "soak_pool": 3, // Stamina 3
-  "damage_type": "bashing"
-})
+// Returns a pre-formatted string for the AI to display.
+display_health({ "character_id": 2 })
+
+// Returns a full, styled HTML document.
+generate_character_sheet_html({ "character_id": 1 })
 ```
 
 ---
+
 **Welcome to the night.**
-```

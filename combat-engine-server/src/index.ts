@@ -1,26 +1,27 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { DiceEngine } from './dice.js'; // FIX: Import the new DiceEngine
+import { DiceEngine } from './dice.js';
+import { GameDatabase } from '../../game-state-server/src/db.js';
 
 // Create the server instance
 const server = new Server({
     name: 'rpg-combat-engine-server',
-    version: '2.0.0-wod',
+    version: '2.1.0-wod', // Version updated to reflect new tools
 }, {
     capabilities: {
         tools: {},
     },
 });
 
-// FIX: Instantiate the DiceEngine at the top level
+// Instantiate the DiceEngine
 const diceEngine = new DiceEngine();
 
-// Define the World of Darkness tools
+// Define the World of Darkness toolset
 const toolDefinitions = [
     {
         name: 'perform_roll',
-        description: 'Performs a standard World of Darkness dice roll (d10 pool vs. difficulty). This is the core mechanic for all actions.',
+        description: 'Performs a standard World of Darkness dice roll (d10 pool vs. difficulty). This is the core mechanic for all non-combat actions.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -33,21 +34,18 @@ const toolDefinitions = [
         }
     },
     {
-        name: 'perform_combat_roll',
-        description: 'Performs a full combat sequence: attack roll, damage roll, and soak roll, returning a summary.',
+        name: 'resolve_attack',
+        description: 'Resolves a complete WoD combat sequence automatically by fetching stats for both attacker and defender.',
         inputSchema: {
             type: 'object',
             properties: {
-                attacker_name: { type: 'string' },
-                defender_name: { type: 'string' },
-                attack_pool: { type: 'number', description: "Attacker's dice pool for the attack." },
-                attack_difficulty: { type: 'number', description: "Difficulty of the attack." },
-                damage_pool: { type: 'number', description: "Attacker's base damage pool (e.g., Strength + weapon modifier)." },
-                soak_pool: { type: 'number', description: "Defender's soak dice pool (e.g., Stamina)." },
-                damage_type: { type: 'string', enum: ['bashing', 'lethal', 'aggravated'], description: "The type of damage being dealt." },
-                attack_has_specialty: { type: 'boolean', default: false }
+                attacker_id: { type: 'number', description: "The database ID of the attacker." },
+                defender_id: { type: 'number', description: "The database ID of the defender." },
+                attack_type: { type: 'string', enum: ['brawl_punch', 'melee_knife', 'firearms_pistol'], description: "The type of attack being made." },
+                difficulty_modifier: { type: 'number', default: 0, description: "Modifier to the standard difficulty of 6 (e.g., +1 for a hard shot)." },
+                has_specialty: { type: 'boolean', default: false }
             },
-            required: ['attacker_name', 'defender_name', 'attack_pool', 'attack_difficulty', 'damage_pool', 'soak_pool', 'damage_type']
+            required: ['attacker_id', 'defender_id', 'attack_type']
         }
     }
 ];
@@ -65,7 +63,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         switch (name) {
             case 'perform_roll': {
                 const { pool_size, difficulty, reason, has_specialty } = args as any;
-
                 const result = diceEngine.roll(pool_size, difficulty, has_specialty);
 
                 const outcome = result.isBotch ? "💥 BOTCH!"
@@ -73,7 +70,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
                               : result.successes === 1 ? "✅ Success (Marginal)"
                               : result.successes < 3 ? "✅ Success (Standard)"
                               : "🌟 Success (Impressive!)";
-
+                
                 let output = `🎲 ROLL: ${reason}\n\n`;
                 output += `Pool: ${pool_size > 0 ? pool_size : '1 (Chance Die)'}d10 vs. Difficulty ${difficulty}\n`;
                 output += `Rolls: [${result.rolls.join(', ')}]\n`;
@@ -93,60 +90,85 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
                 return { content: [{ type: 'text', text: output }] };
             }
 
-            case 'perform_combat_roll': {
+            case 'resolve_attack': {
                 const {
-                    attacker_name, defender_name, attack_pool, attack_difficulty,
-                    damage_pool, soak_pool, damage_type, attack_has_specialty
+                    attacker_id, defender_id, attack_type,
+                    difficulty_modifier = 0, has_specialty = false
                 } = args as any;
 
-                let output = `⚔️ COMBAT: ${attacker_name} vs. ${defender_name}\n\n`;
+                const db = new GameDatabase();
+                let output = '';
+                try {
+                    const attackerStats = db.getCombatStats(attacker_id, attack_type);
+                    // For defender, attack_type doesn't matter for soak, so a default is fine.
+                    const defenderStats = db.getCombatStats(defender_id, 'brawl_punch');
 
-                // 1. Attack Roll
-                output += `[1] Attack Roll:\n`;
-                const attackResult = diceEngine.roll(attack_pool, attack_difficulty, attack_has_specialty);
-                output += `  - Pool: ${attack_pool}d10 vs. Diff ${attack_difficulty}\n`;
-                output += `  - Rolls: [${attackResult.rolls.join(', ')}]\n`;
-                output += `  - Result: ${attackResult.successes} Successes\n`;
+                    output = `⚔️ COMBAT: ${attackerStats.name} vs. ${defenderStats.name}\n\n`;
 
-                if (attackResult.isBotch) {
-                    output += `\n💥 BOTCH! The attack fails disastrously.`;
-                    return { content: [{ type: 'text', text: output }] };
+                    // 1. Attack Roll
+                    output += `[1] Attack Roll (${attack_type}):\n`;
+                    const attack_difficulty = 6 + difficulty_modifier;
+                    const attackResult = diceEngine.roll(attackerStats.attack_pool, attack_difficulty, has_specialty);
+                    output += `  - Pool: ${attackerStats.attack_pool}d10 vs. Diff ${attack_difficulty}\n`;
+                    output += `  - Rolls: [${attackResult.rolls.join(', ')}]\n`;
+                    output += `  - Result: ${attackResult.successes} Successes\n`;
+
+                    if (attackResult.isBotch) {
+                        output += `\n💥 BOTCH! The attack fails disastrously.`;
+                        db.close();
+                        return { content: [{ type: 'text', text: output }] };
+                    }
+                    if (attackResult.successes === 0) {
+                        output += `\n❌ MISS! The attack fails to connect.`;
+                        db.close();
+                        return { content: [{ type: 'text', text: output }] };
+                    }
+
+                    const damage_type = attack_type.includes('firearms') || attack_type.includes('melee') ? 'lethal' : 'bashing';
+
+                    // 2. Damage Roll
+                    output += `\n[2] Damage Roll:\n`;
+                    const totalDamagePool = attackerStats.damage_pool + attackResult.successes;
+                    const damageResult = diceEngine.roll(totalDamagePool, 6);
+                    output += `  - Pool: ${totalDamagePool}d10 (Base ${attackerStats.damage_pool} + ${attackResult.successes} net successes)\n`;
+                    output += `  - Potential Damage: ${damageResult.successes} levels of ${damage_type}\n`;
+
+                    if (damageResult.successes === 0) {
+                        output += `\n🛡️ GLANCING BLOW! The attack hits but fails to cause any significant harm.`;
+                        db.close();
+                        return { content: [{ type: 'text', text: output }] };
+                    }
+
+                    // 3. Soak Roll
+                    const canSoakLethal = (defenderStats.character_type === 'Werewolf');
+                    const canSoak = damage_type === 'bashing' || (damage_type === 'lethal' && canSoakLethal);
+                    let soak_pool = defenderStats.soak_pool;
+
+                    output += `\n[3] Soak Roll:\n`;
+                    if (canSoak) {
+                        const soakResult = diceEngine.roll(soak_pool, 6);
+                        const damageSoaked = soakResult.successes;
+                        const finalDamage = Math.max(0, damageResult.successes - damageSoaked);
+
+                        output += `  - ${defenderStats.name} attempts to soak with a pool of ${soak_pool}d10.\n`;
+                        output += `  - Damage Soaked: ${damageSoaked} levels\n`;
+                        output += `\n[4] Final Outcome:\n`;
+                        if (finalDamage > 0) {
+                            output += `  - 🩸 ${defenderStats.name} suffers ${finalDamage} level(s) of ${damage_type} damage.\n`;
+                            output += `  - (Storyteller must now call 'inflict_damage' on game-state server).`;
+                        } else {
+                            output += `  - ✅ ${defenderStats.name} successfully soaks all damage!`;
+                        }
+                    } else {
+                        output += `  - ${defenderStats.name} cannot soak ${damage_type} damage!\n`;
+                        output += `\n[4] Final Outcome:\n`;
+                        output += `  - 🩸 ${defenderStats.name} suffers the full ${damageResult.successes} level(s) of ${damage_type} damage.\n`;
+                        output += `  - (Storyteller must now call 'inflict_damage' on game-state server).`;
+                    }
+                } finally {
+                    db.close();
                 }
-                if (attackResult.successes === 0) {
-                    output += `\n❌ MISS! The attack fails to connect.`;
-                    return { content: [{ type: 'text', text: output }] };
-                }
-
-                // 2. Damage Roll
-                output += `\n[2] Damage Roll:\n`;
-                const totalDamagePool = damage_pool + attackResult.successes;
-                const damageResult = diceEngine.roll(totalDamagePool, 6); // Damage is always vs. difficulty 6
-                output += `  - Pool: ${totalDamagePool}d10 (Base ${damage_pool} + ${attackResult.successes} net successes)\n`;
-                output += `  - Rolls: [${damageResult.rolls.join(', ')}]\n`;
-                output += `  - Potential Damage: ${damageResult.successes} levels of ${damage_type}\n`;
-
-                if (damageResult.successes === 0) {
-                    output += `\n🛡️ GLANCING BLOW! The attack hits but fails to cause any significant harm.`;
-                    return { content: [{ type: 'text', text: output }] };
-                }
-
-                // 3. Soak Roll
-                output += `\n[3] Soak Roll:\n`;
-                const soakResult = diceEngine.roll(soak_pool, 6); // Soak is always vs. difficulty 6
-                output += `  - Pool: ${soak_pool}d10\n`;
-                output += `  - Rolls: [${soakResult.rolls.join(', ')}]\n`;
-                output += `  - Damage Soaked: ${soakResult.successes} levels\n`;
-
-                // 4. Final Result
-                const finalDamage = Math.max(0, damageResult.successes - soakResult.successes);
-                output += `\n[4] Final Outcome:\n`;
-                if (finalDamage > 0) {
-                    output += `  - 🩸 ${defender_name} suffers ${finalDamage} level(s) of ${damage_type} damage.\n`;
-                    output += `  - (The game-state server must now be called with \`inflict_damage\` to apply this result.)`;
-                } else {
-                    output += `  - ✅ ${defender_name} successfully soaks all damage!`;
-                }
-
+                
                 return { content: [{ type: 'text', text: output }] };
             }
 
@@ -159,7 +181,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             isError: true
         };
     }
-}); // FIX: Ensure all brackets and braces are correctly closed
+});
 
 // Start the server
 const transport = new StdioServerTransport();
