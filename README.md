@@ -1,35 +1,56 @@
 # 💀 Unified World of Darkness Engine - MCP Servers
 
-**A complete backend server suite for AI-powered World of Darkness chronicles.** Features a unified data model for 6+ game lines, an authentic d10 dice pool engine, and "intelligent" tools designed for robust, interactive storytelling.
+**A complete backend server suite for AI-powered World of Darkness chronicles.** Run classic Vampire, Werewolf, Mage, Changeling, Wraith, or Mummy games with authentic rules logic and fully automated mechanics for the "Storyteller System." Features a unified data model, a d10 dice pool engine, world-class damage/health tracking, and automation for XP, powers, and character sheets. Now designed for seamless choice-based interactive play, not just dice calculations.
 
-## 🚀 **Core Features**
+---
 
-### 🦇 **Unified Engine for 6+ Game Lines**
-The system is built on a universal character schema that can handle Vampires, Werewolves, Mages, Changelings, Wraiths, and Mummies in a single, consistent database. Crossover chronicles are not just possible; they are the default.
+## 🚀 What's New!
 
-### 🎲 **Authentic Storyteller System Mechanics**
-- **d10 Dice Pool Engine:** A complete replacement of the d20 system. The new engine correctly handles variable difficulties, successes, specialties, and catastrophic botches.
-- **WoD Health & Damage:** The HP system has been removed in favor of a proper Health Level tracker that manages Bashing, Lethal, and Aggravated damage.
+### 🦇 Universal World of Darkness Engine
+- **Supports 6+ Game Lines**: Play as Vampire, Werewolf, Mage, Changeling, Wraith, or Mummy in a single, unified database and combat logic system. Crossover is natively supported—no homebrew required!
 
-### 🧠 **Intelligent & Automated Tools**
-- **Automated Combat Resolution:** A single `resolve_attack` tool fetches character stats, calculates dice pools, and resolves the entire attack-damage-soak sequence, reducing AI workload and errors.
-- **Rules-Aware Character Progression:** A dedicated `spend_experience` tool calculates and enforces the correct XP costs for improving traits, ensuring game balance.
-- **Dynamic Data Visualization:** Tools like `display_health` and `generate_character_sheet_html` offload complex formatting from the AI, providing rich, thematic feedback to the player.
+### 🔄 Choice-Based Progression Workflow
+- Engineered for "Describe → Ask → Resolve" interactivity with intelligent branching logic and server-side integrity enforcement.
+- API designed for interactive, player-choice-driven narrative flow, not just mechanical actions.
 
-## 🏗️ **Project Architecture**
+### 🎲 Authentic Storyteller System Mechanics
+- **d10 Dice Pool Engine**: Accurate die pool math, variable difficulty, specialties, botch support.
+- **True WoD Health System**: Bashing, Lethal, and Aggravated health tracked by server logic (no HP fudge).
+- **Dot-Notation Stats**: Attributes, Abilities, Disciplines, Paths, Resources, etc. are all flexible, structured JSON.
+- **Supernatural Points**: Manages blood, rage, quintessence, etc. for all splats.
 
-- **`game-state-server/`**: A SQLite-based server for persistent character data. Manages the universal character schema, resources, damage states, and contains the logic for XP costs and data visualization.
-- **`combat-engine-server/`**: A mechanics engine that handles all dice rolls and uses the game-state server to resolve complex actions like combat.
+### ⚡️ Automated Play Tools
+- **Automated Combat (`resolve_attack`)**: Fully automates attack/damage/soak, using server stats for both attacker and defender—no manual calculation needed.
+- **Rules-Enforced XP (`spend_experience`)**: Calculates and enforces proper WoD XP costs for attributes, abilities, disciplines, virtues, willpower, humanity and more.
+- **Live Health & Status Output**: Engine generates player-friendly health/status strings and graphical HTML sheets (`display_health`, `generate_character_sheet_html`).
+- **Resource Management**: Automated tracking and expenditure/refresh for blood pool, rage, glamour, pathos, sekhem, etc.
 
-## 🛠️ **Prerequisites**
+### 🛠️ Project Architecture
 
-**Roo Code Installation Required:**
-- Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline)
-- Configure your AI provider and visit [Roo Code docs](https://docs.roocode.com) for setup details.
+- **`game-state-server/`**: SQLite-based server for persistent character and world data. Hosts the universal WoD schema, resource pools, wounds, powers, and XP logic.
+- **`combat-engine-server/`**: The d10 mechanic and combat action engine. Handles all dice, difficulties, botches, and resolves actions using data from game-state.
+- **Cross-service API**: Designed to accept tool calls from interactive UI/AI clients or direct scripting.
 
-## 🚀 **Quick Setup**
+---
 
-### 1. **Install & Build Servers**
+## 🛠️ MCP API - Core Tools
+
+- **create_character**: Build a new PC/NPC of any WoD type, using the universal point-buy or step-based method.
+- **get_character / update_character**: Full support for dot notation updates and fast stat retrieval.
+- **inflict_damage**: Server-authentic health level damage and tracking (bashing/lethal/aggravated).
+- **display_health / generate_character_sheet_html**: Instant health/status string and graphical HTML sheet rendering (plug-and-play for clients).
+- **perform_roll**: Unified d10 pool action handling all non-combat skill/power/attribute checks.
+- **resolve_attack**: Server-resolved combat; provides attack, damage, and soak using stats for both sides.
+- **spend_resource / spend_willpower**: Handles all temp/supernatural point draining/tracking.
+
+And more—examine the `COMMIT_MSG.txt` and comments for tool expansion details.
+
+---
+
+## 🏗️ Quick Start
+
+### 1. Install & Build
+
 ```bash
 # Game State Server
 cd game-state-server
@@ -40,7 +61,8 @@ cd ../combat-engine-server
 npm install && npm run build
 ```
 
-### 2. **Start Servers**
+### 2. Start Servers
+
 ```bash
 # Terminal 1
 cd game-state-server && npm start
@@ -49,69 +71,64 @@ cd game-state-server && npm start
 cd combat-engine-server && npm start
 ```
 
-### 3. **Configure Roo Code MCP Settings**
+### 3. Connect With Roo Code
 
-Add the following to your `mcp_settings.json` file. Replace `PATH_TO_YOUR_PROJECT` and `PATH_TO_NODE` with your specific local paths.
+- Add both servers to your `mcp_settings.json`
+- Paste paths for node and each server's directory as needed.
+- Enable both for the best interactive AI experience.
 
-```json
-{
-  "mcpServers": {
-    "rpg-game-state-wod": {
-      "name": "WoD Game State Server",
-      "command": "PATH_TO_NODE",
-      "args": ["dist/index.js"],
-      "cwd": "PATH_TO_YOUR_PROJECT\\rpg-mcp-servers\\game-state-server",
-      "enabled": true,
-      "alwaysAllow": [
-        "create_character", "get_character", "update_character",
-        "inflict_damage", "spend_willpower", "spend_resource",
-        "display_health", "spend_experience", "generate_character_sheet_html"
-      ]
-    },
-    "rpg-combat-engine-wod": {
-      "name": "WoD Combat Engine",
-      "command": "PATH_TO_NODE",
-      "args": ["dist/index.js"],
-      "cwd": "PATH_TO_YOUR_PROJECT\\rpg-mcp-servers\\combat-engine-server",
-      "enabled": true,
-      "alwaysAllow": [
-        "perform_roll", "resolve_attack"
-      ]
-    }
-  }
-}
-```
+### 4. How It Fits
 
-## 🎯 **Tool API & Usage Examples**
+You can use this engine suite directly (CLI or scripting), but it's designed to work best with AI-powered clients like [oWoD-Game-Experiment](https://github.com/SmokePigDad/oWoD-Game-Experiment), which acts as Storyteller and guides the player through the game with full server-side rules and narrative logic. All gameplay becomes choice-driven, with NO need for client-side fudge or broken rules.
 
-### **Intelligent Combat Resolution**
+---
+
+## 💡 Feature Highlights (2025 Edition)
+
+- Full **Point-Buy Character Creation**, enforced by server-side logic.
+- **XP Spend Menu** with proper cost rules for all traits.
+- **Visual Character Sheets**: Generate rich HTML sheets for players and NPCs at any time.
+- **Self-Consistency**: All modifications, wounds, XP spends, and power uses validated by server logic.
+- **Crossover-Ready**: Run games with vampire, werewolf, mage, and more—no tweaks required.
+- **Default is Rules-as-Written** for pre-Time of Judgment play.
+
+---
+
+## 🎯 Example Tool Calls
+
 ```javascript
-// A single, simple call from the AI resolves a full combat sequence.
+// Create a new Ventrue Vampire
+create_character({
+  "name": "Victor",
+  "character_type": "Vampire",
+  "splat1": "Ventrue",
+  "attributes": { ... },
+  "abilities": { ... },
+  "willpower_permanent": 5
+})
+
+// Resolve a full punch attack
 resolve_attack({
   "attacker_id": 1,
   "defender_id": 2,
   "attack_type": "brawl_punch"
 })
-```
 
-### **Rules-Aware Character Progression**
-```javascript
-// The AI tells the server what to improve; the server handles the rules and cost.
+// Automate XP spend
 spend_experience({
   "character_id": 1,
-  "trait_to_improve": "attributes.physical.strength"
+  "trait_to_improve": "powers.disciplines.Fortitude"
 })
-```
-
-### **Data Visualization**
-```javascript
-// Returns a pre-formatted string for the AI to display.
-display_health({ "character_id": 2 })
-
-// Returns a full, styled HTML document.
-generate_character_sheet_html({ "character_id": 1 })
 ```
 
 ---
 
-**Welcome to the night.**
+## 🦇 Upgrade Notes
+
+- All D&D code/templates purged.
+- Engine is now WoD/Storyteller-native at every layer.
+- New instructions, templates, and client support the narrative, interactive, and graphical features classic WoD deserves.
+
+---
+
+**Welcome to the World of Darkness—where every choice is resolved with authentic Storyteller rules and your game is never railroaded.**
