@@ -1,0 +1,7 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./game-state-server" },
+    { "path": "./combat-engine-server" }
+  ]
+}

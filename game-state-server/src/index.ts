@@ -9,7 +9,7 @@ const db = new GameDatabase();
 // Create the server instance
 const server = new Server({
     name: 'rpg-game-state-server',
-    version: '2.1.0-wod', // Version updated to reflect new tools
+    version: '2.4.0-wod', // Version updated for MCP compliance
 }, {
     capabilities: {
         tools: {},
@@ -45,7 +45,7 @@ const toolDefinitions = [
     },
     {
         name: 'get_character',
-        description: 'Get a full character sheet for a WoD character by ID.',
+        description: 'Get a full character sheet for a WoD character by ID. Returns a JSON string.',
         inputSchema: { type: 'object', properties: { character_id: { type: 'number' } }, required: ['character_id'] }
     },
     {
@@ -92,7 +92,7 @@ const toolDefinitions = [
             required: ['character_id', 'resource_name', 'amount']
         }
     },
-    // New UX and Progression Tools
+    // UX and Progression Tools
     {
         name: 'display_health',
         description: "Generates a visual string representing a character's current health levels, damage, and wound penalties.",
@@ -118,13 +118,26 @@ const toolDefinitions = [
     },
     {
         name: 'generate_character_sheet_html',
-        description: 'Generates a stylized HTML file for a character sheet.',
+        description: 'Generates the data needed for a stylized HTML character sheet. Returns a JSON string with the HTML content and a suggested filename.',
         inputSchema: {
             type: 'object',
             properties: {
                 character_id: { type: 'number' }
             },
             required: ['character_id']
+        }
+    },
+    {
+        name: 'generate_powers_summary',
+        description: "A request for the AI to generate a markdown document explaining what a character's supernatural powers do.",
+        inputSchema: {
+            type: 'object',
+            properties: {
+                character_id: { type: 'number' },
+                character_name: { type: 'string' },
+                powers_data: { type: 'object', description: "The 'powers' JSON object from the character sheet." }
+            },
+            required: ['character_id', 'character_name', 'powers_data']
         }
     }
 ];
@@ -159,9 +172,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
                 if (!character) {
                     return { content: [{ type: 'text', text: `👻 ERROR: Character with ID ${(args as any).character_id} not found.` }] };
                 }
-                const output = `📜 CHARACTER RECORD: ${character.name}\n\n` +
-                               `\`\`\`json\n${JSON.stringify(character, null, 2)}\n\`\`\``;
-                return { content: [{ type: 'text', text: output }] };
+                const characterJsonString = JSON.stringify(character, null, 2);
+                return { content: [{ type: 'text', text: characterJsonString }] };
             }
 
             case 'update_character': {
@@ -210,9 +222,38 @@ Remaining: ${newAmount}.`;
             }
             
             case 'generate_character_sheet_html': {
+                const character = db.getCharacter((args as any).character_id);
+                if (!character) {
+                    throw new Error(`Character with ID ${(args as any).character_id} not found.`);
+                }
                 const htmlContent = db.generate_character_sheet_html((args as any).character_id);
+                const filename = `${character.name.replace(/\s+/g, '_')}_${character.id}.html`;
+
+                const responseObject = {
+                    html_content: htmlContent,
+                    suggested_filename: filename,
+                    character_name: character.name
+                };
+                const responseJsonString = JSON.stringify(responseObject);
+
                 return {
-                    content: [{ type: 'html', html: htmlContent }]
+                    content: [{
+                        type: 'text',
+                        text: responseJsonString
+                    }]
+                };
+            }
+
+            case 'generate_powers_summary': {
+                const { character_name, powers_data } = args as any;
+                const powerTypes = Object.keys(powers_data).join(', ');
+                const output = `✅ Acknowledged. Generating powers summary for ${character_name} covering: ${powerTypes}. The AI will now create the markdown document.`;
+                
+                return {
+                    content: [{
+                        type: 'text',
+                        text: output
+                    }]
                 };
             }
 
