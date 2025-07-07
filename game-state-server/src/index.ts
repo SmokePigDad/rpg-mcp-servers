@@ -633,55 +633,89 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     switch (name) {
       // Character management
       case 'create_character': {
-        // Flatten stats object and include D&D 5E fields for database compatibility
-        const flatArgs = {
-          name: (args as any).name,
-          class: (args as any).class,
-          race: (args as any).race,
-          background: (args as any).background,
-          alignment: (args as any).alignment,
-          level: (args as any).level,
-          ...(args as any).stats // Spread the stats object to flatten it
+        // Flexible: spread all top-level properties, merge abilities/secondaries from args
+        const core = { ...args };
+        if (args.stats) Object.assign(core, args.stats);
+        // Remove D&D-only keys for data layer, accept all oWoD keys (safe to ignore extras)
+        delete core.class; delete core.race; delete core.background; delete core.alignment; delete core.level;
+        // Optional game feature arrays
+        if (args.disciplines && Array.isArray(args.disciplines) && core.game_line === 'vampire') {
+          // will insert after main row below
+        }
+        if (args.arts && Array.isArray(args.arts) && core.game_line === 'changeling') {
+          // will insert after main row below
+        }
+        if (args.realms && Array.isArray(args.realms) && core.game_line === 'changeling') {
+          // will insert after main row below
+        }
+        if (args.gifts && Array.isArray(args.gifts) && core.game_line === 'werewolf') {
+          // will insert after main row below
+        }
+        if (args.spheres && Array.isArray(args.spheres) && core.game_line === 'mage') {
+          // will insert after main row below
+        }
+        // Create the character core/abilities (feature secondaries are handled below)
+        const character = db.createCharacter(core) as any;
+        // Insert feature secondaries
+        if (args.disciplines && Array.isArray(args.disciplines) && core.game_line === 'vampire') {
+          const stmt = db['db'].prepare('INSERT INTO character_disciplines (character_id, discipline_name, rating) VALUES (?, ?, ?)');
+          for (const d of args.disciplines) {
+            stmt.run(character.id, d.discipline_name, d.rating ?? 0);
+          }
+        }
+        if (args.arts && Array.isArray(args.arts) && core.game_line === 'changeling') {
+          const stmt = db['db'].prepare('INSERT INTO character_arts (character_id, art_name, rating) VALUES (?, ?, ?)');
+          for (const a of args.arts) {
+            stmt.run(character.id, a.art_name, a.rating ?? 0);
+          }
+        }
+        if (args.realms && Array.isArray(args.realms) && core.game_line === 'changeling') {
+          const stmt = db['db'].prepare('INSERT INTO character_realms (character_id, realm_name, rating) VALUES (?, ?, ?)');
+          for (const r of args.realms) {
+            stmt.run(character.id, r.realm_name, r.rating ?? 0);
+          }
+        }
+        if (args.gifts && Array.isArray(args.gifts) && core.game_line === 'werewolf') {
+          const stmt = db['db'].prepare('INSERT INTO character_gifts (character_id, gift_name, rank) VALUES (?, ?, ?)');
+          for (const g of args.gifts) {
+            stmt.run(character.id, g.gift_name, g.rank ?? 0);
+          }
+        }
+        if (args.spheres && Array.isArray(args.spheres) && core.game_line === 'mage') {
+          const stmt = db['db'].prepare('INSERT INTO character_spheres (character_id, sphere_name, rating) VALUES (?, ?, ?)');
+          for (const s of args.spheres) {
+            stmt.run(character.id, s.sphere_name, s.rating ?? 0);
+          }
+        }
+        // After creation and feature rows, return with game-aware joins as current get_character does
+        const outChar = db.getCharacter(character.id);
+        let extra = {};
+        if (outChar.game_line === 'vampire') {
+          const stmt = db['db'].prepare('SELECT discipline_name, rating FROM character_disciplines WHERE character_id = ?');
+          extra = { disciplines: stmt.all(outChar.id) };
+        }
+        if (outChar.game_line === 'changeling') {
+          const arts = db['db'].prepare('SELECT art_name, rating FROM character_arts WHERE character_id = ?').all(outChar.id);
+          const realms = db['db'].prepare('SELECT realm_name, rating FROM character_realms WHERE character_id = ?').all(outChar.id);
+          extra = { arts, realms };
+        }
+        if (outChar.game_line === 'werewolf') {
+          const stmt = db['db'].prepare('SELECT gift_name, rank FROM character_gifts WHERE character_id = ?');
+          extra = { gifts: stmt.all(outChar.id) };
+        }
+        if (outChar.game_line === 'mage') {
+          const stmt = db['db'].prepare('SELECT sphere_name, rating FROM character_spheres WHERE character_id = ?');
+          extra = { spheres: stmt.all(outChar.id) };
+        }
+        const output = {
+          ...outChar,
+          ...extra,
         };
-        const character = db.createCharacter(flatArgs) as any;
 
-        // Calculate ability modifiers for display
-        const getModifier = (score: number) => Math.floor((score - 10) / 2);
-        const formatModifier = (mod: number) => mod >= 0 ? `+${mod}` : `${mod}`;
-        
-        const level = character.level || 1;
-        const profBonus = Math.ceil(level / 4) + 1;
-        const dexMod = getModifier(character.dexterity || 10);
-        
-        const output = `🎭 NEW D&D 5E CHARACTER CREATED!
-
-═══════════════════════════════════════════════════════════════
-👤 ${character.name} - Level ${level} ${character.race || 'Human'} ${character.class}
-📚 Background: ${character.background || 'Folk Hero'}
-⚖️ Alignment: ${character.alignment || 'Neutral'}
-🆔 Character ID: ${character.id}
-═══════════════════════════════════════════════════════════════
-
-💪 ABILITY SCORES:
-┌────────────────────────────────────────────┐
-│ 💪 STR: ${String(character.strength || 10).padStart(2)} (${formatModifier(getModifier(character.strength || 10)).padStart(3)})  🧠 INT: ${String(character.intelligence || 10).padStart(2)} (${formatModifier(getModifier(character.intelligence || 10)).padStart(3)}) │
-│ 🏃 DEX: ${String(character.dexterity || 10).padStart(2)} (${formatModifier(dexMod).padStart(3)})  🧙 WIS: ${String(character.wisdom || 10).padStart(2)} (${formatModifier(getModifier(character.wisdom || 10)).padStart(3)}) │
-│ ❤️ CON: ${String(character.constitution || 10).padStart(2)} (${formatModifier(getModifier(character.constitution || 10)).padStart(3)})  ✨ CHA: ${String(character.charisma || 10).padStart(2)} (${formatModifier(getModifier(character.charisma || 10)).padStart(3)}) │
-└────────────────────────────────────────────┘
-
-⚔️ COMBAT STATS:
-🛡️ Armor Class: ${character.armor_class || 10}
-❤️ Hit Points: ${character.current_hp || character.max_hp}/${character.max_hp}
-🎯 Proficiency Bonus: ${formatModifier(profBonus)}
-🏃 Initiative: ${formatModifier(dexMod)}
-🦶 Speed: ${character.speed || 30} ft
-
-📅 Created: ${new Date().toLocaleString()}
-
-🎉 Ready for adventure! Use 'get_character' for full character sheet! 🗡️⚔️`;
-        
         return {
-          content: [{ type: 'text', text: output }]
+          content: [
+            { type: 'text', text: `📝 CHARACTER CREATED (JSON):\n\`\`\`json\n${JSON.stringify(output, null, 2)}\n\`\`\`` }
+          ]
         };
       }
 
@@ -693,79 +727,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           };
         }
 
-        // Calculate ability modifiers
-        const getModifier = (score: number) => Math.floor((score - 10) / 2);
-        const formatModifier = (mod: number) => mod >= 0 ? `+${mod}` : `${mod}`;
-        
-        // Calculate proficiency bonus based on level
-        const level = character.level || 1;
-        const profBonus = Math.ceil(level / 4) + 1;
-        
-        // Calculate derived stats
-        const strMod = getModifier(character.strength || 10);
-        const dexMod = getModifier(character.dexterity || 10);
-        const conMod = getModifier(character.constitution || 10);
-        const intMod = getModifier(character.intelligence || 10);
-        const wisMod = getModifier(character.wisdom || 10);
-        const chaMod = getModifier(character.charisma || 10);
-        
-        const initiative = dexMod;
-        const speed = 30; // Default human speed
-        
-        const output = `🎭 D&D 5E CHARACTER SHEET
+        // Game-aware joins
+        let extra = {};
+        if (character.game_line === 'vampire') {
+          const stmt = db['db'].prepare('SELECT discipline_name, rating FROM character_disciplines WHERE character_id = ?');
+          extra = { disciplines: stmt.all(character.id) };
+        }
+        if (character.game_line === 'changeling') {
+          const arts = db['db'].prepare('SELECT art_name, rating FROM character_arts WHERE character_id = ?').all(character.id);
+          const realms = db['db'].prepare('SELECT realm_name, rating FROM character_realms WHERE character_id = ?').all(character.id);
+          extra = { arts, realms };
+        }
+        if (character.game_line === 'werewolf') {
+          const stmt = db['db'].prepare('SELECT gift_name, rank FROM character_gifts WHERE character_id = ?');
+          extra = { gifts: stmt.all(character.id) };
+        }
+        if (character.game_line === 'mage') {
+          const stmt = db['db'].prepare('SELECT sphere_name, rating FROM character_spheres WHERE character_id = ?');
+          extra = { spheres: stmt.all(character.id) };
+        }
 
-═══════════════════════════════════════════════════════════════
-👤 ${character.name}                                    🆔 ID: ${character.id}
-🏛️ Class: ${character.class}                           📊 Level: ${level}
-🧬 Race: ${character.race || 'Human'}                  ⚖️ Alignment: ${character.alignment || 'Neutral'}
-📚 Background: ${character.background || 'Folk Hero'}
-═══════════════════════════════════════════════════════════════
+        const output = {
+          ...character,
+          ...extra
+        };
 
-💪 ABILITY SCORES & MODIFIERS:
-┌──────────────┬──────────────┬──────────────┐
-│ 💪 STR: ${String(character.strength || 10).padStart(2)} (${formatModifier(strMod).padStart(3)}) │ 🧠 INT: ${String(character.intelligence || 10).padStart(2)} (${formatModifier(intMod).padStart(3)}) │ 🎯 Prof Bonus: ${formatModifier(profBonus).padStart(3)} │
-│ 🏃 DEX: ${String(character.dexterity || 10).padStart(2)} (${formatModifier(dexMod).padStart(3)}) │ 🧙 WIS: ${String(character.wisdom || 10).padStart(2)} (${formatModifier(wisMod).padStart(3)}) │ 🏃 Initiative: ${formatModifier(initiative).padStart(3)} │
-│ ❤️ CON: ${String(character.constitution || 10).padStart(2)} (${formatModifier(conMod).padStart(3)}) │ ✨ CHA: ${String(character.charisma || 10).padStart(2)} (${formatModifier(chaMod).padStart(3)}) │ 🦶 Speed: ${speed} ft      │
-└──────────────┴──────────────┴──────────────┘
-
-⚔️ COMBAT STATS:
-┌────────────────────────────────────────────────────────────┐
-│ 🛡️ Armor Class: ${String(character.armor_class || 10).padStart(2)}                              │
-│ ❤️ Hit Points: ${String(character.current_hp || character.max_hp || 10).padStart(3)}/${String(character.max_hp || 10).padStart(3)}                            │
-│ 🎲 Hit Dice: ${level}d${character.class === 'Wizard' ? '6' : character.class === 'Rogue' ? '8' : character.class === 'Fighter' ? '10' : character.class === 'Barbarian' ? '12' : '8'} (${level} remaining)                     │
-│ ⭐ Experience: ${String(character.experience || 0).padStart(6)} XP                         │
-│ 💰 Gold: ${String(character.gold || 0).padStart(8)} gp                              │
-└────────────────────────────────────────────────────────────┘
-
-🛡️ SAVING THROWS:
-┌─────────────────────────────────────────────────────────────┐
-│ 💪 Strength:     ${formatModifier(strMod).padStart(3)}  │ 🧠 Intelligence: ${formatModifier(intMod).padStart(3)}  │
-│ 🏃 Dexterity:    ${formatModifier(dexMod).padStart(3)}  │ 🧙 Wisdom:       ${formatModifier(wisMod).padStart(3)}  │
-│ ❤️ Constitution: ${formatModifier(conMod).padStart(3)}  │ ✨ Charisma:     ${formatModifier(chaMod).padStart(3)}  │
-└─────────────────────────────────────────────────────────────┘
-
-🎯 SKILLS:
-┌─────────────────────────────────────────────────────────────┐
-│ 🤸 Acrobatics (Dex):    ${formatModifier(dexMod).padStart(3)}  │ 🌿 Nature (Int):        ${formatModifier(intMod).padStart(3)}  │
-│ 🐾 Animal Handling (Wis): ${formatModifier(wisMod).padStart(3)}  │ 👁️ Perception (Wis):    ${formatModifier(wisMod).padStart(3)}  │
-│ 🏛️ Arcana (Int):        ${formatModifier(intMod).padStart(3)}  │ 🎭 Performance (Cha):   ${formatModifier(chaMod).padStart(3)}  │
-│ 💪 Athletics (Str):     ${formatModifier(strMod).padStart(3)}  │ 🗣️ Persuasion (Cha):    ${formatModifier(chaMod).padStart(3)}  │
-│ 😈 Deception (Cha):     ${formatModifier(chaMod).padStart(3)}  │ 🙏 Religion (Int):      ${formatModifier(intMod).padStart(3)}  │
-│ 📚 History (Int):       ${formatModifier(intMod).padStart(3)}  │ 🤫 Sleight of Hand (Dex): ${formatModifier(dexMod).padStart(3)}  │
-│ 🔍 Insight (Wis):       ${formatModifier(wisMod).padStart(3)}  │ 👤 Stealth (Dex):       ${formatModifier(dexMod).padStart(3)}  │
-│ 😠 Intimidation (Cha):  ${formatModifier(chaMod).padStart(3)}  │ 🏕️ Survival (Wis):      ${formatModifier(wisMod).padStart(3)}  │
-│ 🔬 Investigation (Int): ${formatModifier(intMod).padStart(3)}  │ 🩺 Medicine (Wis):      ${formatModifier(wisMod).padStart(3)}  │
-└─────────────────────────────────────────────────────────────┘
-
-📅 CHARACTER INFO:
-┌─────────────────────────────────────────────────────────────┐
-│ 🎂 Created: ${new Date(character.created_at).toLocaleDateString().padEnd(12)} │ 🎮 Last Played: ${new Date(character.last_played).toLocaleDateString().padEnd(12)} │
-└─────────────────────────────────────────────────────────────┘
-
-🎒 Use 'get_inventory' to view equipment and items`;
-        
         return {
-          content: [{ type: 'text', text: output }]
+          content: [
+            { type: 'text', text: `📝 CHARACTER SHEET (JSON):\n\`\`\`json\n${JSON.stringify(output, null, 2)}\n\`\`\`` }
+          ]
         };
       }
 
@@ -1416,34 +1406,47 @@ ${(args as any).outcome === 'victory' ? '🎉 Victory! Well fought!' :
       }
 
       case 'apply_damage': {
-        const result = db.applyDamage(
-          (args as any).target_type,
-          (args as any).target_id,
-          (args as any).damage
-        ) as any;
-        
-        // Get the target's name based on type
-        let targetName = `${(args as any).target_type.toUpperCase()} ${(args as any).target_id}`;
-        if ((args as any).target_type === 'character') {
-          const character = db.getCharacter((args as any).target_id) as any;
-          if (character) targetName = character.name;
-        } else if ((args as any).target_type === 'npc') {
-          const npc = db.getNPC((args as any).target_id) as any;
-          if (npc) targetName = npc.name;
+        const { target_type, target_id, damage } = args as any;
+        let output = '';
+        let targetName = `${target_type.toUpperCase()} ${target_id}`;
+        let typeIcon = target_type === 'character' ? '🎭' : '👹';
+        if (target_type === 'character') {
+          const result = db.applyHealthLevelDamage(target_id, damage) as any;
+          const char = db.getCharacter(target_id) as any;
+          if (char) targetName = char.name || targetName;
+          // Summarize wound state
+          let woundStates = Object.entries(result.health_levels)
+            .filter(([k, v]) => v > 0)
+            .map(([k, v]) => `${k[0].toUpperCase() + k.slice(1)}${' '.repeat(12 - k.length)}: ${'X'.repeat(Number(v))}`)
+            .join('\n');
+          output = `💥 DAMAGE APPLIED!
+
+${typeIcon} TARGET: ${targetName}
+⚔️ DAMAGE: ${damage} health levels
+🩸 WOUNDS:
+${woundStates || 'Unhurt'}
+${result.is_incapacitated ? '\n💀 INCAPACITATED!' : result.wound_penalty < 0 ? `\n🩹 PENALTY: ${result.wound_penalty}` : '\n💪 No wound penalties yet.'}`;
+        } else if (target_type === 'npc') {
+          // Inline NPC HP logic, mirroring old applyDamage logic for NPCs only
+          const npc = db.getNPC(target_id) as any;
+          if (!npc) {
+            output = `❌ NPC with ID ${target_id} not found.`;
+          } else {
+            let current_hp = Math.max(0, (npc.current_hp || 0) - damage);
+            let is_alive = current_hp > 0;
+            // Update DB
+            db.updateNPC(target_id, { current_hp, is_alive });
+            const hpStatus = current_hp <= 0 ? '💀 DEAD' : current_hp < (npc.max_hp || current_hp) / 2 ? '🩸 WOUNDED' : '💚 HEALTHY';
+            targetName = npc.name;
+            output = `💥 DAMAGE APPLIED!
+${typeIcon} TARGET: ${targetName}
+⚔️ DAMAGE: ${damage} points
+❤️ HP: ${current_hp}/${npc.max_hp || current_hp} ${hpStatus}
+${current_hp <= 0 ? '💀 Target has fallen!' : current_hp < (npc.max_hp || current_hp) / 2 ? '🩸 Target is badly wounded!' : '💪 Target is still fighting strong!'}`;
+          }
+        } else {
+          output = `❌ Invalid target_type: must be "character" or "npc".`;
         }
-        
-        const typeIcon = (args as any).target_type === 'character' ? '🎭' : '👹';
-        const damage = (args as any).damage;
-        const hpStatus = result.current_hp <= 0 ? '💀 DEAD' : result.current_hp < result.max_hp / 2 ? '🩸 WOUNDED' : '💚 HEALTHY';
-        
-        const output = `💥 DAMAGE APPLIED!
-        
-        ${typeIcon} TARGET: ${targetName}
-        ⚔️ DAMAGE: ${damage} points
-        ❤️ HP: ${result.current_hp}/${result.max_hp || result.current_hp} ${hpStatus}
-        
-        ${result.current_hp <= 0 ? '💀 Target has fallen!' : result.current_hp < result.max_hp / 2 ? '🩸 Target is badly wounded!' : '💪 Target is still fighting strong!'}`;
-        
         return {
           content: [{ type: 'text', text: output }]
         };
@@ -1713,26 +1716,50 @@ ${(args as any).outcome === 'victory' ? '🎉 Victory! Well fought!' :
         
         for (const target of targets) {
           try {
-            const result = db.applyDamage(target.target_type, target.target_id, target.damage) as any;
-            
-            // Get target name
             let targetName = `${target.target_type.toUpperCase()} ${target.target_id}`;
+            let success = true;
+            let error = undefined;
+            let r = {};
             if (target.target_type === 'character') {
-              const character = db.getCharacter(target.target_id) as any;
-              if (character) targetName = character.name;
+              const result = db.applyHealthLevelDamage(target.target_id, target.damage) as any;
+              const char = db.getCharacter(target.target_id) as any;
+              if (char) targetName = char.name;
+              r = {
+                targetName,
+                damage: target.damage,
+                wound_levels: result.health_levels,
+                penalty: result.wound_penalty,
+                is_incapacitated: result.is_incapacitated,
+                target_type: target.target_type,
+                target_id: target.target_id
+              };
             } else if (target.target_type === 'npc') {
               const npc = db.getNPC(target.target_id) as any;
-              if (npc) targetName = npc.name;
+              if (!npc) {
+                success = false;
+                error = `NPC with ID ${target.target_id} not found.`;
+              } else {
+                let current_hp = Math.max(0, (npc.current_hp || 0) - target.damage);
+                let is_alive = current_hp > 0;
+                db.updateNPC(target.target_id, { current_hp, is_alive });
+                targetName = npc.name;
+                r = {
+                  targetName,
+                  damage: target.damage,
+                  current_hp,
+                  max_hp: npc.max_hp,
+                  target_type: target.target_type,
+                  target_id: target.target_id
+                };
+              }
+            } else {
+              success = false;
+              error = `Invalid target_type: must be 'character' or 'npc'.`;
             }
-            
             results.push({
-              success: true,
-              targetName,
-              damage: target.damage,
-              current_hp: result.current_hp,
-              max_hp: result.max_hp,
-              target_type: target.target_type,
-              target_id: target.target_id
+              success,
+              ...r,
+              error
             });
           } catch (error: any) {
             results.push({

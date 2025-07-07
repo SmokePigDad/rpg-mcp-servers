@@ -68,6 +68,34 @@ interface Quest {
   created_at: string;
 }
 
+// Schema for rows in characters table (oWoD + Changeling support as of Phase 2.1)
+// Extend as needed if/when new columns get added.
+interface CharacterRow {
+  id: number;
+  name: string;
+  concept?: string | null;
+  game_line: string;
+  strength: number;
+  dexterity: number;
+  stamina: number;
+  charisma: number;
+  manipulation: number;
+  appearance: number;
+  perception: number;
+  intelligence: number;
+  wits: number;
+  willpower_current: number;
+  willpower_permanent: number;
+  health_levels: string;
+  power_stat_name?: string | null;
+  power_stat_rating?: number | null;
+  kith?: string | null;
+  seeming?: string | null;
+  glamour_current?: number | null;
+  glamour_permanent?: number | null;
+  banality_permanent?: number | null;
+}
+
 interface CharacterQuest {
   id: number;
   character_id: number;
@@ -100,28 +128,157 @@ export class GameDatabase {
     this.initializeSchema();
   }
 
+  /**
+   * Schema initialization and migration for oWoD game data.
+   * - Additive schema changes for all tables to preserve existing game saves.
+   * - Characters table is now migrated using CREATE IF NOT EXISTS and additive ALTERs only.
+   * - Changeling: The Dreaming support with extra columns and relation tables (arts/realms).
+   */
   private initializeSchema() {
-    // Characters table
+    // --------------------------------------------
+    // 1. Ensure characters table exists (additive-safe)
+    // --------------------------------------------
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
-        class TEXT NOT NULL,
-        level INTEGER DEFAULT 1,
-        experience INTEGER DEFAULT 0,
-        current_hp INTEGER,
-        max_hp INTEGER,
-        armor_class INTEGER DEFAULT 10,
-        strength INTEGER DEFAULT 10,
-        dexterity INTEGER DEFAULT 10,
-        constitution INTEGER DEFAULT 10,
-        intelligence INTEGER DEFAULT 10,
-        wisdom INTEGER DEFAULT 10,
-        charisma INTEGER DEFAULT 10,
-        gold INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_played DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+        concept TEXT,
+        game_line TEXT NOT NULL, -- 'vampire', 'werewolf', 'changeling', 'mage'
+        -- Core Attributes
+        strength INTEGER DEFAULT 1,
+        dexterity INTEGER DEFAULT 1,
+        stamina INTEGER DEFAULT 1,
+        charisma INTEGER DEFAULT 1,
+        manipulation INTEGER DEFAULT 1,
+        appearance INTEGER DEFAULT 1,
+        perception INTEGER DEFAULT 1,
+        intelligence INTEGER DEFAULT 1,
+        wits INTEGER DEFAULT 1,
+        -- Core Traits
+        willpower_current INTEGER DEFAULT 1,
+        willpower_permanent INTEGER DEFAULT 1,
+        health_levels TEXT NOT NULL,
+        -- Game-Specific Power Stat (e.g., Blood, Gnosis, Glamour, Arete)
+        power_stat_name TEXT,
+        power_stat_rating INTEGER
+      );
+    `);
+    // --------------------------------------------
+    // 2. Add Changeling columns (additive, checked)
+    // --------------------------------------------
+    // kith, seeming, glamour_current, glamour_permanent, banality_permanent
+    this.addColumnIfNotExists('characters', 'kith', 'TEXT');
+    this.addColumnIfNotExists('characters', 'seeming', 'TEXT');
+    this.addColumnIfNotExists('characters', 'glamour_current', 'INTEGER');
+    this.addColumnIfNotExists('characters', 'glamour_permanent', 'INTEGER');
+    this.addColumnIfNotExists('characters', 'banality_permanent', 'INTEGER');
+
+    // --------------------------------------------
+    // 3. Changeling character_arts and character_realms
+    // --------------------------------------------
+    // These tables link character_id to named art/realm, with 1-N ratings; PK composite key.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_arts (
+        character_id INTEGER NOT NULL,
+        art_name TEXT NOT NULL,
+        rating INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (character_id, art_name),
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+      );
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_realms (
+        character_id INTEGER NOT NULL,
+        realm_name TEXT NOT NULL,
+        rating INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (character_id, realm_name),
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+      );
+    `);
+
+    // --------------------------------------------------------------------
+    // 4. Vampire: The Masquerade support (Phase 2.2, additive-safe, prod-ready)
+    // --------------------------------------------------------------------
+    // - clan (TEXT), generation (INTEGER), blood_pool_current (INTEGER),
+    //   blood_pool_max (INTEGER), humanity (INTEGER) columns for 'characters'
+    // - character_disciplines table (character_id/discipline_name PK, FK to characters(id))
+    // NOTE: All schema changes are strictly additive and idempotent (safe for live games).
+    this.addColumnIfNotExists('characters', 'clan', 'TEXT');
+    this.addColumnIfNotExists('characters', 'generation', 'INTEGER');
+    this.addColumnIfNotExists('characters', 'blood_pool_current', 'INTEGER');
+    this.addColumnIfNotExists('characters', 'blood_pool_max', 'INTEGER');
+    this.addColumnIfNotExists('characters', 'humanity', 'INTEGER');
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_disciplines (
+        character_id INTEGER NOT NULL,
+        discipline_name TEXT NOT NULL,
+        rating INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (character_id, discipline_name),
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+      );
+    `);
+
+    // --------------------------------------------------------------------
+    // 5. Werewolf: The Apocalypse support (Phase 2.3, additive, prod-safe)
+    // --------------------------------------------------------------------
+    // - Add columns for breed, auspice, tribe, gnosis, rage, renown to 'characters'.
+    //   These use TEXT or INTEGER, no value assumptions. All schema ops are safe/idempotent.
+    // - Create character_gifts (character_id, gift_name, rank) table for Werewolf gifts.
+    // Review docs below for column/table meaning; do not destructively update prod schema.
+    this.addColumnIfNotExists('characters', 'breed', 'TEXT');            // Garou breed (Homid, Metis, Lupus)
+    this.addColumnIfNotExists('characters', 'auspice', 'TEXT');         // Garou auspice (Ragabash, Theurge, etc)
+    this.addColumnIfNotExists('characters', 'tribe', 'TEXT');           // Garou tribe (Get of Fenris, Fianna, etc)
+    this.addColumnIfNotExists('characters', 'gnosis_current', 'INTEGER');    // Gnosis (current)
+    this.addColumnIfNotExists('characters', 'gnosis_permanent', 'INTEGER');  // Gnosis (permanent)
+    this.addColumnIfNotExists('characters', 'rage_current', 'INTEGER');      // Rage (current)
+    this.addColumnIfNotExists('characters', 'rage_permanent', 'INTEGER');    // Rage (permanent)
+    this.addColumnIfNotExists('characters', 'renown_glory', 'INTEGER');      // Renown (Glory)
+    this.addColumnIfNotExists('characters', 'renown_honor', 'INTEGER');      // Renown (Honor)
+    this.addColumnIfNotExists('characters', 'renown_wisdom', 'INTEGER');     // Renown (Wisdom)
+    // Gift table for Garou: character_gifts (PK: character_id+gift_name), gifts are named, ranked, CASCADE on character delete.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_gifts (
+        character_id INTEGER NOT NULL,
+        gift_name TEXT NOT NULL,
+        rank INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (character_id, gift_name),
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+      );
+    `);
+
+    // --------------------------------------------------------------------
+    // 6. Mage: The Ascension support (Phase 2.4, additive, prod-safe)
+    // --------------------------------------------------------------------
+    // - Add columns for tradition_convention (TEXT), arete (INTEGER), quintessence (INTEGER), paradox (INTEGER) to 'characters'.
+    // - Create character_spheres (character_id, sphere_name, rating) table.
+    //   PK: character_id+sphere_name, FK to characters(id) ON DELETE CASCADE.
+    // - All schema changes here are strictly additive & idempotent (prod and savegame safe, can run repeatedly).
+    this.addColumnIfNotExists('characters', 'tradition_convention', 'TEXT');    // Mage Tradition or Technocratic Convention
+    this.addColumnIfNotExists('characters', 'arete', 'INTEGER');                // Mage Arete (power stat)
+    this.addColumnIfNotExists('characters', 'quintessence', 'INTEGER');         // Mage Quintessence pool
+    this.addColumnIfNotExists('characters', 'paradox', 'INTEGER');              // Mage Paradox points
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_spheres (
+        character_id INTEGER NOT NULL,
+        sphere_name TEXT NOT NULL,
+        rating INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (character_id, sphere_name),
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Core Abilities by character (shared by all games)
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_abilities (
+        character_id INTEGER NOT NULL,
+        ability_name TEXT NOT NULL,
+        ability_type TEXT NOT NULL, -- 'Talent', 'Skill', 'Knowledge'
+        rating INTEGER NOT NULL DEFAULT 0,
+        specialty TEXT,
+        FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE,
+        PRIMARY KEY (character_id, ability_name)
+      );
     `);
 
     // NPCs table
@@ -289,17 +446,7 @@ export class GameDatabase {
       CREATE INDEX IF NOT EXISTS idx_character_quests_status ON character_quests(status);
     `);
 
-    // Migrations for existing tables
-    this.addColumnIfNotExists('characters', 'armor_class', 'INTEGER DEFAULT 10');
-    this.addColumnIfNotExists('inventory', 'equipped', 'BOOLEAN DEFAULT FALSE');
-    this.addColumnIfNotExists('encounters', 'currentState', 'TEXT DEFAULT \'TURN_ENDED\'');
-    this.addColumnIfNotExists('encounters', 'currentActorActions', 'TEXT');
-    // Add D&D 5E character fields
-    this.addColumnIfNotExists('characters', 'race', 'TEXT DEFAULT \'Human\'');
-    this.addColumnIfNotExists('characters', 'background', 'TEXT DEFAULT \'Folk Hero\'');
-    this.addColumnIfNotExists('characters', 'alignment', 'TEXT DEFAULT \'Neutral\'');
-    this.addColumnIfNotExists('characters', 'hit_dice_remaining', 'INTEGER DEFAULT 1');
-    this.addColumnIfNotExists('characters', 'speed', 'INTEGER DEFAULT 30');
+    // D&D character field migrations removed for oWoD schema. All character logic should migrate to new field set.
   }
 
   private addColumnIfNotExists(tableName: string, columnName: string, columnDefinition: string) {
@@ -316,92 +463,148 @@ export class GameDatabase {
   }
 
   // Character operations
+  // New: Create oWoD character (core + abilities)
   createCharacter(data: {
     name: string;
-    class: string;
+    concept?: string;
+    game_line: string; // 'vampire', 'werewolf', 'changeling', 'mage'
     strength?: number;
     dexterity?: number;
-    constitution?: number;
-    intelligence?: number;
-    wisdom?: number;
+    stamina?: number;
     charisma?: number;
-    armor_class?: number;
-    race?: string;
-    background?: string;
-    alignment?: string;
-    level?: number;
+    manipulation?: number;
+    appearance?: number;
+    perception?: number;
+    intelligence?: number;
+    wits?: number;
+    willpower_current?: number;
+    willpower_permanent?: number;
+    power_stat_name?: string;
+    power_stat_rating?: number;
+    health_levels?: Record<string, number>;
+    abilities?: Array<{
+      ability_name: string;
+      ability_type: string; // 'Talent', 'Skill', 'Knowledge'
+      rating?: number;
+      specialty?: string;
+    }>;
   }) {
-    const level = data.level || 1;
-    const constitution = data.constitution || 10;
-    const conMod = Math.floor((constitution - 10) / 2);
-    
-    // Calculate HP based on class and level (simplified)
-    const hitDieByClass: Record<string, number> = {
-      'Wizard': 6, 'Sorcerer': 6,
-      'Rogue': 8, 'Bard': 8, 'Cleric': 8, 'Druid': 8, 'Monk': 8, 'Warlock': 8,
-      'Fighter': 10, 'Paladin': 10, 'Ranger': 10,
-      'Barbarian': 12
+    // Default health_levels by line, fallback is basic
+    let defaultHealth: any = {
+      bruised: 0, hurt: 0, injured: 0, wounded: 0, mauled: 0, crippled: 0, incapacitated: 0,
     };
-    const hitDie = hitDieByClass[data.class] || 8;
-    const maxHp = hitDie + conMod + ((level - 1) * (Math.floor(hitDie / 2) + 1 + conMod));
-    
+    // Allow override per game if needed later
+
     const stmt = this.db.prepare(`
       INSERT INTO characters (
-        name, class, level, max_hp, current_hp, armor_class,
-        strength, dexterity, constitution, intelligence, wisdom, charisma,
-        race, background, alignment, hit_dice_remaining, speed
+        name, concept, game_line,
+        strength, dexterity, stamina, charisma, manipulation, appearance,
+        perception, intelligence, wits,
+        willpower_current, willpower_permanent,
+        health_levels,
+        power_stat_name, power_stat_rating
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
       data.name,
-      data.class,
-      level,
-      maxHp,
-      maxHp,
-      data.armor_class || (10 + Math.floor(((data.dexterity || 10) - 10) / 2)), // AC = 10 + Dex mod
-      data.strength || 10,
-      data.dexterity || 10,
-      data.constitution || 10,
-      data.intelligence || 10,
-      data.wisdom || 10,
-      data.charisma || 10,
-      data.race || 'Human',
-      data.background || 'Folk Hero',
-      data.alignment || 'Neutral',
-      level, // Hit dice remaining = level
-      30 // Default speed
+      data.concept || null,
+      data.game_line,
+      data.strength ?? 1,
+      data.dexterity ?? 1,
+      data.stamina ?? 1,
+      data.charisma ?? 1,
+      data.manipulation ?? 1,
+      data.appearance ?? 1,
+      data.perception ?? 1,
+      data.intelligence ?? 1,
+      data.wits ?? 1,
+      data.willpower_current ?? 1,
+      data.willpower_permanent ?? 1,
+      JSON.stringify(data.health_levels ?? defaultHealth),
+      data.power_stat_name || null,
+      data.power_stat_rating ?? null
     );
+    const charId = result.lastInsertRowid as number;
 
-    return this.getCharacter(result.lastInsertRowid as number);
+    // Insert abilities
+    if (data.abilities && Array.isArray(data.abilities)) {
+      const ab_stmt = this.db.prepare(`
+        INSERT INTO character_abilities
+        (character_id, ability_name, ability_type, rating, specialty)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      for (const ab of data.abilities) {
+        ab_stmt.run(
+          charId,
+          ab.ability_name,
+          ab.ability_type,
+          ab.rating ?? 0,
+          ab.specialty || null
+        );
+      }
+    }
+
+    return this.getCharacter(charId);
   }
 
+  // New: Retrieve character with joined abilities
   getCharacter(id: number) {
     const stmt = this.db.prepare('SELECT * FROM characters WHERE id = ?');
-    return stmt.get(id);
+    const char = stmt.get(id) as CharacterRow | undefined;
+    if (!char) return null;
+    const ab_stmt = this.db.prepare('SELECT ability_name, ability_type, rating, specialty FROM character_abilities WHERE character_id = ?');
+    const abilities = ab_stmt.all(char.id);
+    return {
+      ...char,
+      health_levels: char.health_levels ? JSON.parse(char.health_levels) : {},
+      abilities,
+    };
   }
 
+  // By name with joined abilities
   getCharacterByName(name: string) {
     const stmt = this.db.prepare('SELECT * FROM characters WHERE name = ?');
-    return stmt.get(name);
+    const char = stmt.get(name) as CharacterRow | undefined;
+    if (!char) return null;
+    const ab_stmt = this.db.prepare('SELECT ability_name, ability_type, rating, specialty FROM character_abilities WHERE character_id = ?');
+    const abilities = ab_stmt.all(char.id);
+    return {
+      ...char,
+      health_levels: char.health_levels ? JSON.parse(char.health_levels) : {},
+      abilities,
+    };
   }
 
+  // List characters basic info
   listCharacters() {
-    const stmt = this.db.prepare('SELECT * FROM characters ORDER BY last_played DESC');
+    const stmt = this.db.prepare('SELECT id, name, concept, game_line FROM characters ORDER BY id DESC');
     return stmt.all();
   }
 
+  // Patch: Update oWoD fields (not D&D keys). Only allows core attributes/traits.
   updateCharacter(id: number, updates: Record<string, any>) {
-    const fields = Object.keys(updates);
-    const values = Object.values(updates);
-    
+    const validKeys = [
+      'name', 'concept', 'game_line', 'strength', 'dexterity', 'stamina', 'charisma', 'manipulation', 'appearance',
+      'perception', 'intelligence', 'wits', 'willpower_current', 'willpower_permanent', 'health_levels', 'power_stat_name', 'power_stat_rating'
+    ];
+    const fields = Object.keys(updates).filter(k => validKeys.includes(k));
+    if (fields.length === 0) return this.getCharacter(id);
+
+    const values = fields.map(f => {
+      if (f === 'health_levels' && typeof updates[f] !== 'string') {
+        return JSON.stringify(updates[f]);
+      }
+      return updates[f];
+    });
+
     const setClause = fields.map(f => `${f} = ?`).join(', ');
     const stmt = this.db.prepare(`
-      UPDATE characters 
-      SET ${setClause}, last_played = CURRENT_TIMESTAMP 
+      UPDATE characters
+      SET ${setClause}
       WHERE id = ?
     `);
-    
+
     stmt.run(...values, id);
     return this.getCharacter(id);
   }
@@ -994,66 +1197,98 @@ export class GameDatabase {
     stmt.run(outcome, id);
   }
 
-  applyDamage(targetType: string, targetId: number, damage: number) {
-    let stmt;
-    
-    if (targetType === 'character') {
-      stmt = this.db.prepare(`
-        UPDATE characters
-        SET current_hp = MAX(0, current_hp - ?)
-        WHERE id = ?
-      `);
-      stmt.run(damage, targetId);
-      const character = this.getCharacter(targetId) as any;
-      if (character && character.current_hp <= 0) {
-        // Character is incapacitated, mark as inactive in encounters
-        const activeEncounters = this.db.prepare(`
-          SELECT encounter_id FROM encounter_participants
-          WHERE participant_type = 'character' AND participant_id = ? AND is_active = TRUE
-        `).all(targetId) as { encounter_id: number }[];
+  /**
+   * Apply Storyteller System (oWoD) Health Levels-based Damage to a Character.
+   * - Advances through health_levels (bruised, hurt, injured, ..., incapacitated) as damage is applied.
+   * - Each point increments the next unfilled level (order: bruised→hurt→injured→wounded→mauled→crippled→incapacitated).
+   * - Stops at incapacitated.
+   * Returns the updated character with computed wound penalties.
+   */
+  applyHealthLevelDamage(characterId: number, damage: number) {
+    // Health levels order (can be customized per game)
+    // All health levels in order for typing
+    const healthOrder = [
+      "bruised", "hurt", "injured", "wounded", "mauled", "crippled", "incapacitated"
+    ] as const;
+    type HealthLevel = typeof healthOrder[number];
+    const maxPerLevel: Record<HealthLevel, number> = {
+      bruised: 1, hurt: 1, injured: 1, wounded: 1, mauled: 1, crippled: 1, incapacitated: 1
+    };
 
-        for (const enc of activeEncounters) {
-          this.db.prepare(`
-            UPDATE encounter_participants
-            SET is_active = FALSE
-            WHERE participant_type = 'character' AND participant_id = ? AND encounter_id = ?
-          `).run(targetId, enc.encounter_id);
-          this.updateInitiativeOrder(enc.encounter_id); // Recalculate initiative order
-        }
-      }
-      return character;
-
-    } else if (targetType === 'npc') {
-      stmt = this.db.prepare(`
-        UPDATE npcs
-        SET current_hp = MAX(0, current_hp - ?),
-            is_alive = CASE WHEN current_hp - ? <= 0 THEN FALSE ELSE TRUE END
-        WHERE id = ?
-      `);
-      stmt.run(damage, damage, targetId);
-      
-      const npc = this.getNPC(targetId) as any;
-      if (npc && !npc.is_alive) {
-         // NPC died, mark as inactive in encounters
-        const activeEncounters = this.db.prepare(`
-          SELECT encounter_id FROM encounter_participants
-          WHERE participant_type = 'npc' AND participant_id = ? AND is_active = TRUE
-        `).all(targetId) as { encounter_id: number }[];
-
-        for (const enc of activeEncounters) {
-          this.db.prepare(`
-            UPDATE encounter_participants
-            SET is_active = FALSE
-            WHERE participant_type = 'npc' AND participant_id = ? AND encounter_id = ?
-          `).run(targetId, enc.encounter_id);
-          this.updateInitiativeOrder(enc.encounter_id); // Recalculate initiative order
-        }
-      }
-      return npc;
+    const char = this.getCharacter(characterId);
+    if (!char) return null;
+    let health = { ...char.health_levels };
+    if (typeof health !== 'object') {
+      try { health = JSON.parse(char.health_levels); } catch { health = {}; }
     }
-    
-    // Should not reach here if targetType is valid
-    return null;
+
+    // Build a damage queue from wound states (mini tracker)
+    for (let i = 0; i < damage; i++) {
+      // Find next available unfilled health level
+      for (const level of healthOrder) {
+        if ((health[level] ?? 0) < maxPerLevel[level]) {
+          health[level] = (health[level] ?? 0) + 1;
+          break;
+        }
+        // If totally full (incapacitated), further damage has no further effect
+      }
+    }
+    // Prevent overflow > incapacitated
+    for (const level of healthOrder) {
+      if ((health[level] ?? 0) > maxPerLevel[level]) {
+        health[level] = maxPerLevel[level];
+      }
+    }
+
+    // Save health_levels back
+    const stmt = this.db.prepare(`
+      UPDATE characters
+      SET health_levels = ?
+      WHERE id = ?
+    `);
+    stmt.run(JSON.stringify(health), characterId);
+
+    // Optionally, if now fully incapacitated, remove from encounter
+    if ((health["incapacitated"] ?? 0) >= maxPerLevel["incapacitated"]) {
+      // Mark as inactive in encounters
+      const activeEncounters = this.db.prepare(`
+        SELECT encounter_id FROM encounter_participants
+        WHERE participant_type = 'character' AND participant_id = ? AND is_active = TRUE
+      `).all(characterId) as { encounter_id: number }[];
+      for (const enc of activeEncounters) {
+        this.db.prepare(`
+          UPDATE encounter_participants
+          SET is_active = FALSE
+          WHERE participant_type = 'character' AND participant_id = ? AND encounter_id = ?
+        `).run(characterId, enc.encounter_id);
+        this.updateInitiativeOrder(enc.encounter_id);
+      }
+    }
+
+    // Compute wound penalty: based on the highest current filled health level
+    const penaltyMap: Record<HealthLevel, number> = {
+      bruised: 0,
+      hurt: -1,
+      injured: -1,
+      wounded: -2,
+      mauled: -2,
+      crippled: -5,
+      incapacitated: -99 // Indicates incapacitated, can be handled as special case
+    };
+    let penalty = 0;
+    for (const level of healthOrder.slice().reverse()) {
+      if ((health[level] ?? 0) > 0) {
+        penalty = penaltyMap[level];
+        break;
+      }
+    }
+
+    return {
+      ...this.getCharacter(characterId),
+      health_levels: health,
+      wound_penalty: penalty,
+      is_incapacitated: (health["incapacitated"] ?? 0) >= maxPerLevel["incapacitated"],
+    };
   }
 
   // Quest Operations
