@@ -1,0 +1,81 @@
+{
+  "mcpServers": {
+    "rpg-game-state": {
+      "name": "rpg-game-state-server",
+      "command": "node",
+      "args": [
+        "dist/index.js"
+      ],
+      "cwd": "e:/Tinker/rpg-mcp-servers/game-state-server",
+      "enabled": true,
+      "alwaysAllow": [
+        "create_character",
+        "get_character",
+        "get_character_by_name",
+        "list_characters",
+        "update_character",
+        "add_item",
+        "get_inventory",
+        "remove_item",
+        "update_item",
+        "save_world_state",
+        "get_world_state",
+        "update_world_state",
+        "create_npc",
+        "create_npc_group",
+        "get_npc",
+        "list_npcs",
+        "update_npc",
+        "remove_npc",
+        "create_encounter",
+        "add_to_encounter",
+        "consume_action",
+        "end_encounter",
+        "apply_damage",
+        "save_story_progress",
+        "add_quest",
+        "get_active_quests",
+        "update_quest_state",
+        "assign_quest_to_character",
+        "get_encounter_state",
+        "start_turn",
+        "end_turn"
+      ]
+    },
+    "rpg-combat-engine": {
+      "name": "rpg-combat-engine-server",
+      "command": "node",
+      "args": [
+        "dist/index.js"
+      ],
+      "cwd": "e:/Tinker/rpg-mcp-servers/combat-engine-server",
+      "enabled": true,
+      "alwaysAllow": [
+        "roll_dice",
+        "roll_check",
+        "attack_roll",
+        "initiative_roll",
+        "damage_roll",
+        "saving_throw",
+        "use_reaction",
+        "use_legendary_action",
+        "trigger_lair_action",
+        "execute_multiattack",
+        "initialize_battlefield",
+        "place_creature",
+        "move_creature",
+        "check_line_of_sight",
+        "get_area_effect_targets",
+        "get_tactical_summary",
+        "check_flanking",
+        "check_height_advantage",
+        "describe_battlefield",
+        "describe_detailed_tactical_situation",
+        "generate_battlefield_map",
+        "get_combat_log",
+        "clear_combat_log",
+        "roll_wod_pool"
+      ]
+    }
+  }
+}

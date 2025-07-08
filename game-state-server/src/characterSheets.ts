@@ -1,0 +1,235 @@
+/**
+ * Modular Character Sheet Formatters
+ * -----------------------------------
+ * Provides template-driven, game-line-specific character sheet output, supporting 
+ * Vampire, Werewolf, Mage, Changeling, and a generic fallback. Formatting is 
+ * functionally and thematically correct for each game. Cleanly integrates 
+ * conditions/status, derangements, and XP reporting.
+ *
+ * To add a new game line: Add a function here with the signature below and update
+ * the formatSheetByGameLine selector below.
+ *
+ * API: Each formatter receives a CharacterSheetOptions object and returns 
+ *      { type: 'text', text: string }
+ */
+export type CharacterSheetOptions = {
+  character: any,                   // Core character object (db shape)
+  extra?: Record<string, any>,      // Game-line-specific joined data (e.g., disciplines)
+  derangements?: any[],             // Array of derangement objects
+  conditions?: any[],               // Array of active conditions
+  xpHistory?: any[]                 // Array of XP change records (optional; fallback if empty)
+};
+
+/**
+ * Utility to format derangements/status/XP blocks for all sheets.
+ */
+function formatStatusBlocks({
+  derangements = [],
+  conditions = [],
+  xpHistory = []
+}: Partial<CharacterSheetOptions>): string {
+  let blocks = '';
+  // Mental State / Derangements
+  if (derangements.length) {
+    blocks += `🧠 Mental State / Derangements:\n`;
+    derangements.forEach(d => {
+      blocks += `  - ${d.derangement}${d.description ? `: ${d.description}` : ''}\n`;
+    });
+  }
+  // Conditions/Status Effects
+  if (conditions.length) {
+    blocks += `🦠 Conditions / Status Effects:\n`;
+    conditions.forEach(c => {
+      blocks += `  - ${c.condition_name}`;
+      if (c.duration !== null && c.duration !== undefined) blocks += ` [${c.duration} rounds left]`;
+      if (c.effect_json) blocks += `: ${typeof c.effect_json === 'object' ? JSON.stringify(c.effect_json) : c.effect_json}`;
+      blocks += `\n`;
+    });
+  }
+  // XP History (if any)
+  if (xpHistory.length) {
+    blocks += `📈 XP History (last ${xpHistory.length}):\n`;
+    xpHistory.forEach(xp => {
+      blocks += `  - ${xp.amount > 0 ? '+' : ''}${xp.amount} XP: ${xp.reason || ''} (${xp.timestamp ? new Date(xp.timestamp).toLocaleDateString() : ''})\n`;
+    });
+  }
+  return blocks;
+}
+/** Fallback: All WoD lines share these core blocks */
+function formatCoreBlocks(character: any): string {
+  return [
+    `👤 Name: ${character.name}`,
+    character.concept ? `🧠 Concept: ${character.concept}` : '',
+    `🗂️  Game Line: ${character.game_line?.[0]?.toUpperCase() + character.game_line?.slice(1)}`,
+    '',
+    `💪 Strength: ${character.strength}\n🏃 Dexterity: ${character.dexterity}\n❤️ Stamina: ${character.stamina}`,
+    `🎭 Charisma: ${character.charisma}\n🗣️ Manipulation: ${character.manipulation}\n🌟 Appearance: ${character.appearance}`,
+    `👁️ Perception: ${character.perception}\n🧠 Intelligence: ${character.intelligence}\n⚡ Wits: ${character.wits}`,
+    '',
+    '────────────── ABILITIES ──────────────',
+    character.abilities?.length
+      ? character.abilities.map(
+          (ab: any) => `  - ${ab.ability_type}: ${ab.ability_name} (${ab.rating}${ab.specialty ? `, ${ab.specialty}` : ''})`
+        ).join('\n')
+      : '  (none recorded)',
+    '',
+    '────────────── CORE TRAITS ──────────────',
+    `🔵 Willpower: ${character.willpower_current}/${character.willpower_permanent}`,
+    character.power_stat_name && character.power_stat_rating !== undefined
+      ? `🪄 ${character.power_stat_name}: ${character.power_stat_rating}` : ''
+  ].filter(Boolean).join('\n');
+}
+/**
+ * Vampire: Adds Disciplines, Blood Pool, Humanity
+ */
+export function formatVampireSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: VAMPIRE Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  out += '\n❤️ Health Levels:\n';
+  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
+  const levels = character.health_levels || {};
+  healthOrder.forEach(lvl => {
+    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
+  });
+
+  // Disciplines, Blood Pool, Humanity
+  if (extra.disciplines?.length) {
+    out += "\n🩸 Disciplines:\n";
+    extra.disciplines.forEach((d: any) => {
+      out += `  - ${d.discipline_name}: ${d.rating}\n`;
+    });
+  }
+  out += `Blood Pool: ${character.blood_pool_current || 0}/${character.blood_pool_max || 0}, Humanity: ${character.humanity ?? ''}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Werewolf: Adds Gifts, Rage, Gnosis, Renown
+ */
+export function formatWerewolfSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: WEREWOLF Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  out += '\n❤️ Health Levels:\n';
+  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
+  const levels = character.health_levels || {};
+  healthOrder.forEach(lvl => {
+    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
+  });
+
+  // Gifts, Rage, Gnosis, Renown
+  if (extra.gifts?.length) {
+    out += "\n🐺 Gifts:\n";
+    extra.gifts.forEach((g: any) => {
+      out += `  - ${g.gift_name} (Rank ${g.rank})\n`;
+    });
+  }
+  out += `Rage: ${character.rage_current || 0}, Gnosis: ${character.gnosis_current || 0}, Renown: Glory ${character.renown_glory || 0}, Honor ${character.renown_honor || 0}, Wisdom ${character.renown_wisdom || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Mage: Adds Spheres, Arete, Quintessence, Paradox
+ */
+export function formatMageSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: MAGE Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  out += '\n❤️ Health Levels:\n';
+  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
+  const levels = character.health_levels || {};
+  healthOrder.forEach(lvl => {
+    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
+  });
+
+  // Spheres, Arete, Quintessence, Paradox
+  if (extra.spheres?.length) {
+    out += "\n🕯️ Spheres:\n";
+    extra.spheres.forEach((s: any) => {
+      out += `  - ${s.sphere_name}: ${s.rating}\n`;
+    });
+  }
+  out += `Arete: ${character.arete || 0}, Quintessence: ${character.quintessence || 0}, Paradox: ${character.paradox || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Changeling: Adds Arts, Realms, Glamour, Banality
+ */
+export function formatChangelingSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: CHANGELING Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  out += '\n❤️ Health Levels:\n';
+  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
+  const levels = character.health_levels || {};
+  healthOrder.forEach(lvl => {
+    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
+  });
+
+  if (extra.arts?.length) {
+    out += "\n✨ Arts:\n";
+    extra.arts.forEach((a: any) => {
+      out += `  - ${a.art_name}: ${a.rating}\n`;
+    });
+  }
+  if (extra.realms?.length) {
+    out += "🌐 Realms:\n";
+    extra.realms.forEach((r: any) => {
+      out += `  - ${r.realm_name}: ${r.rating}\n`;
+    });
+  }
+  out += `Glamour: ${character.glamour_current || 0}/${character.glamour_permanent || 0}, Banality: ${character.banality_permanent || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Fallback: Core WoD sheet structure
+ */
+export function formatGenericWoDSheet(opts: CharacterSheetOptions) {
+  const { character } = opts;
+  let out = `🎲 World of Darkness Character Sheet (Generic)\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  out += '\n❤️ Health Levels:\n';
+  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
+  const levels = character.health_levels || {};
+  healthOrder.forEach(lvl => {
+    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
+  });
+
+  // Power stat if present
+  if (character.power_stat_name && character.power_stat_rating !== undefined) {
+    out += `${character.power_stat_name}: ${character.power_stat_rating}\n`;
+  }
+  return { type: 'text', text: out };
+}
+/**
+ * Selector for formatter function (UI/readability extensibility point)
+ */
+export function formatSheetByGameLine(opts: CharacterSheetOptions) {
+  switch ((opts.character.game_line || '').toLowerCase()) {
+    case 'vampire':    return formatVampireSheet(opts);
+    case 'werewolf':   return formatWerewolfSheet(opts);
+    case 'mage':       return formatMageSheet(opts);
+    case 'changeling': return formatChangelingSheet(opts);
+    default:           return formatGenericWoDSheet(opts);
+  }
+}
+/**
+ * To extend for a new game line:
+ * 1. Write `function formatHunterSheet(opts: CharacterSheetOptions) {...}`
+ * 2. Add `case 'hunter': return formatHunterSheet(opts);` to formatSheetByGameLine
+ * 3. (Optionally) update docs/UI layer
+ */
