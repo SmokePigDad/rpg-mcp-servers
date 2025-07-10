@@ -88,30 +88,30 @@ process.on('uncaughtException', (error) => {
 
 const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
   // Character Management
-  'create_character': (args) => create_character_handler(db, args),
-  'get_character': (args) => get_character_handler(db, args),
-  'get_character_by_name': (args) => get_character_by_name_handler(db, args),
-  'update_character': (args) => update_character_handler(db, args),
-  'list_characters': (args) => list_characters_handler(db, args),
+  'create_character': (db, args) => create_character_handler(db, args),
+  'get_character': (db, args) => get_character_handler(db, args),
+  'get_character_by_name': (db, args) => get_character_by_name_handler(db, args),
+  'update_character': (db, args) => update_character_handler(db, args),
+  'list_characters': (db, args) => list_characters_handler(db, args),
 
   // Antagonist Management
-  'create_antagonist': (args) => create_antagonist_handler(db, args),
-  'get_antagonist': (args) => get_antagonist_handler(db, args),
-  'update_antagonist': (args) => update_antagonist_handler(db, args),
-  'list_antagonists': (args) => list_antagonists_handler(db, args),
-  'remove_antagonist': (args) => remove_antagonist_handler(db, args),
+  'create_antagonist': (db, args) => create_antagonist_handler(db, args),
+  'get_antagonist': (db, args) => get_antagonist_handler(db, args),
+  'update_antagonist': (db, args) => update_antagonist_handler(db, args),
+  'list_antagonists': (db, args) => list_antagonists_handler(db, args),
+  'remove_antagonist': (db, args) => remove_antagonist_handler(db, args),
 
   // Resources & Health
-  'spend_resource': (args) => spend_resource_handler(db, args),
-  'restore_resource': (args) => restore_resource_handler(db, args),
-  'gain_resource': (args) => gain_resource_handler(db, args),
-  'apply_damage': (args) => apply_damage_handler(db, args),
+  'spend_resource': (db, args) => spend_resource_handler(db, args),
+  'restore_resource': (db, args) => restore_resource_handler(db, args),
+  'gain_resource': (db, args) => gain_resource_handler(db, args),
+  'apply_damage': (db, args) => apply_damage_handler(db, args),
 
   // XP & Progression
-  'award_xp': (args) => award_xp_handler(db, args),
-  'spend_xp': (args) => spend_xp_handler(db, args),
-  'improve_trait': (args) => improve_trait_handler(db, args),
-  'get_trait_improvement_cost': (args) => get_trait_improvement_cost_handler(db, args),
+  'award_xp': (db, args) => award_xp_handler(db, args),
+  'spend_xp': (db, args) => spend_xp_handler(db, args),
+  'improve_trait': (db, args) => improve_trait_handler(db, args),
+  'get_trait_improvement_cost': (db, args) => get_trait_improvement_cost_handler(db, args),
 
   // Status Effects
   'apply_status_effect': (args) => apply_status_effect_handler(db, args),
