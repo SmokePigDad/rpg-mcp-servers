@@ -2,6 +2,21 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_trait_improvement_cost_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id) ||
+    typeof args.trait_name !== "string" ||
+    args.trait_name.trim().length === 0
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments. 'character_id' must be a valid number and 'trait_name' must be a non-empty string."
+      ]),
+      isError: true
+    };
+  }
   const { character_id, trait_name } = args;
   const character = db.characters.getCharacterById(character_id);
 

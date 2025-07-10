@@ -41,17 +41,12 @@ The content is organized as follows:
 .roo/mcp.json
 combat-engine-server/package.json
 combat-engine-server/src/index.ts
-combat-engine-server/src/narrative-engine.ts
 combat-engine-server/tsconfig.json
-CRITICAL_FIXES_SUMMARY.md
-debug-tools-response.js
-diagnose-mcp.bat
 dice-rolling-guide.md
+game-state-server/config.json
 game-state-server/package.json
 game-state-server/src/antagonists.ts
 game-state-server/src/characterSheets.ts
-game-state-server/src/db.d.ts
-game-state-server/src/db.d.ts.map
 game-state-server/src/db.ts
 game-state-server/src/health-tracker.ts
 game-state-server/src/index.ts
@@ -60,10 +55,8 @@ game-state-server/src/repositories/character.repository.ts
 game-state-server/src/repositories/index.ts
 game-state-server/src/repositories/inventory.repository.ts
 game-state-server/src/repositories/status-effect.repository.ts
-game-state-server/src/simple_index.ts
+game-state-server/src/repositories/world-state.repository.ts
 game-state-server/src/tool-definitions.ts
-game-state-server/src/tool-handlers/__BATCH_STUBS_CREATE.ts
-game-state-server/src/tool-handlers/__REQUIRED_HANDLERS.md
 game-state-server/src/tool-handlers/add_item.handler.ts
 game-state-server/src/tool-handlers/advance_turn.handler.ts
 game-state-server/src/tool-handlers/apply_damage.handler.ts
@@ -82,6 +75,7 @@ game-state-server/src/tool-handlers/get_status_effects.handler.ts
 game-state-server/src/tool-handlers/get_trait_improvement_cost.handler.ts
 game-state-server/src/tool-handlers/get_world_state.handler.ts
 game-state-server/src/tool-handlers/improve_trait.handler.ts
+game-state-server/src/tool-handlers/index.ts
 game-state-server/src/tool-handlers/list_antagonists.handler.ts
 game-state-server/src/tool-handlers/list_characters.handler.ts
 game-state-server/src/tool-handlers/remove_antagonist.handler.ts
@@ -104,26 +98,11 @@ game-state-server/src/types/index.ts
 game-state-server/src/types/inventory.types.ts
 game-state-server/src/types/status-effect.types.ts
 game-state-server/tsconfig.json
-LLM_Testing_Prompt.md
-migrate-database.js
-QA_Test_Summary.md
 quick-start-guide.md
 README.md
 rebuild.bat
 setup.bat
 SYSTEM_ARCHITECTURE.md
-test-mcp-servers.bat
-TestBlock1_CharacterManagement_RESULTS.md
-TestBlock1_CharacterManagement.md
-TestBlock2_ResourcesAndProgression_RESULTS.md
-TestBlock2_ResourcesAndProgression.md
-TestBlock3_StatusEffectsAndInventory_RESULTS.md
-TestBlock3_StatusEffectsAndInventory.md
-TestBlock4_DiceMechanics_RESULTS.md
-TestBlock4_DiceMechanics.md
-TestBlock5_WorldStateAndInitiative_RESULTS.md
-TestBlock5_WorldStateAndInitiative.md
-TestingPlan.md
 TOOLS.md
 tsconfig.json
 update-summary.md
@@ -131,22 +110,91 @@ update-summary.md
 
 # Files
 
-## File: game-state-server/src/repositories/index.ts
-````typescript
-export * from './antagonist.repository.js';
-export * from './character.repository.js';
-export * from './inventory.repository.js';
-export * from './status-effect.repository.js';
+## File: game-state-server/config.json
+````json
+{
+  "mcp_servers": [
+    {
+      "name": "combat-engine-server",
+      "address": "http://localhost:3001"
+    }
+  ]
+}
 ````
 
-## File: game-state-server/src/types/index.ts
+## File: game-state-server/src/tool-handlers/index.ts
 ````typescript
-export * from './antagonist.types.js';
-export * from './character.types.js';
-export * from './db.types.js';
-export * from './health.types.js';
-export * from './inventory.types.js';
-export * from './status-effect.types.js';
+import type { GameDatabase } from '../db.js';
+
+// Import all your handlers here
+import { add_item_handler } from './add_item.handler.js';
+import { advance_turn_handler } from './advance_turn.handler.js';
+import { apply_damage_handler } from './apply_damage.handler.js';
+import { apply_status_effect_handler } from './apply_status_effect.handler.js';
+import { award_xp_handler } from './award_xp.handler.js';
+import { create_antagonist_handler } from './create_antagonist.handler.js';
+import { create_character_handler } from './create_character.handler.js';
+import { gain_resource_handler } from './gain_resource.handler.js';
+import { get_antagonist_handler } from './get_antagonist.handler.js';
+import { get_character_by_name_handler } from './get_character_by_name.handler.js';
+import { get_character_handler } from './get_character.handler.js';
+import { get_current_turn_handler } from './get_current_turn.handler.js';
+import { get_initiative_order_handler } from './get_initiative_order.handler.js';
+import { get_inventory_handler } from './get_inventory.handler.js';
+import { get_status_effects_handler } from './get_status_effects.handler.js';
+import { get_trait_improvement_cost_handler } from './get_trait_improvement_cost.handler.js';
+import { get_world_state_handler } from './get_world_state.handler.js';
+import { improve_trait_handler } from './improve_trait.handler.js';
+import { list_antagonists_handler } from './list_antagonists.handler.js';
+import { list_characters_handler } from './list_characters.handler.js';
+import { remove_antagonist_handler } from './remove_antagonist.handler.js';
+import { remove_item_handler } from './remove_item.handler.js';
+import { remove_status_effect_handler } from './remove_status_effect.handler.js';
+import { restore_resource_handler } from './restore_resource.handler.js';
+import { save_story_progress_handler } from './save_story_progress.handler.js';
+import { save_world_state_handler } from './save_world_state.handler.js';
+import { set_initiative_handler } from './set_initiative.handler.js';
+import { spend_resource_handler } from './spend_resource.handler.js';
+import { spend_xp_handler } from './spend_xp.handler.js';
+import { update_antagonist_handler } from './update_antagonist.handler.js';
+import { update_character_handler } from './update_character.handler.js';
+import { update_item_handler } from './update_item.handler.js';
+
+// Create a single map of all tool handlers
+export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
+  'add_item': add_item_handler,
+  'advance_turn': advance_turn_handler,
+  'apply_damage': apply_damage_handler,
+  'apply_status_effect': apply_status_effect_handler,
+  'award_xp': award_xp_handler,
+  'create_antagonist': create_antagonist_handler,
+  'create_character': create_character_handler,
+  'gain_resource': gain_resource_handler,
+  'get_antagonist': get_antagonist_handler,
+  'get_character_by_name': get_character_by_name_handler,
+  'get_character': get_character_handler,
+  'get_current_turn': get_current_turn_handler,
+  'get_initiative_order': get_initiative_order_handler,
+  'get_inventory': get_inventory_handler,
+  'get_status_effects': get_status_effects_handler,
+  'get_trait_improvement_cost': get_trait_improvement_cost_handler,
+  'get_world_state': get_world_state_handler,
+  'improve_trait': improve_trait_handler,
+  'list_antagonists': list_antagonists_handler,
+  'list_characters': list_characters_handler,
+  'remove_antagonist': remove_antagonist_handler,
+  'remove_item': remove_item_handler,
+  'remove_status_effect': remove_status_effect_handler,
+  'restore_resource': restore_resource_handler,
+  'save_story_progress': save_story_progress_handler,
+  'save_world_state': save_world_state_handler,
+  'set_initiative': set_initiative_handler,
+  'spend_resource': spend_resource_handler,
+  'spend_xp': spend_xp_handler,
+  'update_antagonist': update_antagonist_handler,
+  'update_character': update_character_handler,
+  'update_item': update_item_handler,
+};
 ````
 
 ## File: .gitattributes
@@ -302,598 +350,6 @@ customModes:
 }
 ````
 
-## File: combat-engine-server/src/narrative-engine.ts
-````typescript
-// Narrative Engine - Tier 2, Phase 1 (Staged Integration)
-// Isolated in-memory tactical/scene store & MCP tool handlers (set_scene_conditions, get_tactical_advantage)
-//
-// Safe for initial rollout: no mutation of existing core logic, well-documented API shape
-
-// Range between two entities/positions
-type RangeKey = string; // e.g. "A-B" or "char123-room7"
-type RangeValue = number; // Units are abstract, e.g. meters/grids/feet
-
-interface SceneConditions {
-  environment: string; // e.g. "open field", "dense forest"
-  cover: "none" | "partial" | "full";
-  lighting: "bright" | "dim" | "dark";
-  elevation?: "flat" | "high_ground" | "low_ground";
-  weather?: string;
-  custom?: Record<string, any>;
-}
-
-interface SituationalModifierResult {
-  modifiers: number;
-  reasons: string[];
-}
-
-/**
- * NarrativeEngine: Handles ranges, scenes, conditions, and situational modifiers.
- * All state is in-memory and transient until the persistent layer is available.
- */
-export class NarrativeEngine {
-  private static instance: NarrativeEngine;
-  private rangeMap: Map<RangeKey, RangeValue>;
-  private sceneConditions: SceneConditions;
-
-  private constructor() {
-    this.rangeMap = new Map();
-    this.sceneConditions = {
-      environment: "default",
-      cover: "none",
-      lighting: "bright",
-    };
-  }
-
-  public static getInstance(): NarrativeEngine {
-    if (!NarrativeEngine.instance) {
-      NarrativeEngine.instance = new NarrativeEngine();
-    }
-    return NarrativeEngine.instance;
-  }
-
-  /**
-   * Sets the tactical range between two entities/positions.
-   * Key must be deterministic (caller handles entity ID ordering if symmetric).
-   */
-  setRange(key: RangeKey, value: RangeValue): void {
-    if (typeof value !== "number" || value < 0) return;
-    this.rangeMap.set(key, value);
-  }
-
-  /**
-   * Gets the tactical range between two entities/positions.
-   * Returns undefined if range is not set.
-   */
-  getRange(key: RangeKey): RangeValue | undefined {
-    return this.rangeMap.get(key);
-  }
-
-  /**
-   * Sets the current scene conditions.
-   * Overwrites previous values, but is always safe (initial tier: in-memory only).
-   */
-  setSceneConditions(conditions: Partial<SceneConditions>): void {
-    this.sceneConditions = { ...this.sceneConditions, ...conditions };
-  }
-
-  /**
-   * Returns a snapshot of current scene conditions.
-   */
-  getSceneConditions(): SceneConditions {
-    return { ...this.sceneConditions };
-  }
-
-  /**
-   * Computes situational modifiers for an entity or group, based on scene/cover.
-   */
-  getSituationalModifiers(actor: { cover: string; isElevated?: boolean; [key: string]: any }): SituationalModifierResult {
-    const reasons: string[] = [];
-    let modifiers = 0;
-
-    // Cover-based modifier
-    if (actor.cover === "full") {
-      modifiers += 2;
-      reasons.push("Full cover (+2)");
-    } else if (actor.cover === "partial") {
-      modifiers += 1;
-      reasons.push("Partial cover (+1)");
-    }
-
-    // Elevation (if supported in current scene)
-    if (actor.isElevated && this.sceneConditions.elevation === "high_ground") {
-      modifiers += 1;
-      reasons.push("High ground (+1)");
-    }
-
-    // Lighting penalty
-    if (this.sceneConditions.lighting === "dim") {
-      modifiers -= 1;
-      reasons.push("Dim lighting (-1)");
-    } else if (this.sceneConditions.lighting === "dark") {
-      modifiers -= 2;
-      reasons.push("Darkness (-2)");
-    }
-
-    // Additional: customize here as new conditions/actors arise
-
-    return { modifiers, reasons };
-  }
-}
-
-// MCP Tool Handler Integration (for src/index.ts)
-// Exposes two public MCP tools: set_scene_conditions, get_tactical_advantage
-// Handlers should be registered in the MCP server bootstrap in src/index.ts
-
-// MCP Tool: set_scene_conditions
-// Params: { environment?: string; cover?: "none"|"partial"|"full"; lighting?: ...; ... }
-// Returns: { ok: true }
-export function handleSetSceneConditions(params: Partial<SceneConditions>): { ok: boolean } {
-  const engine = NarrativeEngine.getInstance();
-  engine.setSceneConditions(params);
-  return { ok: true };
-}
-
-// MCP Tool: get_tactical_advantage
-// Params: { actor: { cover: string; isElevated?: boolean; ... } }
-// Returns: { modifiers: number, reasons: string[] }
-export function handleGetTacticalAdvantage(params: { actor: { cover: string; isElevated?: boolean; [key: string]: any } }): SituationalModifierResult {
-  const engine = NarrativeEngine.getInstance();
-  return engine.getSituationalModifiers(params.actor);
-}
-
-
-/**
- * MCP Tool Exposure Plan for Safe Rollout:
- * - Register set_scene_conditions and get_tactical_advantage in the MCP tool registry
- * - Validate input via schema (in index.ts or dispatcher)
- * - No core combat state is mutated outside NarrativeEngine in this phase
- * - If any error: silently fallback to "no change" behavior and log (add logging in later phases)
- * - Engine state is in-memory/transient, can be reset without risk
- * - Future phases: upgrade to persistence, transactionality, and tight combat integration
- */
-
-// API signatures (TypeScript):
-// setRange(key: string, value: number): void
-// getRange(key: string): number | undefined
-// getSituationalModifiers(actor: { cover: string; isElevated?: boolean; ... }): { modifiers: number; reasons: string[]; }
-````
-
-## File: CRITICAL_FIXES_SUMMARY.md
-````markdown
-# Critical Resource Management Fixes
-
-## Overview
-
-This document summarizes the critical fixes implemented to address the resource management issues identified in the manual MCP test results. These fixes target the most severe problems that were causing system failures and data corruption.
-
-## Issues Addressed
-
-### 🔴 CRITICAL PRIORITY FIXES
-
-#### 1. **Blocker 1: Resource Lock** ✅ FIXED
-- **Issue**: XP spending during pending propagation triggers transient lockout requiring server restart
-- **Root Cause**: No proper locking mechanism or lock release
-- **Solution**: Implemented comprehensive resource locking system with automatic timeout
-
-**Implementation Details:**
-- Added `resourceLocks` Map to track active operations
-- Implemented `acquireResourceLock()` and `releaseResourceLock()` methods
-- Added automatic lock cleanup with 5-second timeout
-- Locks are automatically released even if operations fail
-
-#### 2. **Blocker 2: Atomicity Issues** ✅ FIXED
-- **Issue**: Simultaneous spend/add operations can result in negative resources
-- **Root Cause**: No transaction wrapping for resource operations
-- **Solution**: Created `atomicResourceOperation()` method with full transaction support
-
-**Implementation Details:**
-- All resource operations now wrapped in database transactions
-- Atomic check-and-update pattern prevents race conditions
-- Comprehensive validation before any database changes
-- Immediate rollback on any validation failure
-
-#### 3. **Race Condition (2.2b)** ✅ FIXED
-- **Issue**: Rapid sequence updates sometimes out-of-order
-- **Root Cause**: No serialization of concurrent operations
-- **Solution**: Resource locking ensures operations are serialized per character/resource
-
-#### 4. **Antagonist Update Caching (#1.BUG-A02)** ✅ FIXED
-- **Issue**: Updates not reflected in immediate lookups
-- **Root Cause**: No transaction wrapping and stale data return
-- **Solution**: Added transaction wrapping and immediate fresh data return
-
-## Technical Implementation
-
-### New Database Methods
-
-#### `atomicResourceOperation(character_id, resource_name, operation, amount, maxValue?)`
-- **Purpose**: Performs atomic resource operations with locking
-- **Operations**: 'spend', 'gain', 'restore'
-- **Returns**: `{ success: boolean, newValue?: number, error?: string }`
-- **Features**:
-  - Automatic resource locking
-  - Transaction-wrapped operations
-  - Comprehensive validation
-  - Negative value prevention
-  - Max value enforcement
-
-#### Resource Locking System
-- **Lock Key Format**: `${character_id}:${resource_name}`
-- **Timeout**: 5 seconds (configurable)
-- **Auto-cleanup**: Expired locks automatically removed
-- **Error Handling**: Clear error messages for lock conflicts
-
-### Updated MCP Tool Functions
-
-#### `spend_resource`
-- Now uses `atomicResourceOperation()` instead of direct database updates
-- Prevents race conditions and negative resources
-- Provides clear error messages for lock conflicts
-
-#### `restore_resource` & `gain_resource`
-- Converted to use atomic operations
-- Proper max value enforcement
-- Consistent error handling
-
-#### `spend_xp`
-- Added to atomic operation system
-- Prevents XP spending race conditions
-- Maintains experience ledger integrity
-
-#### `updateAntagonist`
-- Added transaction wrapping
-- Returns fresh data to prevent cache staleness
-- Consistent with character update patterns
-
-## Resource Support
-
-### Supported Resources
-- `willpower` (current/permanent)
-- `blood` (current/max)
-- `rage` (current/permanent)
-- `gnosis` (current/permanent)
-- `glamour` (current/permanent)
-- `quintessence` (unlimited)
-- `paradox` (unlimited)
-- `experience` (unlimited, but non-negative)
-
-### Validation Rules
-- **Spend Operations**: Must have sufficient current value
-- **Gain/Restore Operations**: Cannot exceed maximum (where applicable)
-- **All Operations**: Cannot result in negative values
-- **Experience**: Special handling for XP spending with ledger integration
-
-## Error Handling Improvements
-
-### Lock Conflict Errors
-```
-"Resource willpower is currently locked by another operation. Please try again."
-```
-
-### Insufficient Resource Errors
-```
-"Insufficient willpower. Current: 2, trying to spend: 5"
-```
-
-### Validation Errors
-```
-"Operation would result in negative willpower"
-```
-
-## Testing
-
-A comprehensive test suite (`test-critical-fixes.js`) has been created to verify:
-
-1. **Concurrent Operation Handling**: Multiple simultaneous operations
-2. **Race Condition Prevention**: Rapid sequential operations
-3. **Negative Resource Prevention**: Over-spend attempts
-4. **Lock Timeout Mechanism**: Automatic lock cleanup
-5. **Antagonist Cache Consistency**: Update/read consistency
-
-## Performance Impact
-
-- **Minimal Overhead**: Locking adds ~1-2ms per operation
-- **Memory Usage**: Lock map scales with concurrent operations
-- **Database**: Transaction overhead is negligible with SQLite WAL mode
-- **Cleanup**: Automatic lock cleanup prevents memory leaks
-
-## Backward Compatibility
-
-- All existing MCP tool interfaces remain unchanged
-- Error message format improved but structure maintained
-- Database schema unchanged
-- No breaking changes to client code
-
-## Next Steps
-
-### High Priority (Recommended for next sprint)
-1. **State Propagation Delay**: Level-up bonuses delayed to next request
-2. **Cache/State Staleness**: Sub-second update staleness
-3. **Comprehensive Testing**: Integration tests with real game scenarios
-
-### Medium Priority
-1. **Error Message Standardization**: Consistent error format across all tools
-2. **Performance Monitoring**: Add metrics for lock contention
-3. **Documentation Updates**: Update API documentation with new error codes
-
-## Verification
-
-To verify the fixes are working:
-
-1. Run the test suite: `node test-critical-fixes.js`
-2. Monitor for lock timeout errors in logs
-3. Test concurrent resource operations in real gameplay
-4. Verify antagonist updates are immediately visible
-
-The implemented fixes address all critical resource management issues and provide a robust foundation for reliable gameplay mechanics.
-````
-
-## File: debug-tools-response.js
-````javascript
-// Debug script to see what the server is actually returning
-const { spawn } = require('child_process');
-
-console.log('🔍 Debugging Tools Response...\n');
-
-// Start the game state server
-const serverProcess = spawn('node', ['dist/index.js'], {
-  cwd: './game-state-server',
-  stdio: ['pipe', 'pipe', 'pipe']
-});
-
-let serverOutput = '';
-let serverError = '';
-
-serverProcess.stdout.on('data', (data) => {
-  const output = data.toString();
-  serverOutput += output;
-  console.log('📤 Server stdout:', output);
-});
-
-serverProcess.stderr.on('data', (data) => {
-  const error = data.toString();
-  serverError += error;
-  console.log('❌ Server stderr:', error);
-});
-
-// Wait for server to start, then send requests
-setTimeout(() => {
-  console.log('📤 Sending list tools request...');
-  
-  const listToolsRequest = {
-    jsonrpc: "2.0",
-    id: 1,
-    method: "tools/list",
-    params: {}
-  };
-  
-  serverProcess.stdin.write(JSON.stringify(listToolsRequest) + '\n');
-  
-  // Wait for response
-  setTimeout(() => {
-    console.log('\n📊 Final Analysis:');
-    console.log('Server output length:', serverOutput.length);
-    console.log('Server error length:', serverError.length);
-    
-    if (serverOutput.includes('tools')) {
-      console.log('✅ Response contains "tools"');
-    } else {
-      console.log('❌ Response does not contain "tools"');
-    }
-    
-    if (serverOutput.includes('create_character')) {
-      console.log('✅ Response contains tool names');
-    } else {
-      console.log('❌ Response does not contain tool names');
-    }
-    
-    serverProcess.kill();
-  }, 3000);
-}, 1000);
-````
-
-## File: diagnose-mcp.bat
-````
-@echo off
-echo ===========================================
-echo MCP Server Diagnostic Tool
-echo ===========================================
-echo.
-
-echo 1. Checking Node.js version...
-node --version
-echo.
-
-echo 2. Checking if dist files exist...
-if exist "game-state-server\dist\index.js" (
-    echo ✓ Game State Server dist/index.js exists
-) else (
-    echo ✗ Game State Server dist/index.js missing
-)
-
-if exist "combat-engine-server\dist\index.js" (
-    echo ✓ Combat Engine Server dist/index.js exists
-) else (
-    echo ✗ Combat Engine Server dist/index.js missing
-)
-echo.
-
-echo 3. Testing Game State Server startup...
-cd game-state-server
-echo Starting server with 5 second timeout...
-timeout /t 5 /nobreak | node dist/index.js
-if %ERRORLEVEL% EQU 0 (
-    echo ✓ Game State Server started successfully
-) else (
-    echo ✗ Game State Server failed with error code %ERRORLEVEL%
-)
-cd ..
-echo.
-
-echo 4. Testing Combat Engine Server startup...
-cd combat-engine-server
-echo Starting server with 5 second timeout...
-timeout /t 5 /nobreak | node dist/index.js
-if %ERRORLEVEL% EQU 0 (
-    echo ✓ Combat Engine Server started successfully
-) else (
-    echo ✗ Combat Engine Server failed with error code %ERRORLEVEL%
-)
-cd ..
-echo.
-
-echo 5. Checking MCP configuration...
-if exist ".kilocode\mcp.json" (
-    echo ✓ .kilocode\mcp.json exists
-    echo Content preview:
-    type .kilocode\mcp.json | findstr /n "rpg-game-state\|rpg-combat-engine\|enabled"
-) else (
-    echo ✗ .kilocode\mcp.json missing
-)
-echo.
-
-echo ===========================================
-echo Diagnostic complete. Press any key to exit.
-pause >nul
-````
-
-## File: game-state-server/src/db.d.ts
-````typescript
-interface EncounterParticipant {
-    id: number;
-    encounter_id: number;
-    participant_type: 'character' | 'npc';
-    participant_id: number;
-    initiative: number;
-    initiative_order?: number | null;
-    has_acted: boolean;
-    conditions?: string | null;
-    is_active: boolean;
-    name: string;
-    current_hp: number;
-    max_hp: number;
-}
-interface Quest {
-    id: number;
-    title: string;
-    description: string;
-    objectives: string;
-    rewards: string;
-    created_at: string;
-}
-interface CharacterQuest {
-    id: number;
-    character_id: number;
-    quest_id: number;
-    status: 'active' | 'completed' | 'failed';
-    progress?: string | null;
-    assigned_at: string;
-    updated_at: string;
-    title?: string;
-    description?: string;
-    objectives?: string;
-    rewards?: string;
-}
-export declare class GameDatabase {
-    private db;
-    constructor();
-    private initializeSchema;
-    createCharacter(data: {
-        name: string;
-        class: string;
-        strength?: number;
-        dexterity?: number;
-        constitution?: number;
-        intelligence?: number;
-        wisdom?: number;
-        charisma?: number;
-    }): unknown;
-    getCharacter(id: number): unknown;
-    getCharacterByName(name: string): unknown;
-    listCharacters(): unknown[];
-    updateCharacter(id: number, updates: Record<string, any>): unknown;
-    addItem(characterId: number, item: {
-        name: string;
-        type: string;
-        quantity?: number;
-        properties?: Record<string, any>;
-    }): {
-        name: string;
-        type: string;
-        quantity?: number;
-        properties?: Record<string, any>;
-        id: number | bigint;
-    };
-    getInventory(characterId: number): any[];
-    updateItem(id: number, updates: {
-        quantity?: number;
-        equipped?: boolean;
-    }): void;
-    removeItem(id: number): void;
-    saveStoryProgress(characterId: number, data: {
-        chapter: string;
-        scene: string;
-        description?: string;
-        flags?: Record<string, any>;
-    }): void;
-    getLatestStoryProgress(characterId: number): any;
-    saveWorldState(characterId: number, data: {
-        location: string;
-        npcs?: Record<string, any>;
-        events?: Record<string, any>;
-        environment?: Record<string, any>;
-    }): void;
-    getWorldState(characterId: number): any;
-    logCombat(characterId: number, sessionId: string, action: string, result?: string): void;
-    getCombatLog(characterId: number, sessionId?: string): unknown[];
-    createNPC(data: {
-        name: string;
-        template?: string;
-        type?: string;
-        customStats?: Record<string, any>;
-    }): any;
-    createNPCGroup(template: string, count: number, namePrefix?: string): any[];
-    getNPC(id: number): any;
-    listNPCs(type?: string, aliveOnly?: boolean): any[];
-    updateNPC(id: number, updates: Record<string, any>): any;
-    removeNPC(id: number): void;
-    createEncounter(data: {
-        character_id: number;
-        name: string;
-        description?: string;
-        environment?: string;
-    }): unknown;
-    getEncounter(id: number): unknown;
-    getActiveEncounter(characterId: number): unknown;
-    addEncounterParticipant(encounterId: number, type: string, participantId: number, initiative: number): void;
-    updateInitiativeOrder(encounterId: number): void;
-    getEncounterParticipants(encounterId: number): EncounterParticipant[];
-    nextTurn(encounterId: number): EncounterParticipant | null | undefined;
-    endEncounter(id: number, outcome?: string): void;
-    applyDamage(targetType: string, targetId: number, damage: number): any;
-    addQuest(data: {
-        title: string;
-        description: string;
-        objectives: Record<string, any>[] | string[];
-        rewards: Record<string, any>;
-    }): Quest | null;
-    getQuestById(id: number): Quest | null;
-    assignQuestToCharacter(characterId: number, questId: number, status?: 'active' | 'completed' | 'failed'): CharacterQuest | null;
-    getCharacterQuestById(characterQuestId: number): CharacterQuest | null;
-    getCharacterActiveQuests(characterId: number): CharacterQuest[];
-    updateCharacterQuestStatus(characterQuestId: number, status: 'active' | 'completed' | 'failed', progress?: Record<string, any> | null): CharacterQuest | null;
-    close(): void;
-}
-export {};
-//# sourceMappingURL=db.d.ts.map
-````
-
-## File: game-state-server/src/db.d.ts.map
-````
-{"version":3,"file":"db.d.ts","sourceRoot":"","sources":["db.ts"],"names":[],"mappings":"AA6CA,UAAU,oBAAoB;IAC5B,EAAE,EAAE,MAAM,CAAC;IACX,YAAY,EAAE,MAAM,CAAC;IACrB,gBAAgB,EAAE,WAAW,GAAG,KAAK,CAAC;IACtC,cAAc,EAAE,MAAM,CAAC;IACvB,UAAU,EAAE,MAAM,CAAC;IACnB,gBAAgB,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IACjC,SAAS,EAAE,OAAO,CAAC;IACnB,UAAU,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IAC3B,SAAS,EAAE,OAAO,CAAC;IAEnB,IAAI,EAAE,MAAM,CAAC;IACb,UAAU,EAAE,MAAM,CAAC;IACnB,MAAM,EAAE,MAAM,CAAC;CAChB;AAED,UAAU,KAAK;IACb,EAAE,EAAE,MAAM,CAAC;IACX,KAAK,EAAE,MAAM,CAAC;IACd,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;IACnB,OAAO,EAAE,MAAM,CAAC;IAChB,UAAU,EAAE,MAAM,CAAC;CACpB;AAED,UAAU,cAAc;IACtB,EAAE,EAAE,MAAM,CAAC;IACX,YAAY,EAAE,MAAM,CAAC;IACrB,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,QAAQ,GAAG,WAAW,GAAG,QAAQ,CAAC;IAC1C,QAAQ,CAAC,EAAE,MAAM,GAAG,IAAI,CAAC;IACzB,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;IAEnB,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,UAAU,CAAC,EAAE,MAAM,CAAC;IACpB,OAAO,CAAC,EAAE,MAAM,CAAC;CAClB;AAUD,qBAAa,YAAY;IACvB,OAAO,CAAC,EAAE,CAAoB;;IAQ9B,OAAO,CAAC,gBAAgB;IA8LxB,eAAe,CAAC,IAAI,EAAE;QACpB,IAAI,EAAE,MAAM,CAAC;QACb,KAAK,EAAE,MAAM,CAAC;QACd,QAAQ,CAAC,EAAE,MAAM,CAAC;QAClB,SAAS,CAAC,EAAE,MAAM,CAAC;QACnB,YAAY,CAAC,EAAE,MAAM,CAAC;QACtB,YAAY,CAAC,EAAE,MAAM,CAAC;QACtB,MAAM,CAAC,EAAE,MAAM,CAAC;QAChB,QAAQ,CAAC,EAAE,MAAM,CAAC;KACnB;IA2BD,YAAY,CAAC,EAAE,EAAE,MAAM;IAKvB,kBAAkB,CAAC,IAAI,EAAE,MAAM;IAK/B,cAAc;IAKd,eAAe,CAAC,EAAE,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC;IAgBxD,OAAO,CAAC,WAAW,EAAE,MAAM,EAAE,IAAI,EAAE;QACjC,IAAI,EAAE,MAAM,CAAC;QACb,IAAI,EAAE,MAAM,CAAC;QACb,QAAQ,CAAC,EAAE,MAAM,CAAC;QAClB,UAAU,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;KAClC;cAJO,MAAM;cACN,MAAM;mBACD,MAAM;qBACJ,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC;;;IAkBlC,YAAY,CAAC,WAAW,EAAE,MAAM;IAYhC,UAAU,CAAC,EAAE,EAAE,MAAM,EAAE,OAAO,EAAE;QAAE,QAAQ,CAAC,EAAE,MAAM,CAAC;QAAC,QAAQ,CAAC,EAAE,OAAO,CAAA;KAAE;IAUzE,UAAU,CAAC,EAAE,EAAE,MAAM;IAMrB,iBAAiB,CAAC,WAAW,EAAE,MAAM,EAAE,IAAI,EAAE;QAC3C,OAAO,EAAE,MAAM,CAAC;QAChB,KAAK,EAAE,MAAM,CAAC;QACd,WAAW,CAAC,EAAE,MAAM,CAAC;QACrB,KAAK,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;KAC7B;IAeD,sBAAsB,CAAC,WAAW,EAAE,MAAM;IAgB1C,cAAc,CAAC,WAAW,EAAE,MAAM,EAAE,IAAI,EAAE;QACxC,QAAQ,EAAE,MAAM,CAAC;QACjB,IAAI,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;QAC3B,MAAM,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;QAC7B,WAAW,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;KACnC;IAsCD,aAAa,CAAC,WAAW,EAAE,MAAM;IAcjC,SAAS,CAAC,WAAW,EAAE,MAAM,EAAE,SAAS,EAAE,MAAM,EAAE,MAAM,EAAE,MAAM,EAAE,MAAM,CAAC,EAAE,MAAM;IASjF,YAAY,CAAC,WAAW,EAAE,MAAM,EAAE,SAAS,CAAC,EAAE,MAAM;IAoBpD,SAAS,CAAC,IAAI,EAAE;QACd,IAAI,EAAE,MAAM,CAAC;QACb,QAAQ,CAAC,EAAE,MAAM,CAAC;QAClB,IAAI,CAAC,EAAE,MAAM,CAAC;QACd,WAAW,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;KACnC;IA6ED,cAAc,CAAC,QAAQ,EAAE,MAAM,EAAE,KAAK,EAAE,MAAM,EAAE,UAAU,CAAC,EAAE,MAAM;IAenE,MAAM,CAAC,EAAE,EAAE,MAAM;IAcjB,QAAQ,CAAC,IAAI,CAAC,EAAE,MAAM,EAAE,SAAS,GAAE,OAAc;IA0BjD,SAAS,CAAC,EAAE,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC;IAsBlD,SAAS,CAAC,EAAE,EAAE,MAAM;IAMpB,eAAe,CAAC,IAAI,EAAE;QACpB,YAAY,EAAE,MAAM,CAAC;QACrB,IAAI,EAAE,MAAM,CAAC;QACb,WAAW,CAAC,EAAE,MAAM,CAAC;QACrB,WAAW,CAAC,EAAE,MAAM,CAAC;KACtB;IAgBD,YAAY,CAAC,EAAE,EAAE,MAAM;IAKvB,kBAAkB,CAAC,WAAW,EAAE,MAAM;IAUtC,uBAAuB,CAAC,WAAW,EAAE,MAAM,EAAE,IAAI,EAAE,MAAM,EAAE,aAAa,EAAE,MAAM,EAAE,UAAU,EAAE,MAAM;IAYpG,qBAAqB,CAAC,WAAW,EAAE,MAAM;IAkBzC,wBAAwB,CAAC,WAAW,EAAE,MAAM,GAsBV,oBAAoB,EAAE;IAGxD,QAAQ,CAAC,WAAW,EAAE,MAAM;IA6C5B,YAAY,CAAC,EAAE,EAAE,MAAM,EAAE,OAAO,GAAE,MAAoB;IAUtD,WAAW,CAAC,UAAU,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM,EAAE,MAAM,EAAE,MAAM;IAsChE,QAAQ,CAAC,IAAI,EAAE;QACb,KAAK,EAAE,MAAM,CAAC;QACd,WAAW,EAAE,MAAM,CAAC;QACpB,UAAU,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,EAAE,GAAG,MAAM,EAAE,CAAC;QAC7C,OAAO,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;KAC9B;IAcD,YAAY,CAAC,EAAE,EAAE,MAAM,GAAG,KAAK,GAAG,IAAI;IAUtC,sBAAsB,CAAC,WAAW,EAAE,MAAM,EAAE,OAAO,EAAE,MAAM,EAAE,MAAM,GAAE,QAAQ,GAAG,WAAW,GAAG,QAAmB;IAgCjH,qBAAqB,CAAC,gBAAgB,EAAE,MAAM,GAAG,cAAc,GAAG,IAAI;IAiBtE,wBAAwB,CAAC,WAAW,EAAE,MAAM,GAAG,cAAc,EAAE;IAiB/D,0BAA0B,CAAC,gBAAgB,EAAE,MAAM,EAAE,MAAM,EAAE,QAAQ,GAAG,WAAW,GAAG,QAAQ,EAAE,QAAQ,CAAC,EAAE,MAAM,CAAC,MAAM,EAAE,GAAG,CAAC,GAAG,IAAI;IAsBrI,KAAK;CAGN"}
-````
-
 ## File: game-state-server/src/health-tracker.ts
 ````typescript
 // File: game-state-server/src/health-tracker.ts
@@ -904,14 +360,7 @@ export {};
  * and robust fallback for malformed/corrupt health state objects.
  */
 type DamageType = 'bashing' | 'lethal' | 'aggravated';
-export type HealthLevel =
-  | 'bruised'
-  | 'hurt'
-  | 'injured'
-  | 'wounded'
-  | 'mauled'
-  | 'crippled'
-  | 'incapacitated';
+import { HealthLevel, DamageObject } from './types/health.types.js';
 
 const HEALTH_LEVELS: HealthLevel[] = [
   'bruised',
@@ -939,11 +388,6 @@ const DAMAGE_SYMBOL: Record<DamageType, string> = {
   aggravated: '*'
 };
 
-export interface DamageObject {
-  aggravated?: number;
-  lethal?: number;
-  bashing?: number;
-}
 
 export class HealthTracker {
   private boxes: ('' | '/' | 'X' | '*')[] = Array(7).fill('');
@@ -1125,83 +569,128 @@ export class HealthTracker {
 }
 ````
 
-## File: game-state-server/src/simple_index.ts
+## File: game-state-server/src/repositories/index.ts
 ````typescript
-// File: game-state-server/src/simple_index.ts
-
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-
-console.log("Initializing simple game state server...");
-
-const toolDefinitions = {
-  hello_world: {
-    name: 'hello_world',
-    description: 'A simple hello world tool.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  }
-};
-
-const transport = new StdioServerTransport();
-const server = new Server({ name: 'simple-game-state-server', version: '1.0.0' }, { capabilities: { tools: toolDefinitions } });
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.log("ListToolsRequestSchema handler called!");
-  return { tools: Object.values(toolDefinitions) };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-  const { name } = request.params;
-  if (name === 'hello_world') {
-    return { content: [{ type: 'text', text: 'Hello, world!' }] };
-  }
-  return { content: [{ type: 'text', text: 'Unknown tool' }], isError: true };
-});
-
-server.connect(transport);
-
-console.error('Simple game state server running on stdio');
+export * from './antagonist.repository.js';
+export * from './character.repository.js';
+export * from './inventory.repository.js';
+export * from './status-effect.repository.js';
 ````
 
-## File: game-state-server/src/tool-handlers/__BATCH_STUBS_CREATE.ts
+## File: game-state-server/src/repositories/world-state.repository.ts
 ````typescript
-// Batch creation helper: do not include in your dispatcher, this is just for visibility.
-// The following files should exist as stubs for dispatcher robustness—they export an async handler.
-export const stub_list = [
-  "create_antagonist.handler.ts",
-  "get_antagonist.handler.ts",
-  "update_antagonist.handler.ts",
-  "list_antagonists.handler.ts",
-  "remove_antagonist.handler.ts",
-  "award_xp.handler.ts",
-  "improve_trait.handler.ts",
-  "get_trait_improvement_cost.handler.ts",
-  "apply_status_effect.handler.ts",
-  "get_status_effects.handler.ts",
-  "remove_status_effect.handler.ts",
-  "add_item.handler.ts",
-  "get_inventory.handler.ts",
-  "update_item.handler.ts",
-  "remove_item.handler.ts",
-  "save_world_state.handler.ts",
-  "get_world_state.handler.ts",
-  "save_story_progress.handler.ts",
-  "set_initiative.handler.ts",
-  "get_initiative_order.handler.ts",
-  "advance_turn.handler.ts",
-  "get_current_turn.handler.ts"
-];
-// Each stub:
-///// FILE TEMPLATE /////
-// import { makeTextContentArray } from "../index.js";
-// export async function <name>_handler(args: any) {
-//   return { content: makeTextContentArray(["Not implemented (<name>_handler)"]) };
-// }
+import Database from 'better-sqlite3';
+
+export class WorldStateRepository {
+  private db: Database.Database;
+
+  constructor(db: Database.Database) {
+    this.db = db;
+  }
+
+  saveWorldState(state: { location?: string; notes?: string; data?: any }): void {
+    const dataStr = state.data ? JSON.stringify(state.data) : null;
+    this.db.prepare(`
+      INSERT INTO world_state (id, location, notes, data, last_updated)
+      VALUES (1, @location, @notes, @data, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        location = excluded.location,
+        notes = excluded.notes,
+        data = excluded.data,
+        last_updated = excluded.last_updated;
+    `).run({ location: state.location, notes: state.notes, data: dataStr });
+  }
+
+  getWorldState(): { location: string; notes: string; data: any } | undefined {
+    const worldState = this.db.prepare('SELECT location, notes, data FROM world_state WHERE id = 1').get() as { location: string; notes: string; data: string } | undefined;
+    if (worldState) {
+      try {
+        worldState.data = typeof worldState.data === 'string' ? JSON.parse(worldState.data) : worldState.data;
+      } catch (err) {
+        console.error("Error parsing world state data:", err);
+        worldState.data = null as any;
+      }
+    }
+    return worldState;
+  }
+
+  saveStoryProgress(characterId: number, storyProgress: any): void {
+    const progressStr = JSON.stringify(storyProgress);
+    this.db.prepare(`
+      INSERT INTO story_progress (character_id, progress_data, last_updated)
+      VALUES (@character_id, @progress_data, CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET
+        progress_data = excluded.progress_data,
+        last_updated = excluded.last_updated;
+    `).run({ character_id: characterId, progress_data: progressStr });
+  }
+
+  getInitiativeOrder(scene_id: string): any[] {
+    const stmt = this.db.prepare(`SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC`);
+    return stmt.all(scene_id);
+  }
+
+  advanceTurn(scene_id: string): void {
+    // Get the current turn order
+    const currentTurn = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
+    if (!currentTurn) {
+      // If there's no current turn, start at turn 1
+      this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(scene_id);
+      return;
+    }
+
+    interface CurrentTurn {
+      current_turn: number;
+      current_round: number;
+    }
+
+    const currentTurnData: CurrentTurn | null = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id) as CurrentTurn || null;
+
+    const current_turn = currentTurnData ? currentTurnData.current_turn : 0;
+    const current_round = currentTurnData ? currentTurnData.current_round : 0;
+
+    // Get the highest turn order
+    const highestTurn = (this.db.prepare(`SELECT MAX(turn_order) AS max_turn FROM initiative_order WHERE scene_id = ?`).get(scene_id) as any)?.max_turn as number || 0;
+
+    let newTurn = current_turn + 1;
+    let newRound = current_round;
+
+    if (newTurn > highestTurn) {
+      newTurn = 1;
+      newRound++;
+    }
+
+    // Update the current turn
+    this.db.prepare(`UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?`).run(newTurn, newRound, scene_id);
+  }
+
+  getCurrentTurn(scene_id: string): any {
+    const turnData = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
+    return turnData || { current_turn: 0, current_round: 0 };
+  }
+
+  setInitiative(sceneId: string, entries: any[]): void {
+    // Start a transaction
+    const transaction = this.db.transaction(() => {
+      // Delete existing initiative order for the scene
+      this.db.prepare(`DELETE FROM initiative_order WHERE scene_id = ?`).run(sceneId);
+
+      // Insert new initiative order entries
+      const insert = this.db.prepare(`INSERT INTO initiative_order (scene_id, actor_name, initiative_score, turn_order, character_id, npc_id) VALUES (@scene_id, @actor_name, @initiative_score, @turn_order, @character_id, @npc_id)`);
+      for (const entry of entries) {
+        insert.run({ scene_id: sceneId, ...entry });
+      }
+
+      // If current_turn doesn't exist, create it
+      if (!this.db.prepare(`SELECT 1 FROM current_turn WHERE scene_id = ?`).get(sceneId)) {
+        this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(sceneId);
+      }
+    });
+
+    // Execute the transaction
+    transaction();
+  }
+}
 ````
 
 ## File: game-state-server/src/types/db.types.ts
@@ -1245,264 +734,14 @@ export interface DamageObject {
 }
 ````
 
-## File: LLM_Testing_Prompt.md
-````markdown
-# LLM Testing Prompt for RPG MCP Servers
-
-## Your Mission
-You are an expert QA tester for World of Darkness MCP servers. Your task is to systematically execute comprehensive test suites to verify that all 25+ tools work correctly according to their specifications.
-
-## Test Environment Setup
-You have access to two MCP servers:
-- **game-state-server**: Handles persistent data (characters, inventory, world state)
-- **combat-engine-server**: Handles dice mechanics and rule adjudications
-
-## Testing Instructions
-
-### Phase 1: Execute Test Blocks in Order
-Execute the test blocks in the following sequence (dependencies matter):
-
-#### 🔧 **Test Block 1: Character & Antagonist Management**
-**Reference**: @`e:\Tinker\rpg-mcp-servers/TestBlock1_CharacterManagement.md`
-
-**Focus**: Foundation systems - character creation, retrieval, updates
-- Create characters for all 4 game lines (vampire, werewolf, mage, changeling)
-- Test character retrieval by ID and name
-- Verify character updates work correctly
-- Create and manage antagonists from templates
-- Test all validation scenarios (missing fields, duplicates, invalid data)
-
-**Critical Success Criteria**: 
-- At least one character of each game line created successfully
-- Character retrieval works by both ID and name
-- All validation tests properly reject invalid input
-
-#### ⚡ **Test Block 2: Resources & Progression**
-**Reference**: @`e:\Tinker\rpg-mcp-servers/TestBlock2_ResourcesAndProgression.md`
-
-**Focus**: Dynamic character state - resources, health, XP
-- Test resource management (willpower, blood, rage, etc.) for each game line
-- Apply different damage types and verify health tracking
-- Award XP and test trait improvement with cost calculations
-- Verify resource validation prevents overspending
-
-**Critical Success Criteria**:
-- Resource operations work for game-line specific resources
-- Damage system properly tracks bashing/lethal/aggravated
-- XP costs calculate correctly and trait improvements work
-
-#### 🎯 **Test Block 3: Status Effects & Inventory**
-**Reference**: @`e:\Tinker\rpg-mcp-servers/TestBlock3_StatusEffectsAndInventory.md`
-
-**Focus**: Temporary conditions and equipment management
-- Apply, retrieve, and remove status effects on characters and NPCs
-- Add, update, and remove inventory items
-- Test mechanical effects storage and retrieval
-- Verify data persistence and isolation
-
-**Critical Success Criteria**:
-- Status effects can be applied to both characters and antagonists
-- Inventory operations work for all item types
-- Effects and items persist correctly across operations
-
-#### 🎲 **Test Block 4: Dice Mechanics**
-**Reference**: @`e:\Tinker\rpg-mcp-servers/TestBlock4_DiceMechanics.md`
-
-**Focus**: Core game mechanics and rule adjudications
-- Test basic dice pools with specialty rules
-- Verify contested actions and net success calculations
-- Test soak and damage rolls for all damage types
-- Execute game-line specific mechanics (frenzy, form changes, magick, cantrips)
-- Test social combat system
-
-**Critical Success Criteria**:
-- Dice mechanics follow World of Darkness rules correctly
-- Game-line specific tools work for each splat
-- Social combat provides meaningful results
-
-#### 🌍 **Test Block 5: World State & Initiative**
-**Reference**: @`e:\Tinker\rpg-mcp-servers/TestBlock5_WorldStateAndInitiative.md`
-
-**Focus**: Game state persistence and combat management
-- Save and retrieve world state with complex data
-- Log story progress over time
-- Set up and manage initiative order for combat scenes
-- Test turn advancement and round cycling
-- Verify cross-server integration for combat engine tools
-
-**Critical Success Criteria**:
-- World state and story progress persist correctly
-- Initiative system handles multiple concurrent scenes
-- Turn management cycles properly through rounds
-
-### Phase 2: Execution Guidelines
-
-#### For Each Test Block:
-1. **Read the entire test block** before starting
-2. **Execute tests in the order listed** (some tests depend on previous results)
-3. **Record actual results** for each test case
-4. **Note any deviations** from expected outcomes
-5. **Capture error messages** exactly as they appear
-6. **Track test data** (character IDs, item IDs, effect IDs) for use in subsequent tests
-
-#### Test Execution Format:
-For each test, provide:
-```
-**Test X.Y: [Test Name]**
-- Input: [exact input used]
-- Expected: [expected result]
-- Actual: [actual result]
-- Status: ✅ PASS / ❌ FAIL / ⚠️ PARTIAL
-- Notes: [any observations or issues]
-```
-
-#### Critical Data Tracking:
-Maintain a reference sheet of:
-- Character IDs for each game line
-- Antagonist IDs created
-- Item IDs in inventories
-- Status effect IDs applied
-- Scene IDs for combat testing
-
-### Phase 3: Reporting Requirements
-
-#### Summary Report Format:
-```
-## Test Execution Summary
-
-### Overall Results:
-- **Total Tests**: X
-- **Passed**: Y (Z%)
-- **Failed**: A (B%)
-- **Partial**: C (D%)
-
-### Test Block Results:
-- Block 1 (Character Management): X/Y passed
-- Block 2 (Resources & Progression): X/Y passed  
-- Block 3 (Status Effects & Inventory): X/Y passed
-- Block 4 (Dice Mechanics): X/Y passed
-- Block 5 (World State & Initiative): X/Y passed
-
-### Critical Issues Found:
-[List any major bugs or failures]
-
-### Recommendations:
-[Suggest fixes or improvements]
-```
-
-#### Detailed Findings:
-For each failed test, provide:
-- Exact error message or unexpected behavior
-- Steps to reproduce the issue
-- Impact assessment (critical/major/minor)
-- Suggested fix if obvious
-
-### Phase 4: Special Focus Areas
-
-#### Validation Testing:
-Pay special attention to:
-- Input validation (missing fields, wrong types, invalid values)
-- Constraint enforcement (unique names, resource limits)
-- Error message clarity and consistency
-
-#### Integration Testing:
-Verify:
-- Data persistence across operations
-- Cross-server communication (combat engine → game state)
-- Isolation between different entities (characters, scenes, etc.)
-
-#### Edge Cases:
-Test boundary conditions:
-- Zero/negative values where applicable
-- Maximum values and overflow scenarios
-- Empty states and missing data
-
-## Success Criteria for Complete Test Suite
-
-### Minimum Acceptable Results:
-- **90%+ pass rate** across all test blocks
-- **All character creation tests pass** (foundation requirement)
-- **All dice mechanics work correctly** (core gameplay requirement)
-- **No critical data loss or corruption** observed
-
-### Ideal Results:
-- **95%+ pass rate** with only minor issues
-- **All validation tests work correctly**
-- **All game-line specific features functional**
-- **Clean error handling** for all edge cases
-
-## Final Deliverable
-Provide a comprehensive test report that includes:
-1. Executive summary with pass/fail statistics
-2. Detailed results for each test block
-3. List of all issues found with severity ratings
-4. Recommendations for fixes and improvements
-5. Assessment of production readiness
-
-**Begin testing with Test Block 1 and work through each block systematically. Good luck!**
-````
-
-## File: migrate-database.js
-````javascript
-// Database migration script
-const { GameDatabase } = require('./game-state-server/dist/db.js');
-
-console.log('🔄 Running database migrations...');
-
-try {
-  const db = new GameDatabase();
-  console.log('✅ Database initialized');
-
-  // Check current schema
-  const schema = db.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='characters'").get();
-  console.log('Current schema:', schema.sql);
-
-  // Test that the experience column now exists
-  try {
-    const testQuery = db.db.prepare('SELECT experience FROM characters LIMIT 1');
-    console.log('✅ Experience column is now available');
-  } catch (error) {
-    console.log('❌ Experience column still missing:', error.message);
-  }
-
-} catch (error) {
-  console.error('❌ Migration failed:', error.message);
-}
-````
-
-## File: QA_Test_Summary.md
-````markdown
-## Test Execution Summary
-
-### Overall Results:
-- **Total Tests**: 121
-- **Passed**: 5 (4%)
-- **Failed**: 116 (96%)
-- **Partial**: 0 (0%)
-
-### Test Block Results:
-- Block 1 (Character Management): 0/21 passed
-- Block 2 (Resources & Progression): 0/26 passed  
-- Block 3 (Status Effects & Inventory): 0/30 passed
-- Block 4 (Dice Mechanics): 5/36 passed (dice pool, specialty, chance die, contested, soak; all others blocked)
-- Block 5 (World State & Initiative): 0/8 passed (initiative roll only; blocked by handler gaps)
-
-### Critical Issues Found:
-- MCP tool handlers for foundational character, resource, inventory, and world state operations are missing from game-state-server dispatcher, blocking 95%+ tests.
-- Only dice rolling and contest resolution tools in combat-engine-server are reliably functional.
-- Cross-server delegation for combat/initiative is not executable due to missing endpoints.
-- Data persistence, CRUD, and world integration features could not be validated.
-
-### Recommendations:
-- **Implement and register all MCP tool handlers for CRUD/state in game-state-server, exactly matching tools in `toolDefinitions`.**
-- Ensure dispatcher logic routes each tool to its corresponding handler.
-- Verify end-to-end integration after implementing handlers, focusing on cross-server and persistence operations.
-- Re-run the full QA suite after fixing dispatcher registration and re-enable tests for all validation, update, and persistence cases.
-
-### Executive Assessment – Production Readiness
-- **System is not production-ready.** Core gameplay (character, antagonist, inventory, world state) and all data operations are nonfunctional.
-- Dice/rule adjudication services in `combat-engine-server` are operational and can be used for mechanical simulation and basic testing only.
-- Critical action: Complete wiring of game-state-server's tool dispatcher to support all required tools before production deployment.
+## File: game-state-server/src/types/index.ts
+````typescript
+export * from './antagonist.types.js';
+export * from './character.types.js';
+export * from './db.types.js';
+export * from './health.types.js';
+export * from './inventory.types.js';
+export * from './status-effect.types.js';
 ````
 
 ## File: rebuild.bat
@@ -1662,1587 +901,6 @@ At each step, MCP tools ensure the correct rules, initiative order, and health t
 ## Expansion
 
 The MCP system is designed for future extensibility: add new splats, modular trait tables, antagonist templates, and tools as desired.
-````
-
-## File: test-mcp-servers.bat
-````
-@echo off
-echo Testing MCP Servers...
-echo.
-
-echo Testing Game State Server...
-cd game-state-server
-timeout /t 2 /nobreak >nul
-node dist/index.js &
-set GAME_STATE_PID=%!
-echo Game State Server started (PID: %GAME_STATE_PID%)
-
-echo.
-echo Testing Combat Engine Server...
-cd ..\combat-engine-server
-timeout /t 2 /nobreak >nul
-node dist/index.js &
-set COMBAT_ENGINE_PID=%!
-echo Combat Engine Server started (PID: %COMBAT_ENGINE_PID%)
-
-echo.
-echo Both servers are running. Press any key to stop them...
-pause >nul
-
-echo Stopping servers...
-taskkill /PID %GAME_STATE_PID% /F >nul 2>&1
-taskkill /PID %COMBAT_ENGINE_PID% /F >nul 2>&1
-echo Servers stopped.
-````
-
-## File: TestBlock1_CharacterManagement_RESULTS.md
-````markdown
-# Test Block 1: Character & Antagonist Management – RESULTS
-
-## Summary
-Automated QA could not execute test cases for character and antagonist management because all relevant tool handlers (except "spend_xp") are not registered with the MCP dispatcher in [`game-state-server/src/index.ts`](game-state-server/src/index.ts). As a result, calls to tools such as `create_character`, `get_character`, and others return "❌ Unknown tool request." despite the tools being defined and advertised.
-
----
-
-## Test Results
-
-**Test 1.1: Standard Character Creation**
-- Input: `{ "name": "TestVampire_1", "game_line": "vampire", "concept": "Neonate", "clan": "Brujah" }`
-- Expected: Character created successfully with ID returned
-- Actual: ❌ Unknown tool request.
-- Status: ❌ FAIL
-- Notes: Handler for `create_character` is not implemented in MCP tool dispatcher.
-
-**Test 1.2–1.21**  
-_All subsequent tests requiring character or antagonist operations depend on registered tool handlers. Each fails with the same root cause and response._
-
----
-
-## Critical Issue
-
-**No operational MCP handlers for core tools.**  
-- Only `spend_xp` is handled.
-- All foundational CRUD and retrieval tools for characters and antagonists are missing dispatcher mappings.
-- No further functional testing for Test Block 1 is possible until this is resolved.
-
----
-
-## Recommendations
-
-**Implement and register all required tool handlers** (see `toolDefinitions` array) to the MCP dispatcher in [`game-state-server/src/index.ts`](game-state-server/src/index.ts). Example:
-```js
-toolDispatcher['create_character'] = create_character_handler
-toolDispatcher['get_character'] = get_character_handler
-// ...etc for all tools in toolDefinitions
-```
-Each handler should follow the required signature and update the dispatcher object at startup.
-
-**Re-run this QA block** once those handlers are wired up to verify expected/actual behavior.
-````
-
-## File: TestBlock1_CharacterManagement.md
-````markdown
-# Test Block 1: Character & Antagonist Management
-
-## Overview
-This test block covers all character and antagonist creation, retrieval, updating, and management tools. These are foundational tools that other systems depend on.
-
-## Tools Covered
-- `create_character`
-- `get_character` 
-- `get_character_by_name`
-- `update_character`
-- `list_characters`
-- `create_antagonist`
-- `get_antagonist`
-- `update_antagonist`
-- `list_antagonists`
-- `remove_antagonist`
-
----
-
-## Test Cases
-
-### Character Creation & Retrieval
-
-#### `create_character`
-**Test 1.1: Standard Character Creation**
-- **Goal**: Create a basic vampire character
-- **Input**: `{ "name": "TestVampire_1", "game_line": "vampire", "concept": "Neonate", "clan": "Brujah" }`
-- **Expected**: Character created successfully with ID returned
-
-**Test 1.2: Werewolf Character Creation**
-- **Goal**: Create werewolf with tribe-specific data
-- **Input**: `{ "name": "TestWerewolf_1", "game_line": "werewolf", "concept": "Ahroun", "tribe": "Get of Fenris" }`
-- **Expected**: Character created with Rage, Gnosis, and tribal traits
-
-**Test 1.3: Mage Character Creation**
-- **Goal**: Create mage with tradition
-- **Input**: `{ "name": "TestMage_1", "game_line": "mage", "concept": "Hermetic", "tradition": "Order of Hermes" }`
-- **Expected**: Character created with Arete and spheres
-
-**Test 1.4: Changeling Character Creation**
-- **Goal**: Create changeling with kith
-- **Input**: `{ "name": "TestChangeling_1", "game_line": "changeling", "concept": "Sidhe Noble", "kith": "Sidhe" }`
-- **Expected**: Character created with Glamour and Banality
-
-**Test 1.5: Validation - Missing Name**
-- **Goal**: Reject character creation without name
-- **Input**: `{ "game_line": "vampire", "clan": "Brujah" }`
-- **Expected**: Error: "Missing required field: name."
-
-**Test 1.6: Validation - Invalid Game Line**
-- **Goal**: Reject invalid game line
-- **Input**: `{ "name": "TestInvalid", "game_line": "dragon" }`
-- **Expected**: Error: "Invalid value for game_line."
-
-**Test 1.7: Validation - Duplicate Name**
-- **Goal**: Prevent duplicate character names
-- **Input**: Create character with same name as Test 1.1
-- **Expected**: Error containing "UNIQUE constraint failed"
-
-#### `get_character` & `get_character_by_name`
-**Test 1.8: Get Character by ID**
-- **Goal**: Retrieve character using ID from Test 1.1
-- **Input**: `{ "character_id": <ID_from_test_1.1> }`
-- **Expected**: Complete character sheet returned
-
-**Test 1.9: Get Character by Name**
-- **Goal**: Retrieve character using name
-- **Input**: `{ "name": "TestVampire_1" }`
-- **Expected**: Same character data as Test 1.8
-
-**Test 1.10: Get Nonexistent Character**
-- **Goal**: Handle missing character gracefully
-- **Input**: `{ "character_id": 99999 }`
-- **Expected**: Error: "Character not found"
-
-#### `update_character`
-**Test 1.11: Update Basic Trait**
-- **Goal**: Modify character concept
-- **Input**: `{ "character_id": <ID>, "updates": { "concept": "Updated Concept" } }`
-- **Expected**: Character updated, change reflected in get_character
-
-**Test 1.12: Update Attributes**
-- **Goal**: Modify character attributes
-- **Input**: `{ "character_id": <ID>, "updates": { "strength": 3, "dexterity": 4 } }`
-- **Expected**: Attributes updated successfully
-
-**Test 1.13: Update Splat-Specific Trait**
-- **Goal**: Update vampire-specific trait
-- **Input**: `{ "character_id": <vampire_ID>, "updates": { "humanity": 6 } }`
-- **Expected**: Humanity updated in vampire-specific data
-
-#### `list_characters`
-**Test 1.14: List All Characters**
-- **Goal**: Get summary of all created characters
-- **Input**: `{}`
-- **Expected**: List containing all test characters created above
-
----
-
-### Antagonist Management
-
-#### `create_antagonist`
-**Test 1.15: Create Vampire Sheriff**
-- **Goal**: Create antagonist from template
-- **Input**: `{ "name": "Sheriff Marcus", "template": "vampire_sheriff", "game_line": "vampire" }`
-- **Expected**: Antagonist created with sheriff-appropriate stats
-
-**Test 1.16: Create Sabbat Shovelhead**
-- **Goal**: Create basic vampire antagonist
-- **Input**: `{ "name": "Sabbat Grunt", "template": "sabbat_shovelhead", "game_line": "vampire" }`
-- **Expected**: Antagonist created with shovelhead stats
-
-**Test 1.17: Validation - Invalid Template**
-- **Goal**: Reject unknown template
-- **Input**: `{ "name": "Test", "template": "dragon_lord", "game_line": "vampire" }`
-- **Expected**: Error about unknown template
-
-#### `get_antagonist`
-**Test 1.18: Get Antagonist by ID**
-- **Goal**: Retrieve antagonist data
-- **Input**: `{ "npc_id": <ID_from_test_1.15> }`
-- **Expected**: Complete antagonist sheet with stats
-
-#### `update_antagonist`
-**Test 1.19: Update Antagonist Stats**
-- **Goal**: Modify antagonist resources
-- **Input**: `{ "npc_id": <ID>, "updates": { "willpower_current": 6, "notes": "Recently fed" } }`
-- **Expected**: Antagonist updated successfully
-
-#### `list_antagonists`
-**Test 1.20: List All Antagonists**
-- **Goal**: Get summary of all antagonists
-- **Input**: `{}`
-- **Expected**: List containing Sheriff Marcus and Sabbat Grunt
-
-#### `remove_antagonist`
-**Test 1.21: Remove Antagonist**
-- **Goal**: Delete an antagonist
-- **Input**: `{ "npc_id": <sabbat_grunt_ID> }`
-- **Expected**: Antagonist removed, no longer in list_antagonists
-
----
-
-## Success Criteria
-- All character creation tests pass for each game line
-- Character retrieval works by both ID and name
-- Character updates modify the correct data
-- Antagonist templates create appropriate NPCs
-- All validation tests properly reject invalid input
-- List functions return complete and accurate data
-- Remove operations properly delete data
-
-## Dependencies
-This test block has no dependencies and should be run first, as other test blocks depend on having characters and antagonists created.
-````
-
-## File: TestBlock2_ResourcesAndProgression_RESULTS.md
-````markdown
-# Test Block 2: Resources, Health & Progression – RESULTS
-
-## Summary
-Automated QA could not execute resource, health, or progression test cases because none of the core MCP tool handlers (`spend_resource`, `restore_resource`, `gain_resource`, `apply_damage`, `award_xp`, `improve_trait`, `get_trait_improvement_cost`) are registered in the MCP dispatcher in [`game-state-server/src/index.ts`](game-state-server/src/index.ts). The only registered tool (`spend_xp`) is not testable in isolation due to missing characters from Block 1.
-
----
-
-## Test Results
-
-_All 26 tests in this block fail for the same root cause: no handler for the tool in the MCP dispatcher. All attempts result in:_
-
-```
-❌ Unknown tool request.
-```
-
----
-
-## Critical Issue
-
-**No operational MCP handlers for any core tool in this block.**
-- All resource, damage, and XP progression tests fail/blocked.
-- No integration with character/test data from Block 1.
-
----
-
-## Recommendations
-
-**Implement and register all tool handlers for the tools defined in the toolDescriptions array:**  
-- `spend_resource`, `restore_resource`, `gain_resource`, `apply_damage`, `award_xp`, `improve_trait`, `get_trait_improvement_cost`
-- Ensure required dependencies on character creation (from Block 1) are satisfied.
-
-**Re-run this QA block once tool handlers are properly connected and test data is available.**
-````
-
-## File: TestBlock2_ResourcesAndProgression.md
-````markdown
-# Test Block 2: Resources, Health & Progression
-
-## Overview
-This test block covers resource management (willpower, blood, etc.), health/damage systems, and character progression through experience points. These systems manage the dynamic aspects of character state.
-
-## Tools Covered
-- `spend_resource`
-- `restore_resource` 
-- `gain_resource`
-- `apply_damage`
-- `award_xp`
-- `spend_xp`
-- `improve_trait`
-- `get_trait_improvement_cost`
-
----
-
-## Test Cases
-
-### Resource Management
-
-#### `spend_resource`
-**Test 2.1: Spend Willpower**
-- **Goal**: Spend willpower for automatic success
-- **Input**: `{ "character_id": <vampire_ID>, "resource_name": "willpower", "amount": 1 }`
-- **Expected**: Willpower reduced by 1, success message with current/max values
-
-**Test 2.2: Spend Blood (Vampire)**
-- **Goal**: Vampire spends blood for healing
-- **Input**: `{ "character_id": <vampire_ID>, "resource_name": "blood", "amount": 2 }`
-- **Expected**: Blood pool reduced by 2
-
-**Test 2.3: Spend Rage (Werewolf)**
-- **Goal**: Werewolf spends rage for extra actions
-- **Input**: `{ "character_id": <werewolf_ID>, "resource_name": "rage", "amount": 1 }`
-- **Expected**: Rage reduced by 1
-
-**Test 2.4: Validation - Insufficient Resource**
-- **Goal**: Prevent overspending resources
-- **Input**: `{ "character_id": <ID>, "resource_name": "willpower", "amount": 10 }`
-- **Expected**: Error: "Not enough willpower. Has X, needs 10."
-
-**Test 2.5: Validation - Invalid Resource**
-- **Goal**: Reject spending unavailable resource
-- **Input**: `{ "character_id": <mage_ID>, "resource_name": "blood", "amount": 1 }`
-- **Expected**: Error: "Invalid resource 'blood' for game_line 'mage'"
-
-#### `restore_resource`
-**Test 2.6: Restore Willpower**
-- **Goal**: Restore willpower after rest
-- **Input**: `{ "character_id": <ID>, "resource_name": "willpower", "amount": 2 }`
-- **Expected**: Willpower increased, capped at permanent maximum
-
-**Test 2.7: Restore Blood Pool**
-- **Goal**: Vampire feeds to restore blood
-- **Input**: `{ "character_id": <vampire_ID>, "resource_name": "blood", "amount": 3 }`
-- **Expected**: Blood pool increased up to generation maximum
-
-**Test 2.8: Over-Restoration Capping**
-- **Goal**: Prevent restoring beyond maximum
-- **Input**: Restore more than permanent maximum allows
-- **Expected**: Resource capped at permanent maximum value
-
-#### `gain_resource`
-**Test 2.9: Gain Blood from Feeding**
-- **Goal**: Vampire gains blood from successful feeding
-- **Input**: `{ "character_id": <vampire_ID>, "resource_name": "blood", "roll_successes": 3 }`
-- **Expected**: Blood pool increases by 3 (up to max)
-
-**Test 2.10: Gain Quintessence (Mage)**
-- **Goal**: Mage gains quintessence from node
-- **Input**: `{ "character_id": <mage_ID>, "resource_name": "quintessence", "roll_successes": 2 }`
-- **Expected**: Quintessence increased by 2
-
-**Test 2.11: Validation - Zero Successes**
-- **Goal**: Reject zero or negative successes
-- **Input**: `{ "character_id": <ID>, "resource_name": "blood", "roll_successes": 0 }`
-- **Expected**: Error: "roll_successes must be a positive number."
-
----
-
-### Health & Damage
-
-#### `apply_damage`
-**Test 2.12: Apply Bashing Damage**
-- **Goal**: Apply non-lethal damage
-- **Input**: `{ "character_id": <ID>, "damage_type": "bashing", "amount": 2 }`
-- **Expected**: Health track shows 2 bashing damage levels
-
-**Test 2.13: Apply Lethal Damage**
-- **Goal**: Apply lethal damage
-- **Input**: `{ "character_id": <ID>, "damage_type": "lethal", "amount": 1 }`
-- **Expected**: Health track shows lethal damage, bashing upgrades
-
-**Test 2.14: Apply Aggravated Damage**
-- **Goal**: Apply aggravated damage
-- **Input**: `{ "character_id": <ID>, "damage_type": "aggravated", "amount": 1 }`
-- **Expected**: Health track shows aggravated damage, other damage upgrades
-
-**Test 2.15: Damage Overflow**
-- **Goal**: Test damage exceeding health track
-- **Input**: Apply 8 lethal damage to character
-- **Expected**: Character incapacitated, health track full
-
-**Test 2.16: Wound Penalties**
-- **Goal**: Verify wound penalties are calculated
-- **Input**: Apply 3 lethal damage, then check character sheet
-- **Expected**: Character shows appropriate wound penalty (-1 or -2)
-
----
-
-### Experience & Progression
-
-#### `award_xp`
-**Test 2.17: Award Experience Points**
-- **Goal**: Give XP for story completion
-- **Input**: `{ "character_id": <ID>, "amount": 5, "reason": "Completed investigation" }`
-- **Expected**: Character XP increased by 5, reason logged
-
-**Test 2.18: Multiple XP Awards**
-- **Goal**: Accumulate XP from multiple sources
-- **Input**: Award XP multiple times to same character
-- **Expected**: XP totals accumulate correctly
-
-#### `get_trait_improvement_cost`
-**Test 2.19: Attribute Cost Calculation**
-- **Goal**: Calculate cost to improve attribute
-- **Input**: `{ "character_id": <ID>, "trait_type": "attribute", "trait_name": "strength" }`
-- **Expected**: Correct cost formula (new rating × 4)
-
-**Test 2.20: Ability Cost Calculation**
-- **Goal**: Calculate cost to improve ability
-- **Input**: `{ "character_id": <ID>, "trait_type": "ability", "trait_name": "brawl" }`
-- **Expected**: Correct cost formula (new rating × 2)
-
-**Test 2.21: Discipline Cost Calculation**
-- **Goal**: Calculate cost to improve discipline
-- **Input**: `{ "character_id": <vampire_ID>, "trait_type": "discipline", "trait_name": "celerity" }`
-- **Expected**: Correct cost formula (new rating × 7)
-
-#### `improve_trait`
-**Test 2.22: Improve Attribute with XP**
-- **Goal**: Spend XP to increase attribute
-- **Input**: `{ "character_id": <ID>, "trait_type": "attribute", "trait_name": "strength" }`
-- **Expected**: Strength increased by 1, XP reduced by cost
-
-**Test 2.23: Improve Discipline**
-- **Goal**: Spend XP to increase discipline
-- **Input**: `{ "character_id": <vampire_ID>, "trait_type": "discipline", "trait_name": "celerity" }`
-- **Expected**: Celerity increased, XP reduced appropriately
-
-**Test 2.24: Validation - Insufficient XP**
-- **Goal**: Prevent improvement without enough XP
-- **Input**: Try to improve expensive trait without enough XP
-- **Expected**: Error: "Not enough XP. Has X, needs Y."
-
-**Test 2.25: Validation - Invalid Trait**
-- **Goal**: Reject improvement of nonexistent trait
-- **Input**: `{ "character_id": <ID>, "trait_type": "attribute", "trait_name": "cooking" }`
-- **Expected**: Error: "Trait 'cooking' not found."
-
-#### `spend_xp`
-**Test 2.26: Direct XP Spending**
-- **Goal**: Spend XP for custom purposes
-- **Input**: `{ "character_id": <ID>, "amount": 3, "reason": "Custom equipment" }`
-- **Expected**: XP reduced by 3, spending logged
-
----
-
-## Success Criteria
-- All resource operations work correctly for each game line
-- Resource validation prevents invalid operations
-- Damage system properly tracks and upgrades damage types
-- XP cost calculations use correct formulas
-- Trait improvements work and consume correct XP
-- All validation prevents invalid operations
-
-## Dependencies
-- Requires characters created in Test Block 1
-- Characters should have various game lines for resource testing
-````
-
-## File: TestBlock3_StatusEffectsAndInventory_RESULTS.md
-````markdown
-# Test Block 3: Status Effects & Inventory Management – RESULTS
-
-## Summary
-Automated QA could not execute any status effect or inventory management test cases because all required MCP tool handlers (`apply_status_effect`, `remove_status_effect`, `get_status_effects`, `add_item`, `get_inventory`, `update_item`, `remove_item`) are missing dispatcher registration in [`game-state-server/src/index.ts`](game-state-server/src/index.ts). All attempts produce
-
-```
-❌ Unknown tool request.
-```
-
-Block 3 is also fully dependent on characters and antagonists being creatable and present—which failed in Block 1.
-
----
-
-## Test Results
-
-_All 30 status/inventory tests in this block fail for the dispatcher root cause described above._
-
----
-
-## Critical Issue
-
-_No operational MCP handlers for any tools in this block._
-
----
-
-## Recommendations
-
-**Implement and register all required tool handlers in the tool dispatcher.**
-- Re-run this QA block after fixing handler registration and confirming dependencies from Blocks 1–2 are passing.
-````
-
-## File: TestBlock3_StatusEffectsAndInventory.md
-````markdown
-# Test Block 3: Status Effects & Inventory Management
-
-## Overview
-This test block covers the status effects system for tracking temporary conditions and the inventory management system for character equipment and items.
-
-## Tools Covered
-- `apply_status_effect`
-- `remove_status_effect`
-- `get_status_effects`
-- `add_item`
-- `get_inventory`
-- `update_item`
-- `remove_item`
-
----
-
-## Test Cases
-
-### Status Effects System
-
-#### `apply_status_effect`
-**Test 3.1: Apply Temporary Status Effect**
-- **Goal**: Apply a temporary condition to character
-- **Input**: `{ "target_type": "character", "target_id": <ID>, "effect_name": "Stunned", "description": "Cannot act this round", "duration_type": "rounds", "duration_value": 1 }`
-- **Expected**: Status effect applied with unique effect ID returned
-
-**Test 3.2: Apply Permanent Status Effect**
-- **Goal**: Apply indefinite condition
-- **Input**: `{ "target_type": "character", "target_id": <ID>, "effect_name": "Cursed", "description": "Haunted by spirits", "duration_type": "indefinite" }`
-- **Expected**: Permanent effect applied with no expiration
-
-**Test 3.3: Apply Effect with Mechanical Modifiers**
-- **Goal**: Apply effect with game mechanics
-- **Input**: `{ "target_type": "character", "target_id": <ID>, "effect_name": "Wounded", "mechanical_effect": { "dice_penalty": -2, "movement_halved": true }, "duration_type": "scenes", "duration_value": 3 }`
-- **Expected**: Effect includes mechanical data in JSON format
-
-**Test 3.4: Apply Effect to Antagonist**
-- **Goal**: Apply status effect to NPC
-- **Input**: `{ "target_type": "npc", "target_id": <antagonist_ID>, "effect_name": "Frenzied", "description": "Lost to Beast" }`
-- **Expected**: Effect applied to antagonist successfully
-
-**Test 3.5: Validation - Invalid Target**
-- **Goal**: Reject effect on nonexistent target
-- **Input**: `{ "target_type": "character", "target_id": 99999, "effect_name": "Test" }`
-- **Expected**: Error: "Character not found" or similar
-
-#### `get_status_effects`
-**Test 3.6: List Character Effects**
-- **Goal**: Retrieve all effects on a character
-- **Input**: `{ "target_type": "character", "target_id": <ID> }`
-- **Expected**: Array of all active effects with full details
-
-**Test 3.7: List Antagonist Effects**
-- **Goal**: Retrieve effects on an antagonist
-- **Input**: `{ "target_type": "npc", "target_id": <antagonist_ID> }`
-- **Expected**: Array of antagonist's active effects
-
-**Test 3.8: Empty Effects List**
-- **Goal**: Handle target with no effects
-- **Input**: Get effects for character with no applied effects
-- **Expected**: Empty array or "No effects" message
-
-#### `remove_status_effect`
-**Test 3.9: Remove Specific Effect**
-- **Goal**: Remove an effect by its ID
-- **Input**: `{ "effect_id": <effect_ID_from_test_3.1> }`
-- **Expected**: Effect removed, no longer appears in get_status_effects
-
-**Test 3.10: Remove Nonexistent Effect**
-- **Goal**: Handle removal of missing effect
-- **Input**: `{ "effect_id": 99999 }`
-- **Expected**: Error: "Status effect not found" or similar
-
-**Test 3.11: Verify Effect Removal**
-- **Goal**: Confirm effect is actually removed
-- **Input**: Apply effect, remove it, then list effects
-- **Expected**: Effect no longer in the list
-
----
-
-### Inventory Management
-
-#### `add_item`
-**Test 3.12: Add Basic Item**
-- **Goal**: Add simple item to character inventory
-- **Input**: `{ "character_id": <ID>, "item": { "name": "Healing Potion", "description": "Restores 3 health levels", "quantity": 2, "type": "consumable" } }`
-- **Expected**: Item added successfully, appears in get_inventory
-
-**Test 3.13: Add Weapon**
-- **Goal**: Add weapon with combat stats
-- **Input**: `{ "character_id": <ID>, "item": { "name": "Silver Dagger", "description": "Blessed silver blade", "quantity": 1, "type": "weapon", "damage": "+2 lethal" } }`
-- **Expected**: Weapon added with all properties
-
-**Test 3.14: Add Equipment**
-- **Goal**: Add armor or protective gear
-- **Input**: `{ "character_id": <ID>, "item": { "name": "Kevlar Vest", "description": "Modern body armor", "quantity": 1, "type": "armor", "protection": "+2 soak vs bullets" } }`
-- **Expected**: Armor added with protection stats
-
-**Test 3.15: Validation - Invalid Character**
-- **Goal**: Reject item addition to nonexistent character
-- **Input**: `{ "character_id": 99999, "item": { "name": "Test Item" } }`
-- **Expected**: Error: "Character not found"
-
-#### `get_inventory`
-**Test 3.16: Get Full Inventory**
-- **Goal**: Retrieve all items for a character
-- **Input**: `{ "character_id": <ID> }`
-- **Expected**: Formatted list of all items with quantities and descriptions
-
-**Test 3.17: Empty Inventory**
-- **Goal**: Handle character with no items
-- **Input**: Get inventory for character with no items
-- **Expected**: Empty list or "No items" message
-
-#### `update_item`
-**Test 3.18: Update Item Quantity**
-- **Goal**: Modify item quantity (e.g., after use)
-- **Input**: `{ "item_id": <potion_ID>, "updates": { "quantity": 1 } }`
-- **Expected**: Potion quantity reduced from 2 to 1
-
-**Test 3.19: Equip Item**
-- **Goal**: Mark item as equipped
-- **Input**: `{ "item_id": <dagger_ID>, "updates": { "equipped": true } }`
-- **Expected**: Dagger marked as equipped
-
-**Test 3.20: Update Item Description**
-- **Goal**: Modify item description or properties
-- **Input**: `{ "item_id": <dagger_ID>, "updates": { "description": "Enchanted silver blade +1" } }`
-- **Expected**: Item description updated
-
-**Test 3.21: Multiple Property Update**
-- **Goal**: Update multiple item properties at once
-- **Input**: `{ "item_id": <vest_ID>, "updates": { "equipped": true, "description": "Worn kevlar vest", "condition": "good" } }`
-- **Expected**: All properties updated successfully
-
-**Test 3.22: Validation - Invalid Item**
-- **Goal**: Reject update of nonexistent item
-- **Input**: `{ "item_id": 99999, "updates": { "quantity": 1 } }`
-- **Expected**: Error: "Item not found"
-
-#### `remove_item`
-**Test 3.23: Remove Item by ID**
-- **Goal**: Delete an item from inventory
-- **Input**: `{ "item_id": <potion_ID> }`
-- **Expected**: Item removed, no longer appears in get_inventory
-
-**Test 3.24: Remove Nonexistent Item**
-- **Goal**: Handle removal of missing item
-- **Input**: `{ "item_id": 99999 }`
-- **Expected**: Error: "Item not found"
-
-**Test 3.25: Verify Item Removal**
-- **Goal**: Confirm item is actually removed
-- **Input**: Add item, remove it, then get inventory
-- **Expected**: Item no longer in inventory list
-
----
-
-### Integration Tests
-
-**Test 3.26: Status Effect Persistence**
-- **Goal**: Verify effects persist across character retrieval
-- **Input**: Apply effect, then get_character
-- **Expected**: Character sheet includes active status effects
-
-**Test 3.27: Inventory Persistence**
-- **Goal**: Verify inventory persists across sessions
-- **Input**: Add items, then get_character
-- **Expected**: Character sheet includes inventory items
-
-**Test 3.28: Effect on Multiple Targets**
-- **Goal**: Apply same effect type to character and antagonist
-- **Input**: Apply "Stunned" to both character and NPC
-- **Expected**: Both targets show the effect independently
-
-**Test 3.29: Item Quantity Management**
-- **Goal**: Test complete item lifecycle
-- **Input**: Add item with quantity 3, update to 2, update to 1, remove
-- **Expected**: Each step works correctly, final removal succeeds
-
-**Test 3.30: Cross-Character Inventory**
-- **Goal**: Verify inventory isolation between characters
-- **Input**: Add items to multiple characters
-- **Expected**: Each character's inventory is separate and correct
-
----
-
-## Success Criteria
-- Status effects can be applied, retrieved, and removed correctly
-- Effects work on both characters and antagonists
-- Mechanical effects are stored and retrieved as JSON
-- Inventory operations work for all item types
-- Item properties can be updated individually or in groups
-- All validation prevents invalid operations
-- Data persists correctly across operations
-
-## Dependencies
-- Requires characters and antagonists from Test Block 1
-- Some tests may reference characters with existing damage from Test Block 2
-````
-
-## File: TestBlock4_DiceMechanics_RESULTS.md
-````markdown
-# Test Block 4: Dice Mechanics & Combat Engine – RESULTS
-
-## Summary
-Dice mechanics and contested action tools exposed by the `rpg-combat-engine` MCP server were successfully invoked according to the test block. All sampled core mechanics (uncontested, specialty, zero-dice, and contested rolls; soak) return results matching World of Darkness expectations and produce clear, contextual narrative output. All failures or edge cases requested return appropriately formatted responses.
-
-## Test Results
-
-**Test 4.1: Basic Success Roll**
-- Input: `{ "pool_size": 5, "difficulty": 6, "has_specialty": false }`
-- Expected: Correct success count, clear result
-- Actual: Rolled [6, 1, 4, 3, 10] → 1 success
-- Status: ✅ PASS
-- Notes: Matches oWoD dice pool mechanic.
-
-**Test 4.2: Specialty Roll**
-- Input: `{ "pool_size": 3, "difficulty": 6, "has_specialty": true }`
-- Expected: "10s" count as double, standard mechanic
-- Actual: Rolled [4, 6, 2] → 1 success
-- Status: ✅ PASS
-- Notes: No 10s rolled, but output and logic allow specialty.
-
-**Test 4.4: Zero Dice Pool**
-- Input: `{ "pool_size": 0, "difficulty": 6 }`
-- Expected: Rolls chance die, failure unless 10
-- Actual: Rolled [7] → 0 successes, failure.
-- Status: ✅ PASS
-
-**Test 4.7: Contested Action**
-- Input: `{ "attacker_pool": 6, "attacker_difficulty": 6, ... }`
-- Expected: Correct calculation of contest/botch
-- Actual: Attacker: [9, 5, 7, 1, 3, 1] (0 successes); Defender: [1, 5, 5, 1] (0), botch logic → Attacker wins.
-- Status: ✅ PASS
-
-**Test 4.11: Soak Bashing Damage**
-- Input: `{ "soak_pool": 3, "damage_type": "bashing", "has_fortitude": false }`
-- Expected: Soak successes reduce damage.
-- Actual: [1, 3, 10] → Soaks 1 point, marginal soak.
-- Status: ✅ PASS
-
----
-
-## Coverage and Remaining
-
-Tests requiring persistent character state, cross-server coordination, or modification of health/resources (e.g. using character_ID from Block 1) could not be run, since foundational state management and CRUD tools in the game-state server remain unimplemented/blocking. Dice and simulation tools work as designed.
-
-## Recommendations
-
-- Integrate dice MCP server with a functional game-state server to enable full end-to-end combat/mechanics tests (e.g., actual character entries for virtues, form changes, etc.).
-- Continue random and edge-case sampling for all dice methods to verify consistent error handling.
-````
-
-## File: TestBlock4_DiceMechanics.md
-````markdown
-# Test Block 4: Dice Mechanics & Combat Engine
-
-## Overview
-This test block covers all dice rolling mechanics, combat resolution, and game-line specific rules handled by the combat-engine-server. These are the core mechanical systems that adjudicate actions and conflicts.
-
-## Tools Covered
-- `roll_wod_pool`
-- `roll_contested_action`
-- `roll_soak`
-- `roll_damage_pool`
-- `roll_virtue_check`
-- `change_form`
-- `spend_rage_for_extra_actions`
-- `roll_magick_effect`
-- `invoke_cantrip`
-- `roll_social_combat`
-
----
-
-## Test Cases
-
-### Core Dice Mechanics
-
-#### `roll_wod_pool`
-**Test 4.1: Basic Success Roll**
-- **Goal**: Test standard dice pool mechanics
-- **Input**: `{ "pool_size": 5, "difficulty": 6, "has_specialty": false }`
-- **Expected**: Correct success count, clear result description
-
-**Test 4.2: Specialty Roll**
-- **Goal**: Verify specialty rule (10s count as 2 successes)
-- **Input**: `{ "pool_size": 3, "difficulty": 6, "has_specialty": true }`
-- **Expected**: Rolls of 10 add 2 successes instead of 1
-
-**Test 4.3: High Difficulty Roll**
-- **Goal**: Test difficult actions
-- **Input**: `{ "pool_size": 4, "difficulty": 9, "has_specialty": false }`
-- **Expected**: Only 9s and 10s count as successes
-
-**Test 4.4: Zero Dice Pool**
-- **Goal**: Handle zero dice (chance die)
-- **Input**: `{ "pool_size": 0, "difficulty": 6 }`
-- **Expected**: Rolls 1 chance die (10=success, 1=botch)
-
-**Test 4.5: Negative Dice Pool**
-- **Goal**: Reject invalid negative pools
-- **Input**: `{ "pool_size": -1, "difficulty": 6 }`
-- **Expected**: Error about invalid pool size
-
-**Test 4.6: Botch Detection**
-- **Goal**: Verify botch mechanics (no successes + 1s)
-- **Input**: Roll until botch occurs or simulate
-- **Expected**: Botch properly identified and described
-
-#### `roll_contested_action`
-**Test 4.7: Standard Contested Roll**
-- **Goal**: Test opposed action resolution
-- **Input**: `{ "attacker_pool": 6, "attacker_difficulty": 6, "attacker_specialty": false, "defender_pool": 4, "defender_difficulty": 7, "defender_specialty": false }`
-- **Expected**: Net successes calculated, winner determined
-
-**Test 4.8: Tied Contested Roll**
-- **Goal**: Handle equal successes
-- **Input**: Arrange for equal success counts
-- **Expected**: Tie properly identified and handled
-
-**Test 4.9: Double Botch**
-- **Goal**: Handle both sides botching
-- **Input**: Simulate both attacker and defender botching
-- **Expected**: Double botch identified with appropriate consequences
-
-**Test 4.10: Contested with Specialties**
-- **Goal**: Test contested roll with specialties
-- **Input**: `{ "attacker_pool": 4, "attacker_specialty": true, "defender_pool": 3, "defender_specialty": true, ... }`
-- **Expected**: Specialties applied correctly to both sides
-
-#### `roll_soak` & `roll_damage_pool`
-**Test 4.11: Soak Bashing Damage**
-- **Goal**: Roll to reduce bashing damage
-- **Input**: `{ "soak_pool": 3, "damage_type": "bashing", "has_fortitude": false }`
-- **Expected**: Soak successes reduce incoming damage
-
-**Test 4.12: Soak Lethal Damage**
-- **Goal**: Roll to reduce lethal damage
-- **Input**: `{ "soak_pool": 3, "damage_type": "lethal", "has_fortitude": false }`
-- **Expected**: Only Stamina dice count (no armor vs lethal)
-
-**Test 4.13: Soak with Fortitude**
-- **Goal**: Vampire soaks lethal with Fortitude
-- **Input**: `{ "soak_pool": 5, "damage_type": "lethal", "has_fortitude": true }`
-- **Expected**: All dice count for lethal soak
-
-**Test 4.14: Soak Aggravated Damage**
-- **Goal**: Attempt to soak aggravated damage
-- **Input**: `{ "soak_pool": 4, "damage_type": "aggravated", "has_fortitude": true }`
-- **Expected**: Only Fortitude dice count, very limited soak
-
-**Test 4.15: Damage Pool Roll**
-- **Goal**: Roll damage dice for attack
-- **Input**: `{ "pool_size": 4, "damage_type": "lethal" }`
-- **Expected**: Each success = 1 health level of damage
-
-**Test 4.16: Bashing Damage Pool**
-- **Goal**: Roll bashing damage
-- **Input**: `{ "pool_size": 3, "damage_type": "bashing" }`
-- **Expected**: Bashing damage calculated correctly
-
----
-
-### Game-Line Specific Mechanics
-
-#### `roll_virtue_check` (Vampire)
-**Test 4.17: Self-Control Check**
-- **Goal**: Test frenzy resistance
-- **Input**: `{ "character_id": <vampire_ID>, "virtue_name": "self-control", "difficulty": 8 }`
-- **Expected**: Virtue roll result with frenzy/success indication
-
-**Test 4.18: Courage Check**
-- **Goal**: Test Rötschreck resistance
-- **Input**: `{ "character_id": <vampire_ID>, "virtue_name": "courage", "difficulty": 7 }`
-- **Expected**: Courage roll with fear response indication
-
-**Test 4.19: Conscience Check**
-- **Goal**: Test humanity loss resistance
-- **Input**: `{ "character_id": <vampire_ID>, "virtue_name": "conscience", "difficulty": 6 }`
-- **Expected**: Conscience roll with humanity implications
-
-#### `change_form` (Werewolf)
-**Test 4.20: Shift to Crinos**
-- **Goal**: Transform to war form
-- **Input**: `{ "character_id": <werewolf_ID>, "target_form": "Crinos" }`
-- **Expected**: Form change with attribute modifiers (+4 Str, +1 Dex, +3 Sta, etc.)
-
-**Test 4.21: Shift to Lupus**
-- **Goal**: Transform to wolf form
-- **Input**: `{ "character_id": <werewolf_ID>, "target_form": "Lupus" }`
-- **Expected**: Wolf form modifiers (+1 Dex, +2 Sta, +1 Perception)
-
-**Test 4.22: Shift to Homid**
-- **Goal**: Return to human form
-- **Input**: `{ "character_id": <werewolf_ID>, "target_form": "Homid" }`
-- **Expected**: Human form (no modifiers)
-
-#### `spend_rage_for_extra_actions`
-**Test 4.23: Spend Rage for Actions**
-- **Goal**: Werewolf gains extra actions
-- **Input**: `{ "character_id": <werewolf_ID>, "rage_spent": 2 }`
-- **Expected**: 2 extra actions granted, rage reduced
-
-**Test 4.24: Validation - Insufficient Rage**
-- **Goal**: Prevent overspending rage
-- **Input**: Try to spend more rage than character has
-- **Expected**: Error about insufficient rage
-
-#### `roll_magick_effect` (Mage)
-**Test 4.25: Coincidental Magick**
-- **Goal**: Roll subtle magick effect
-- **Input**: `{ "character_id": <mage_ID>, "spheres": ["Forces"], "arete_roll_pool": 4, "difficulty": 6, "is_coincidental": true }`
-- **Expected**: Magick roll with minimal paradox risk
-
-**Test 4.26: Vulgar Magick**
-- **Goal**: Roll obvious magick effect
-- **Input**: `{ "character_id": <mage_ID>, "spheres": ["Forces", "Prime"], "arete_roll_pool": 5, "difficulty": 7, "is_coincidental": false }`
-- **Expected**: Magick roll with paradox accumulation
-
-**Test 4.27: Vulgar Magick Failure**
-- **Goal**: Test paradox on failed vulgar magick
-- **Input**: Simulate failed vulgar magick roll
-- **Expected**: Significant paradox points and backlash description
-
-**Test 4.28: Magick Botch**
-- **Goal**: Test catastrophic magick failure
-- **Input**: Simulate botched magick roll
-- **Expected**: Severe paradox backlash with narrative consequences
-
-#### `invoke_cantrip` (Changeling)
-**Test 4.29: Basic Cantrip**
-- **Goal**: Roll Art + Realm for cantrip
-- **Input**: `{ "character_id": <changeling_ID>, "art_pool": 3, "realm_pool": 2, "difficulty": 7 }`
-- **Expected**: Combined pool of 5 dice rolled
-
-**Test 4.30: Cantrip with High Banality**
-- **Goal**: Test cantrip in high banality environment
-- **Input**: `{ "character_id": <changeling_ID>, "art_pool": 2, "realm_pool": 1, "difficulty": 9 }`
-- **Expected**: Higher difficulty due to banality
-
-**Test 4.31: Cantrip Botch**
-- **Goal**: Test banality consequences of botch
-- **Input**: Simulate botched cantrip roll
-- **Expected**: Botch result with banality increase warning
-
----
-
-### Social Combat
-
-#### `roll_social_combat`
-**Test 4.32: Intimidation vs Willpower**
-- **Goal**: Test social intimidation
-- **Input**: `{ "attacker_name": "Marcus", "attacker_pool": 6, "target_name": "Sheriff", "target_pool": 4, "attack_type": "intimidation" }`
-- **Expected**: Contested social roll with intimidation result
-
-**Test 4.33: Persuasion Attack**
-- **Goal**: Test social persuasion
-- **Input**: `{ "attacker_name": "Alice", "attacker_pool": 5, "target_name": "Bob", "target_pool": 3, "attack_type": "persuasion" }`
-- **Expected**: Persuasion attempt with social damage calculation
-
-**Test 4.34: Seduction**
-- **Goal**: Test seduction social combat
-- **Input**: `{ "attacker_name": "Toreador", "attacker_pool": 7, "target_name": "Mortal", "target_pool": 2, "attack_type": "seduction" }`
-- **Expected**: Seduction roll with effect based on net successes
-
-**Test 4.35: Social Combat Tie**
-- **Goal**: Handle tied social combat
-- **Input**: Arrange for equal successes in social combat
-- **Expected**: Tie resolution with stalemate or re-roll suggestion
-
-**Test 4.36: Social Botch**
-- **Goal**: Test social combat botch consequences
-- **Input**: Simulate social combat botch
-- **Expected**: Botch consequences with relationship damage description
-
----
-
-## Success Criteria
-- All dice mechanics follow World of Darkness rules correctly
-- Specialty rules work properly (10s = 2 successes)
-- Contested actions calculate net successes accurately
-- Soak and damage rolls use correct dice pools
-- Game-line specific mechanics work for each splat
-- Social combat provides meaningful results
-- All botch and failure conditions are handled properly
-- Paradox and banality systems function correctly
-
-## Dependencies
-- Requires characters of different game lines from Test Block 1
-- May reference character resources from Test Block 2
-- Should be run before initiative/turn management tests
-````
-
-## File: TestBlock5_WorldStateAndInitiative_RESULTS.md
-````markdown
-# Test Block 5: World State & Initiative Management – RESULTS
-
-## Summary
-All tests relating to saving/retrieving world state, story progress, and initiative/turn management were blocked due to the absence of required MCP tool handlers (`save_world_state`, `get_world_state`, `save_story_progress`, `set_initiative`, `get_initiative_order`, `advance_turn`, `get_current_turn`, `roll_initiative_for_scene`) in [`game-state-server/src/index.ts`](game-state-server/src/index.ts).
-
-Attempts to use `roll_initiative_for_scene` in the combat engine MCP server result in delegation to the game state server, but this tool is not implemented there, so all such calls fail with "Unknown tool request".
-
----
-
-## Test Results
-
-_All world state, narrative logging, initiative and turn management tests in Block 5 fail due to the known dispatcher wire-up issue._
-
-- Example actual output:  
-  `{"description": "Delegating to rpg-game-state. Please call roll_initiative_for_scene there."}`  
-  Followed by:  
-  `❌ Unknown tool request.`
-
----
-
-## Critical Issue
-
-**Stateful game and world management features cannot be validated; end-to-end combat/initiative integration is impossible until all relevant handlers are added.**
-
----
-
-## Recommendations
-
-Implement and register all required CRUD/initiative/story persistence tool handlers to the dispatcher.  
-Re-run the full suite to verify persistence, multi-scene isolation, round cycling, and cross-server integration.
-````
-
-## File: TestBlock5_WorldStateAndInitiative.md
-````markdown
-# Test Block 5: World State & Initiative Management
-
-## Overview
-This test block covers world state persistence, story progress tracking, and initiative/turn management systems. These tools manage the broader game state and combat flow.
-
-## Tools Covered
-- `save_world_state`
-- `get_world_state`
-- `save_story_progress`
-- `set_initiative`
-- `get_initiative_order`
-- `advance_turn`
-- `get_current_turn`
-- `roll_initiative_for_scene` (combat-engine-server)
-
----
-
-## Test Cases
-
-### World State Management
-
-#### `save_world_state`
-**Test 5.1: Save Basic World State**
-- **Goal**: Persist current game world information
-- **Input**: `{ "location": "The Elysium", "notes": "Prince Hardestadt has called a gathering", "data": { "time": "midnight", "weather": "stormy", "npcs_present": ["Prince Hardestadt", "Sheriff Marcus"] } }`
-- **Expected**: World state saved successfully
-
-**Test 5.2: Save Complex World Data**
-- **Goal**: Store detailed world information
-- **Input**: `{ "location": "Downtown Investigation Site", "notes": "Blood trail leads to warehouse", "data": { "clues_found": ["bloody footprints", "torn fabric"], "time": "2:30 AM", "danger_level": "high", "witnesses": [] } }`
-- **Expected**: Complex data structure saved correctly
-
-**Test 5.3: Update Existing World State**
-- **Goal**: Overwrite previous world state
-- **Input**: Save new world state after Test 5.1
-- **Expected**: New state replaces old, previous data overwritten
-
-**Test 5.4: Save Minimal World State**
-- **Goal**: Handle minimal required data
-- **Input**: `{ "location": "Unknown", "notes": "" }`
-- **Expected**: Minimal state saved, empty fields handled gracefully
-
-#### `get_world_state`
-**Test 5.5: Retrieve World State**
-- **Goal**: Get last saved world state
-- **Input**: `{}`
-- **Expected**: Returns complete world state from Test 5.3
-
-**Test 5.6: Get Empty World State**
-- **Goal**: Handle case with no saved state
-- **Input**: Get world state when none has been saved
-- **Expected**: Empty state or default values returned
-
-**Test 5.7: Verify Data Persistence**
-- **Goal**: Confirm world state persists across operations
-- **Input**: Save state, perform other operations, then get state
-- **Expected**: World state unchanged by other operations
-
----
-
-### Story Progress Tracking
-
-#### `save_story_progress`
-**Test 5.8: Log Story Checkpoint**
-- **Goal**: Record narrative progress
-- **Input**: `{ "chapter": "Chapter 1", "scene": "The Missing Ghoul", "summary": "The coterie discovered the ghoul was taken by Sabbat infiltrators. Investigation led to warehouse district." }`
-- **Expected**: Story progress logged with timestamp
-
-**Test 5.9: Log Multiple Story Points**
-- **Goal**: Track story progression over time
-- **Input**: Save multiple story progress entries
-- **Expected**: Each entry logged separately with timestamps
-
-**Test 5.10: Log Chapter Completion**
-- **Goal**: Mark major story milestone
-- **Input**: `{ "chapter": "Chapter 1", "scene": "Confrontation", "summary": "Coterie defeated Sabbat pack and rescued the ghoul. Prince rewards with boons." }`
-- **Expected**: Chapter completion logged
-
-**Test 5.11: Validation - Empty Summary**
-- **Goal**: Handle minimal story data
-- **Input**: `{ "chapter": "Chapter 2", "scene": "Opening", "summary": "" }`
-- **Expected**: Entry saved with empty summary
-
----
-
-### Initiative & Turn Management
-
-#### `set_initiative`
-**Test 5.12: Set Basic Initiative Order**
-- **Goal**: Establish turn order for combat
-- **Input**: `{ "scene_id": "combat_1", "entries": [{ "character_id": 1, "actor_name": "Marcus", "initiative_score": 15, "turn_order": 1 }, { "npc_id": 2, "actor_name": "Sheriff", "initiative_score": 12, "turn_order": 2 }] }`
-- **Expected**: Initiative order established for scene
-
-**Test 5.13: Set Complex Initiative**
-- **Goal**: Handle multiple actors with mixed types
-- **Input**: `{ "scene_id": "combat_2", "entries": [{ "character_id": 1, "actor_name": "Alice", "initiative_score": 18, "turn_order": 1 }, { "character_id": 2, "actor_name": "Bob", "initiative_score": 14, "turn_order": 2 }, { "npc_id": 3, "actor_name": "Sabbat Leader", "initiative_score": 16, "turn_order": 3 }, { "npc_id": 4, "actor_name": "Sabbat Grunt", "initiative_score": 10, "turn_order": 4 }] }`
-- **Expected**: All actors properly ordered by initiative
-
-**Test 5.14: Update Initiative Order**
-- **Goal**: Modify existing initiative order
-- **Input**: Set new initiative for existing scene
-- **Expected**: Previous order replaced with new order
-
-#### `get_initiative_order`
-**Test 5.15: Get Initiative Order**
-- **Goal**: Retrieve current turn order
-- **Input**: `{ "scene_id": "combat_1" }`
-- **Expected**: Returns actors in initiative order with scores
-
-**Test 5.16: Get Nonexistent Scene**
-- **Goal**: Handle request for missing scene
-- **Input**: `{ "scene_id": "nonexistent_scene" }`
-- **Expected**: Error: "Scene not found" or empty result
-
-**Test 5.17: Get Multiple Scene Orders**
-- **Goal**: Verify scene isolation
-- **Input**: Get initiative for both combat_1 and combat_2
-- **Expected**: Each scene returns its own separate initiative order
-
-#### `advance_turn`
-**Test 5.18: Advance to Next Actor**
-- **Goal**: Move turn to next in sequence
-- **Input**: `{ "scene_id": "combat_1" }`
-- **Expected**: Turn advances to next actor in initiative order
-
-**Test 5.19: Advance Through Full Round**
-- **Goal**: Cycle through all actors
-- **Input**: Advance turn through all actors in combat_1
-- **Expected**: After last actor, advances to round 2 with first actor
-
-**Test 5.20: Advance Multiple Scenes**
-- **Goal**: Verify independent scene management
-- **Input**: Advance turns in both combat_1 and combat_2
-- **Expected**: Each scene maintains separate turn state
-
-#### `get_current_turn`
-**Test 5.21: Get Current Actor**
-- **Goal**: Check whose turn it is
-- **Input**: `{ "scene_id": "combat_1" }`
-- **Expected**: Returns current actor, round number, turn position
-
-**Test 5.22: Get Turn After Advance**
-- **Goal**: Verify turn advancement
-- **Input**: Get current turn after advancing from Test 5.18
-- **Expected**: Shows next actor as current
-
-**Test 5.23: Get Turn in New Round**
-- **Goal**: Check round cycling
-- **Input**: Get current turn after completing full round
-- **Expected**: Shows round 2 with first actor
-
----
-
-### Combat Engine Initiative Integration
-
-#### `roll_initiative_for_scene` (Combat Engine)
-**Test 5.24: Roll Initiative Scores**
-- **Goal**: Generate initiative for multiple actors
-- **Input**: `{ "scene_id": "combat_3", "actors": [{ "name": "Marcus", "dex": 3, "wits": 2 }, { "name": "Sheriff", "dex": 4, "wits": 3 }] }`
-- **Expected**: Initiative scores rolled and turn order established
-
-**Test 5.25: Cross-Server Integration**
-- **Goal**: Verify combat engine delegates to game-state server
-- **Input**: Use combat engine initiative tools
-- **Expected**: Tools properly delegate to game-state server for persistence
-
-**Test 5.26: Initiative with Modifiers**
-- **Goal**: Handle initiative modifiers
-- **Input**: Roll initiative with wound penalties or other modifiers
-- **Expected**: Modifiers properly applied to initiative rolls
-
----
-
-### Integration & Edge Cases
-
-**Test 5.27: World State During Combat**
-- **Goal**: Verify world state independence from combat
-- **Input**: Save world state, run combat, check world state
-- **Expected**: World state unaffected by combat operations
-
-**Test 5.28: Multiple Concurrent Combats**
-- **Goal**: Handle multiple simultaneous combat scenes
-- **Input**: Set up initiative for 3 different scenes
-- **Expected**: Each scene maintains independent state
-
-**Test 5.29: Story Progress During Combat**
-- **Goal**: Log story events during combat
-- **Input**: Save story progress while combat is active
-- **Expected**: Story logging works independently of combat state
-
-**Test 5.30: Initiative Persistence**
-- **Goal**: Verify initiative survives server operations
-- **Input**: Set initiative, perform other operations, check initiative
-- **Expected**: Initiative order unchanged by other operations
-
-**Test 5.31: Scene Cleanup**
-- **Goal**: Test removing completed combat scenes
-- **Input**: Complete combat, then try to access scene
-- **Expected**: Appropriate handling of completed/removed scenes
-
-**Test 5.32: Turn Order Edge Cases**
-- **Goal**: Handle tied initiative scores
-- **Input**: Set initiative with identical scores
-- **Expected**: Tie-breaking rules applied consistently
-
-**Test 5.33: Empty Scene Management**
-- **Goal**: Handle scene with no actors
-- **Input**: Try to advance turn in empty scene
-- **Expected**: Appropriate error or empty state handling
-
----
-
-## Success Criteria
-- World state saves and retrieves correctly with all data types
-- Story progress logs accumulate properly with timestamps
-- Initiative order maintains correct sequence and round tracking
-- Turn advancement cycles properly through actors and rounds
-- Multiple scenes operate independently
-- Cross-server integration works for combat engine tools
-- All edge cases are handled gracefully
-- Data persistence works across all operations
-
-## Dependencies
-- Requires characters and antagonists from Test Block 1
-- May reference characters with status effects from Test Block 3
-- Should be run after dice mechanics are verified in Test Block 4
-- This is the final test block and integrates all previous systems
-````
-
-## File: TestingPlan.md
-````markdown
-# **Revised & Complete MCP Testing Plan**
-
-This document outlines a rigorous, comprehensive testing plan for every Model Context Protocol (MCP) tool defined in the World of Darkness server suite. The plan covers all available server APIs (`game-state-server` and `combat-engine-server`), providing thorough test cases, clear methodologies, expected results, and rationales to ensure reliability, correctness, and robustness.
-
-## Table of Contents
-*   **Game-State Server Tools**
-    *   Character & Antagonist Management: `create_character`, `get_character`, `get_character_by_name`, `update_character`, `list_characters`, `create_antagonist`, `get_antagonist`, `update_antagonist`, `list_antagonists`, `remove_antagonist`
-    *   Resource & Health: `spend_resource`, `restore_resource`, `gain_resource`, `apply_damage`
-    *   Progression (XP): `award_xp`, `spend_xp`, `improve_trait`, `get_trait_improvement_cost`
-    *   Status Effects: `apply_status_effect`, `remove_status_effect`, `get_status_effects`
-    *   Inventory Management: `add_item`, `get_inventory`, `update_item`, `remove_item`
-    *   World State & Story: `save_world_state`, `get_world_state`, `save_story_progress`
-    *   Initiative & Turn Management: `set_initiative`, `get_initiative_order`, `advance_turn`, `get_current_turn`
-*   **Combat-Engine Server Tools**
-    *   Core Dice Mechanics: `roll_wod_pool`, `roll_contested_action`, `roll_soak`, `roll_damage_pool`
-    *   Initiative & Turn Management: `roll_initiative_for_scene`, `set_initiative`, `get_initiative_order`, `advance_turn`, `get_current_turn`
-    *   Game-Line Specific Mechanics: `roll_virtue_check`, `change_form`, `spend_rage_for_extra_actions`, `roll_magick_effect`, `invoke_cantrip`
-    *   Social Combat: `roll_social_combat`
-
----
-
-## **`game-state-server` Tools**
-
-### Character & Antagonist Management
-
-#### `create_character` & `create_antagonist`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Creation** | Verify successful creation for each splat. | `{ "name": "Armand", "game_line": "vampire", "clan": "Toreador" }`, `{ "template_name": "Sabbat Shovelhead", "custom_name": "Rocco" }` | Character/NPC created and retrievable. Splat-specific tables populated. |
-| **Edge: Minimal Input** | Ensure optional fields can be omitted. | `{ "name": "Elsa", "game_line": "werewolf" }` | Character created with default values for all omitted fields. |
-| **Validation: Missing Required** | Fail if required fields like `name` or `game_line` are missing. | `{ "game_line": "mage" }` | Error message: "Missing required field: name". |
-| **Validation: Invalid Enum** | Reject invalid `game_line` or splat-specific enums. | `{ "name": "Test", "game_line": "dragon" }` | Error message: "Invalid value for game_line". |
-| **Negative: Duplicate Name** | Reject duplicate character names. | Create "Armand" twice. | `UNIQUE constraint failed` error on second attempt. |
-| **Integration: Usability** | Ensure newly created entity can be used in other tools. | Create char, then `apply_damage` using its new ID. | Both tool calls succeed. |
-
-</details>
-
----
-#### `get_character` & `get_character_by_name` / `get_antagonist`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Get by ID/Name** | Retrieve existing entities successfully. | `{ "character_id": 1 }`, `{ "name": "Armand" }` | Full, correctly formatted character sheet is returned. |
-| **Splat-Specific Data** | Verify all splat-specific data is joined and returned. | Get a Werewolf character. | Response includes Rage, Gnosis, Gifts, etc. |
-| **Negative: Nonexistent** | Handle queries for nonexistent entities gracefully. | `{ "character_id": 99999 }` | Clear "Not Found" error message. |
-| **Validation: Invalid Type** | Reject non-integer IDs or non-string names. | `{ "character_id": "abc" }` | Input validation error. |
-
-</details>
-
----
-#### `update_character` & `update_antagonist`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Update** | Change a single, simple trait. | `{ "character_id": 1, "updates": { "concept": "Survivor" } }` | Success confirmation. `get_character` reflects the change. |
-| **Splat-Specific Update** | Update a trait in a joined table (e.g., `humanity`). | `{ "character_id": 1, "updates": { "humanity": 6 } }` | Success confirmation. `get_character` shows new humanity. |
-| **Validation: Invalid Field** | Reject updates to fields that do not exist. | `{ "character_id": 1, "updates": { "luck_points": 5 } }` | Error message: "Invalid field 'luck_points'". |
-| **Validation: Data Type Mismatch** | Reject updates with incorrect data types. | `{ "character_id": 1, "updates": { "strength": "strong" } }` | Input validation error. |
-
-</details>
-
----
-### Resource, Health, & Progression
-
-#### `spend_resource` & `restore_resource`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Spend/Restore** | Spend/restore a valid resource. | `{ "character_id": 1, "resource_name": "willpower", "amount": 1 }` | Success message with new and max values (e.g., "Willpower: 4/5"). |
-| **Validation: Insufficient** | Prevent spending more than available. | Spend 10 Willpower when character has 5. | Error: "Not enough willpower. Has 5, needs 10." |
-| **Validation: Over-Restoring** | Prevent restoring beyond the permanent maximum. | Restore 3 Willpower when at 4/5. | Success message. New value is 5/5 (capped at max). |
-| **Validation: Invalid Resource** | Reject spending a resource the character doesn't have. | `spend_resource` with `resource_name: "blood"` on a Mage character. | Error: "Invalid resource 'blood' for game_line 'mage'". |
-
-</details>
-
----
-#### `gain_resource`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Gain** | Gain a resource from an action. | `{ "character_id": 1, "resource_name": "blood", "roll_successes": 3 }` | Success message. Blood pool increases by 3 (up to max). |
-| **Validation: Invalid Resource** | Reject gaining a resource not applicable to the game line. | Gain 'gnosis' for a Vampire. | Error message. |
-| **Validation: Non-Positive** | Reject zero or negative successes. | `{ ..., "roll_successes": 0 }` | Error: "roll_successes must be a positive number." |
-
-</details>
-
----
-#### `apply_damage`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Damage Types** | Verify Bashing, Lethal, and Aggravated damage apply correctly. | Apply 2 Bashing, then 1 Lethal. | Bashing upgrades to Lethal. Health track shows `X|X|X| | | |`. |
-| **Incapacitated/Overflow** | Test damage that fills or exceeds the health track. | Apply 8 Lethal damage. | Health track is full of 'X'. Status is Incapacitated. |
-| **Integration** | Ensure wound penalties are reflected in subsequent rolls. | Apply 3 Lethal damage, then `roll_wod_pool`. | A -1 wound penalty should be noted/applied to the roll. |
-
-</details>
-
----
-#### `award_xp`, `spend_xp`, `improve_trait`, `get_trait_improvement_cost`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **XP Flow** | Award, check cost, improve, and verify new XP total. | `award_xp`, `get_trait_improvement_cost`, `improve_trait`. | Each step succeeds. `get_character` shows increased trait and decreased XP. |
-| **Cost Calculation** | Verify cost calculation is correct for all trait types. | `get_trait_improvement_cost` for Attribute, Ability, Discipline, etc. | Correct costs returned (e.g., Attribute = new rating * 4). |
-| **Validation: Insufficient XP** | Prevent improving a trait without enough XP. | `improve_trait` when XP is too low. | Error: "Not enough XP." |
-| **Validation: Invalid Trait** | Reject attempts to improve a nonexistent trait. | `improve_trait` with `trait_name: "Cooking"`. | Error: "Trait 'Cooking' not found." |
-
-</details>
-
----
-### Status Effects
-
-#### `apply_status_effect`, `remove_status_effect`, `get_status_effects`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Application** | Apply a temporary status effect to a character. | `{ "target_type": "character", "target_id": 1, "effect_name": "Stunned", "description": "Cannot act this round", "duration_type": "rounds", "duration_value": 1 }` | Success message with effect ID. Effect is retrievable via `get_status_effects`. |
-| **Permanent Effect** | Apply a permanent status effect. | `{ "target_type": "character", "target_id": 1, "effect_name": "Cursed", "duration_type": "indefinite" }` | Effect applied with no expiration. |
-| **Mechanical Effects** | Apply effect with mechanical modifiers. | `{ ..., "mechanical_effect": { "dice_penalty": -2, "can_act": false } }` | Effect includes mechanical data in JSON format. |
-| **Remove Effect** | Remove an existing status effect. | `{ "effect_id": 101 }` | Effect is removed. `get_status_effects` no longer shows it. |
-| **List Effects** | Retrieve all effects on a target. | `{ "target_type": "character", "target_id": 1 }` | Returns array of all active effects with full details. |
-| **Validation: Invalid Target** | Reject effects on nonexistent targets. | `{ "target_type": "character", "target_id": 99999, ... }` | Error: "Character not found." |
-
-</details>
-
----
-### Inventory Management
-
-#### `add_item`, `get_inventory`, `update_item`, `remove_item`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Add Item** | Add a new item to character inventory. | `{ "character_id": 1, "item": { "name": "Healing Potion", "description": "Restores 3 health", "quantity": 2, "type": "consumable" } }` | Item added successfully. `get_inventory` shows the item. |
-| **Get Inventory** | Retrieve all items for a character. | `{ "character_id": 1 }` | Returns formatted list of all items with quantities and descriptions. |
-| **Update Item Quantity** | Modify item quantity (e.g., after use). | `{ "item_id": 5, "updates": { "quantity": 1 } }` | Item quantity updated. Inventory reflects change. |
-| **Update Item Properties** | Modify item description or equipped status. | `{ "item_id": 5, "updates": { "equipped": true, "description": "Enchanted sword" } }` | Item properties updated successfully. |
-| **Remove Item** | Delete an item from inventory. | `{ "item_id": 5 }` | Item removed. `get_inventory` no longer shows it. |
-| **Validation: Invalid Item** | Reject operations on nonexistent items. | `{ "item_id": 99999, ... }` | Error: "Item not found." |
-| **Validation: Invalid Character** | Reject inventory operations for nonexistent characters. | `{ "character_id": 99999, ... }` | Error: "Character not found." |
-
-</details>
-
----
-### World State & Story Management
-
-#### `save_world_state`, `get_world_state`, `save_story_progress`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Save World State** | Persist current game world state. | `{ "location": "The Elysium", "notes": "Prince's gathering", "data": { "time": "midnight", "weather": "stormy" } }` | State saved successfully. `get_world_state` returns the data. |
-| **Get World State** | Retrieve last saved world state. | `{}` | Returns complete world state with location, notes, and custom data. |
-| **Update World State** | Overwrite existing world state. | `{ "location": "Downtown", "notes": "Investigation continues" }` | New state replaces old. Previous data is overwritten. |
-| **Save Story Progress** | Log narrative checkpoint. | `{ "chapter": "Chapter 1", "scene": "The Missing Ghoul", "summary": "Coterie discovered Sabbat involvement" }` | Story progress logged with timestamp. |
-| **Validation: Empty Data** | Handle empty or minimal input gracefully. | `{ "location": "" }` | Accepts empty strings but validates required structure. |
-
-</details>
-
----
-### Antagonist Management
-
-#### `create_antagonist`, `get_antagonist`, `update_antagonist`, `list_antagonists`, `remove_antagonist`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Create from Template** | Create NPC from predefined template. | `{ "name": "Sheriff Marcus", "template": "vampire_sheriff", "game_line": "vampire" }` | Antagonist created with template stats. Has appropriate disciplines, attributes. |
-| **Get Antagonist** | Retrieve antagonist by ID. | `{ "npc_id": 1 }` | Returns complete antagonist sheet with all stats and notes. |
-| **Update Stats** | Modify antagonist attributes or resources. | `{ "npc_id": 1, "updates": { "willpower_current": 6, "notes": "Recently fed" } }` | Stats updated successfully. Changes reflected in `get_antagonist`. |
-| **List All** | Get summary of all antagonists. | `{}` | Returns list with names, types, and IDs of all created antagonists. |
-| **Remove Antagonist** | Delete an antagonist permanently. | `{ "npc_id": 1 }` | Antagonist removed. `list_antagonists` no longer shows it. |
-| **Validation: Invalid Template** | Reject unknown templates. | `{ "template": "dragon_lord", ... }` | Error: "Unknown template 'dragon_lord'." |
-| **Validation: Missing Name** | Require name for antagonist creation. | `{ "template": "vampire_sheriff" }` | Error: "Missing required field: name." |
-
-</details>
-
----
-### Initiative & Turn Management
-
-#### `set_initiative`, `get_initiative_order`, `advance_turn`, `get_current_turn`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Set Initiative Order** | Establish turn order for combat scene. | `{ "scene_id": "combat_1", "entries": [{ "character_id": 1, "actor_name": "Marcus", "initiative_score": 15, "turn_order": 1 }, { "npc_id": 2, "actor_name": "Sheriff", "initiative_score": 12, "turn_order": 2 }] }` | Initiative order set. `get_initiative_order` returns sorted list. |
-| **Get Initiative Order** | Retrieve current turn order. | `{ "scene_id": "combat_1" }` | Returns actors in initiative order with scores and current turn indicator. |
-| **Advance Turn** | Move to next actor in sequence. | `{ "scene_id": "combat_1" }` | Turn advances. `get_current_turn` shows next actor. |
-| **Get Current Turn** | Check whose turn it is. | `{ "scene_id": "combat_1" }` | Returns current actor, round number, and turn position. |
-| **Round Cycling** | Verify turn order cycles through rounds. | Advance through all actors in a round. | After last actor, advances to round 2 with first actor. |
-| **Validation: Invalid Scene** | Reject operations on nonexistent scenes. | `{ "scene_id": "nonexistent" }` | Error: "Scene not found." |
-
-</details>
-
----
-
-## **`combat-engine-server` Tools**
-
-### Core Dice Mechanics
-
-#### `roll_wod_pool` & `roll_contested_action`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Standard Roll** | Verify basic success/failure/botch logic. | `{ "pool_size": 5, "difficulty": 6 }` | Correct number of successes calculated. |
-| **Specialty Rule** | Ensure a '10' counts as two successes when specialty is true. | `{ "pool_size": 3, "difficulty": 6, "has_specialty": true }` | Rolls of 10 add 2 successes. |
-| **Zero/Negative Pool** | Handle zero or negative dice pools gracefully. | `{ "pool_size": 0 }` | Rolls 1 chance die (10=success, 1=botch). `{ "pool_size": -1 }` -> Error. |
-| **Contested Logic** | Verify net successes and tie/botch resolution. | Attacker gets 3 successes, Defender gets 1. | "Attacker wins by 2 net successes." |
-
-</details>
-
----
-#### `roll_soak` & `roll_damage_pool`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Soak Lethal Damage** | Roll to reduce incoming lethal damage. | `{ "soak_pool": 3, "damage_type": "lethal", "has_fortitude": false }` | Soak successes calculated. Damage reduction shown. |
-| **Soak with Fortitude** | Vampire soaks lethal damage with Fortitude. | `{ "soak_pool": 5, "damage_type": "lethal", "has_fortitude": true }` | Fortitude allows soaking lethal damage normally. |
-| **Aggravated Damage** | Attempt to soak aggravated damage. | `{ "soak_pool": 4, "damage_type": "aggravated", "has_fortitude": true }` | Only Fortitude dice count for aggravated soak. |
-| **Damage Pool Roll** | Roll damage dice for an attack. | `{ "pool_size": 4, "damage_type": "lethal" }` | Damage successes calculated. Each success = 1 health level. |
-| **Bashing Damage** | Roll bashing damage pool. | `{ "pool_size": 3, "damage_type": "bashing" }` | Bashing damage calculated correctly. |
-
-</details>
-
----
-### Game-Line Specific Mechanics
-
-#### `roll_virtue_check` (Vampire)
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Frenzy/Rötschreck** | Simulate resisting a fear or anger frenzy. | `{ "character_id": 1, "virtue_name": "self-control", "difficulty": 8 }` | Success/failure based on Self-Control roll. |
-
-</details>
-
----
-#### `change_form` & `spend_rage_for_extra_actions` (Werewolf)
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Form Modifiers** | Verify correct attribute modifiers are returned for each form. | `{ "character_id": 2, "target_form": "Crinos" }` | Returns `{ "str": +4, "dex": +1, "sta": +3, ... }`. |
-| **Rage for Actions** | Confirm the tool returns a valid confirmation. | `{ "character_id": 2, "actions_to_gain": 2 }` | Success message. Game-state should reflect Rage spent. |
-
-</details>
-
----
-#### `roll_magick_effect` (Mage)
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Coincidental vs. Vulgar** | Test both coincidental and vulgar magick. | `{ ..., "is_coincidental": true }` vs. `{ ..., "is_coincidental": false }` | Vulgar effect that fails generates Paradox points. |
-| **Paradox Backlash** | A roll that botches should trigger a significant Paradox effect. | Botch a vulgar roll. | Tool returns a high number of Paradox points and a narrative of a backlash. |
-
-</details>
-
----
-#### `invoke_cantrip` (Changeling)
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Art + Realm Pool** | Verify the dice pool is calculated correctly from Art + Realm. | `{ "art_pool": 3, "realm_pool": 2, ... }` | Tool rolls a pool of 5 dice. |
-| **Banality Trigger** | A botch should trigger a Banality check or consequence. | Botch a cantrip roll. | Tool returns a botch result and a narrative suggestion about Banality. |
-
-</details>
-
----
-### Social Combat
-
-#### `roll_social_combat`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Intimidation vs Willpower** | Contested social action. | `{ "attacker_name": "Marcus", "attacker_pool": 6, "target_name": "Sheriff", "target_pool": 4, "attack_type": "intimidation" }` | Net successes calculated. Winner determined. Narrative suggestion provided. |
-| **Persuasion Attack** | Social persuasion attempt. | `{ "attacker_name": "Alice", "attacker_pool": 5, "target_name": "Bob", "target_pool": 3, "attack_type": "persuasion" }` | Contested roll resolved. Social damage or effect suggested. |
-| **Seduction** | Seduction social combat. | `{ "attacker_name": "Toreador", "attacker_pool": 7, "target_name": "Mortal", "target_pool": 2, "attack_type": "seduction" }` | High success margin suggests strong effect. |
-| **Tie Resolution** | Handle tied social combat. | Equal successes on both sides. | Tie-breaking rules applied. Stalemate or re-roll suggested. |
-| **Botch Consequences** | Social botch effects. | Attacker botches social roll. | Botch consequences described. Relationship damage suggested. |
-
-</details>
-
----
-### Initiative & Turn Management (Combat Engine)
-
-#### `roll_initiative_for_scene`, `set_initiative`, `get_initiative_order`, `advance_turn`, `get_current_turn`
-<details>
-<summary>Expand Test Cases</summary>
-
-| Test Case | Goal | Test Input | Expected Output |
-| :--- | :--- | :--- | :--- |
-| **Roll Initiative** | Generate initiative scores for scene. | `{ "scene_id": "combat_1", "actors": [{ "name": "Marcus", "dex": 3, "wits": 2 }, { "name": "Sheriff", "dex": 4, "wits": 3 }] }` | Initiative scores rolled and sorted. Turn order established. |
-| **Cross-Server Integration** | Verify combat engine delegates to game-state server. | Call initiative tools from combat engine. | Tools properly delegate to game-state server for persistence. |
-| **Scene Management** | Handle multiple concurrent scenes. | Create initiative for "combat_1" and "combat_2". | Each scene maintains separate turn order. |
-
-</details>
 ````
 
 ## File: TOOLS.md
@@ -4553,314 +2211,90 @@ export const ANTAGONIST_TEMPLATES: AntagonistTemplates = {
 };
 ````
 
-## File: game-state-server/src/repositories/inventory.repository.ts
-````typescript
-import Database from 'better-sqlite3';
-import type { InventoryItem } from '../types/index.js';
-
-export class InventoryRepository {
-  private db: Database.Database;
-constructor(db: Database.Database) {
-    this.db = db;
-  }
-  
-  add(character_id: number, item: any): any {
-    const stmt = this.db.prepare(`
-      INSERT INTO inventory (character_id, item_name, item_type, quantity, description, properties)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      character_id,
-      item.name,
-      item.type || 'misc',
-      item.quantity || 1,
-      item.description || null,
-      item.properties ? JSON.stringify(item.properties) : null
-    );
-    return { id: result.lastInsertRowid, ...item };
-  }
-
-  getInventory(character_id: number): InventoryItem[] {
-    const stmt = this.db.prepare('SELECT * FROM inventory WHERE character_id = ?');
-    const rows = stmt.all(character_id);
-    return rows.map(row => {
-      const r = row as any;
-      return {
-        id: r.id,
-        character_id: r.character_id,
-        item_name: r.item_name,
-        item_type: r.item_type,
-        quantity: r.quantity,
-        description: r.description,
-        properties: r.properties ? JSON.parse(r.properties) : null,
-        equipped: r.equipped,
-        condition: r.condition,
-        last_modified: r.last_modified
-      }
-    });
-  }
-
-  private getInventoryItemById(item_id: number): InventoryItem | null {
-    const stmt = this.db.prepare('SELECT * FROM inventory WHERE id = ?');
-    const row = stmt.get(item_id) as any;
-    if (!row) return null;
-    return {
-      id: row.id,
-      character_id: row.character_id,
-      item_name: row.item_name,
-      item_type: row.item_type,
-      quantity: row.quantity,
-      description: row.description,
-      properties: row.properties ? JSON.parse(row.properties) : null,
-      equipped: row.equipped,
-      condition: row.condition,
-      last_modified: row.last_modified
-    };
-  }
-
-  updateItem(item_id: number, updates: any): any {
-    const allowedFields = Object.keys(updates).filter(key => key !== "id");
-    if (allowedFields.length === 0) {
-      return this.getInventoryItemById(item_id);
-    }
-
-    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
-    const values = allowedFields.map(field => (updates as any)[field]);
-
-    const stmt = this.db.prepare(`UPDATE inventory SET ${setClause} WHERE id = ?`);
-    stmt.run(...values, item_id);
-
-    return this.getInventoryItemById(item_id);
-  }
-
-  removeItem(item_id: number): boolean {
-    const stmt = this.db.prepare('DELETE FROM inventory WHERE id = ?');
-    const res = stmt.run(item_id);
-    return res.changes > 0;
-  }
-
-  // Inventory-related methods will be moved here if/when implemented
-}
-````
-
 ## File: game-state-server/src/tool-definitions.ts
 ````typescript
 /**
  * Centralized tool definitions for every MCP tool supported by the game-state server.
- * To add new tools or update schemas, modify this file.
+ * Exports ONLY a plain object, with tool name as key and tool data as value.
  */
 export const toolDefinitions = {
-  // Character Management
-  create_character: {},
-  get_character: {},
-  get_character_by_name: {},
-  update_character: {},
-  list_characters: {},
-
-  // Antagonist Management
-  create_antagonist: {},
-  get_antagonist: {},
-  update_antagonist: {},
-  list_antagonists: {},
-  remove_antagonist: {},
-
-  // Resources & Health
-  spend_resource: {},
-  restore_resource: {},
-  gain_resource: {},
-  apply_damage: {},
-
-  // XP & Progression
-  award_xp: {},
-  spend_xp: {},
-  improve_trait: {},
-  get_trait_improvement_cost: {},
-
-  // Status Effects
-  apply_status_effect: {},
-  get_status_effects: {},
-  remove_status_effect: {},
-
-  // Inventory
-  add_item: {
-        "character_id": {
-          "type": "number",
-          "description": "The ID of the character to add the item to"
-        },
-        "item": {
-          "type": "object",
-          "description": "The item to add to the inventory",
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "The name of the item"
-            },
-            "description": {
-              "type": "string",
-              "description": "The description of the item"
-            }
-          },
-          "required": ["name"]
-        }
+  create_character: {
+    name: "create_character",
+    description: "Create a new character in the game state.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Character name" },
+        game_line: { type: "string", description: "Game line (e.g., Vampire, Werewolf, Mage, etc.)" },
+        player: { type: "string", description: "Player name (optional)" }
       },
-  get_inventory: {},
-  update_item: {},
-  remove_item: {},
-
-  // World State & Initiative
-  save_world_state: {},
-  get_world_state: {},
-  save_story_progress: {},
-  set_initiative: {},
-  get_initiative_order: {},
-  advance_turn: {},
-  get_current_turn: {}
+      required: ["name", "game_line"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        character_id: { type: "number" }
+      }
+    }
+  },
+  get_character: {
+    name: "get_character",
+    description: "Retrieve a character and their full data by character ID.",
+    parameters: {
+      type: "object",
+      properties: {
+        character_id: { type: "number", description: "ID of the character" }
+      },
+      required: ["character_id"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        found: { type: "boolean" },
+        character: { type: "object" }
+      }
+    }
+  },
+  get_character_by_name: {
+    name: "get_character_by_name",
+    description: "Retrieve a character and their full data by character name.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Character name" }
+      },
+      required: ["name"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        found: { type: "boolean" },
+        character: { type: "object" }
+      }
+    }
+  },
+  proxy_tool: {
+    name: "proxy_tool",
+    description: "Proxy tool to call tools on other MCP servers.",
+    parameters: {
+      type: "object",
+      properties: {
+        server_address: { type: "string", description: "Address of the target MCP server" },
+        tool_name: { type: "string", description: "Name of the tool to call on the target server" },
+        arguments: { type: "object", description: "Arguments to pass to the tool" }
+      },
+      required: ["server_address", "tool_name", "arguments"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        content: { type: "array", items: { type: "object" } },
+        isError: { type: "boolean" }
+      }
+    }
+  }
 };
-````
-
-## File: game-state-server/src/tool-handlers/__REQUIRED_HANDLERS.md
-````markdown
-# Required Handlers for Complete Game MCP Dispatcher
-
-*These are the handler files that must exist for dispatcher completeness and CRUD coverage, per best practice and your roadmap doc.*
-(Present: [X], Needs creation: [ ])
-
-- [X] create_character.handler.ts
-- [X] get_character.handler.ts
-- [X] get_character_by_name.handler.ts
-- [X] update_character.handler.ts
-- [X] list_characters.handler.ts
-
-- [X] create_antagonist.handler.ts
-- [X] get_antagonist.handler.ts
-- [X] update_antagonist.handler.ts
-- [X] list_antagonists.handler.ts
-- [X] remove_antagonist.handler.ts
-
-- [X] spend_resource.handler.ts
-- [X] restore_resource.handler.ts
-- [X] gain_resource.handler.ts
-- [X] apply_damage.handler.ts
-
-- [X] award_xp.handler.ts
-- [X] spend_xp.handler.ts
-- [X] improve_trait.handler.ts
-- [X] get_trait_improvement_cost.handler.ts
-
-- [X] apply_status_effect.handler.ts
-- [X] get_status_effects.handler.ts
-- [X] remove_status_effect.handler.ts
-
-- [X] add_item.handler.ts
-- [X] get_inventory.handler.ts
-- [X] update_item.handler.ts
-- [X] remove_item.handler.ts
-
-- [X] save_world_state.handler.ts
-- [X] get_world_state.handler.ts
-- [X] save_story_progress.handler.ts
-- [X] set_initiative.handler.ts
-- [X] get_initiative_order.handler.ts
-- [X] advance_turn.handler.ts
-- [X] get_current_turn.handler.ts
-
-Check off as implemented.
-````
-
-## File: game-state-server/src/tool-handlers/create_antagonist.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function create_antagonist_handler(db: GameDatabase, args: any) {
-  const { template_name, custom_name } = args;
-  const antagonist = db.antagonists.createAntagonist(template_name, custom_name);
-
-  if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Error creating antagonist from template: ${template_name}`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([`Antagonist "${antagonist.name}" created (ID: ${antagonist.id})`]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/get_antagonist.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function get_antagonist_handler(db: GameDatabase, args: any) {
-  const { antagonist_id } = args;
-  const antagonist = db.antagonists.getAntagonistById(antagonist_id);
-
-  if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([JSON.stringify(antagonist, null, 2)]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/list_antagonists.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function list_antagonists_handler(db: GameDatabase, args: any) {
-  const antagonists = db.antagonists.listAntagonists();
-
-  const antagonistList = antagonists.map(antagonist => `${antagonist.name} (ID: ${antagonist.id})`).join('\n');
-
-  return { content: makeTextContentArray([antagonistList || "No antagonists found."]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/list_characters.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function list_characters_handler(db: GameDatabase, args: any) {
-  const characters = db.characters.listCharacters();
-
-  const characterList = characters.map(character => `${character.name} (ID: ${character.id})`).join('\n');
-
-  return { content: makeTextContentArray([characterList || "No characters found."]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/remove_antagonist.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function remove_antagonist_handler(db: GameDatabase, args: any) {
-  const { antagonist_id } = args;
-  const success = await db.antagonists.removeAntagonist(antagonist_id);
-
-  if (!success) {
-    return { content: makeTextContentArray([`❌ Could not remove antagonist with ID ${antagonist_id}.`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([`✅ Antagonist with ID ${antagonist_id} removed successfully.`]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/update_antagonist.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function update_antagonist_handler(db: GameDatabase, args: any) {
-  const { antagonist_id, updates } = args;
-  const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
-
-  if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`]) };
-}
 ````
 
 ## File: game-state-server/src/types/antagonist.types.ts
@@ -5428,7 +2862,6 @@ function formatCoreBlocks(character: any): string {
   // HEALTH using HealthTracker for graphic block
   let healthBlock = '';
   try {
-    // Lazy import to avoid circular dependency (if any)
     const tracker = HealthTracker.from(character.health_levels);
     const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
     const woundPenalty = tracker.getWoundPenalty();
@@ -5861,9 +3294,63 @@ constructor(db: Database.Database) {
     stmt.run(...values, id);
     return this.getCharacterById(id);
   }
-    listCharacters(): CharacterData[] {
+  listCharacters(): CharacterData[] {
     const rows = this.db.prepare('SELECT * FROM characters').all();
     return rows as CharacterData[];
+  }
+
+  /** Applies damage to a character, considering damage type and overflow. */
+  public applyDamage(characterId: number, dmg: { aggravated?: number; lethal?: number; bashing?: number }): CharacterData | null {
+    const character = this.getCharacterById(characterId);
+    if (!character) {
+      return null;
+    }
+
+    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
+    let boxes: ('/' | 'X' | '*' | '')[] = Array(7).fill('');
+
+    // Apply damage logic here, considering types and overflow
+    const applyType = (count: number, symbol: '/' | 'X' | '*') => {
+      for (let i = 0; i < (count || 0); ++i) {
+        let idx = -1;
+        if (symbol === '*') {
+          idx = boxes.findIndex(x => x === '' || x === '/' || x === 'X');
+        } else if (symbol === 'X') {
+          idx = boxes.findIndex(x => x === '' || x === '/');
+        } else if (symbol === '/') {
+          idx = boxes.findIndex(x => x === '');
+        }
+        if (idx !== -1) {
+          if (
+            boxes[idx] === '' ||
+            (symbol === 'X' && boxes[idx] === '/') ||
+            (symbol === '*' && (boxes[idx] === '/' || boxes[idx] === 'X'))
+          ) {
+            boxes[idx] = symbol;
+          }
+        }
+      }
+    };
+
+    applyType(dmg.aggravated || 0, '*');
+    applyType(dmg.lethal || 0, 'X');
+    applyType(dmg.bashing || 0, '/');
+
+    let over = boxes.filter(c => c === '*' || c === 'X' || c === '/').length - 7;
+    if (over > 0) {
+      for (let i = boxes.length - 1; i >= 0 && over > 0; --i) {
+        if (boxes[i] !== '*') {
+          boxes[i] = '*';
+          over--;
+        }
+      }
+    }
+
+    const updatedHealthLevels = boxes.join('');
+
+    this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthLevels, characterId);
+
+    return this.getCharacterById(characterId);
   }
 
   createCharacter(data: any) {
@@ -6017,6 +3504,96 @@ constructor(db: Database.Database) {
 }
 ````
 
+## File: game-state-server/src/repositories/inventory.repository.ts
+````typescript
+import Database from 'better-sqlite3';
+import type { InventoryItem } from '../types/index.js';
+
+export class InventoryRepository {
+  private db: Database.Database;
+constructor(db: Database.Database) {
+    this.db = db;
+  }
+  
+  add(character_id: number, item: any): any {
+    const stmt = this.db.prepare(`
+      INSERT INTO inventory (character_id, item_name, item_type, quantity, description, properties)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      character_id,
+      item.name,
+      item.type || 'misc',
+      item.quantity || 1,
+      item.description || null,
+      item.properties ? JSON.stringify(item.properties) : null
+    );
+    return { id: result.lastInsertRowid, ...item };
+  }
+
+  getInventory(character_id: number): InventoryItem[] {
+    const stmt = this.db.prepare('SELECT * FROM inventory WHERE character_id = ?');
+    const rows = stmt.all(character_id);
+    return rows.map(row => {
+      const r = row as any;
+      return {
+        id: r.id,
+        character_id: r.character_id,
+        item_name: r.item_name,
+        item_type: r.item_type,
+        quantity: r.quantity,
+        description: r.description,
+        properties: r.properties ? JSON.parse(r.properties) : null,
+        equipped: r.equipped,
+        condition: r.condition,
+        last_modified: r.last_modified
+      }
+    });
+  }
+
+  private getInventoryItemById(item_id: number): InventoryItem | null {
+    const stmt = this.db.prepare('SELECT * FROM inventory WHERE id = ?');
+    const row = stmt.get(item_id) as any;
+    if (!row) return null;
+    return {
+      id: row.id,
+      character_id: row.character_id,
+      item_name: row.item_name,
+      item_type: row.item_type,
+      quantity: row.quantity,
+      description: row.description,
+      properties: row.properties ? JSON.parse(row.properties) : null,
+      equipped: row.equipped,
+      condition: row.condition,
+      last_modified: row.last_modified
+    };
+  }
+
+  updateItem(item_id: number, updates: any): any {
+    const allowedFields = Object.keys(updates).filter(key => key !== "id");
+    if (allowedFields.length === 0) {
+      return this.getInventoryItemById(item_id);
+    }
+
+    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
+    const values = allowedFields.map(field => (updates as any)[field]);
+
+    const stmt = this.db.prepare(`UPDATE inventory SET ${setClause} WHERE id = ?`);
+    stmt.run(...values, item_id);
+
+    return this.getInventoryItemById(item_id);
+  }
+
+  removeItem(item_id: number): boolean {
+    const stmt = this.db.prepare('DELETE FROM inventory WHERE id = ?');
+    const res = stmt.run(item_id);
+    return res.changes > 0;
+  }
+
+  // Inventory-related methods will be moved here if/when implemented
+}
+````
+
 ## File: game-state-server/src/repositories/status-effect.repository.ts
 ````typescript
 import Database from 'better-sqlite3';
@@ -6080,6 +3657,255 @@ constructor(db: Database.Database) {
 }
 ````
 
+## File: game-state-server/src/tool-handlers/create_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function create_antagonist_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.template_name !== 'string' ||
+    args.template_name.trim().length === 0 ||
+    (args.custom_name && typeof args.custom_name !== 'string')
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'template_name' must be a non-empty string, and 'custom_name' (if provided) must be a string."
+    ]), isError: true };
+  }
+  const { template_name, custom_name } = args;
+
+  const antagonist = db.antagonists.createAntagonist(template_name, custom_name);
+
+  if (!antagonist) {
+    return { content: makeTextContentArray([`❌ Error creating antagonist from template: ${template_name}`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`Antagonist \"${antagonist.name}\" created (ID: ${antagonist.id})`]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function get_antagonist_handler(db: GameDatabase, args: any) {
+  // Validate input
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, "antagonist_id") ||
+    (typeof args.antagonist_id !== "string" && typeof args.antagonist_id !== "number")
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'antagonist_id'. It must be a string or number."
+      ]),
+      isError: true
+    };
+  }
+
+  const { antagonist_id } = args;
+  const antagonist = db.antagonists.getAntagonistById(antagonist_id);
+
+  if (!antagonist) {
+    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([JSON.stringify(antagonist, null, 2)]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/list_antagonists.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function list_antagonists_handler(db: GameDatabase, args: any) {
+  const antagonists = db.antagonists.listAntagonists();
+
+  const antagonistList = antagonists.map(antagonist => `${antagonist.name} (ID: ${antagonist.id})`).join('\n');
+
+  return { content: makeTextContentArray([antagonistList || "No antagonists found."]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/list_characters.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function list_characters_handler(db: GameDatabase, args: any) {
+  const characters = db.characters.listCharacters();
+
+  const characterList = characters.map(character => `${character.name} (ID: ${character.id})`).join('\n');
+
+  return { content: makeTextContentArray([characterList || "No characters found."]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/remove_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function remove_antagonist_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.antagonist_id !== 'number' ||
+    Number.isNaN(args.antagonist_id)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing 'antagonist_id': must be a valid number."
+    ]), isError: true };
+  }
+  const { antagonist_id } = args;
+  const success = await db.antagonists.removeAntagonist(antagonist_id);
+
+  if (!success) {
+    return { content: makeTextContentArray([`❌ Could not remove antagonist with ID ${antagonist_id}.`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ Antagonist with ID ${antagonist_id} removed successfully.`]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/update_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function update_antagonist_handler(db: GameDatabase, args: any) {
+  const { antagonist_id, updates } = args;
+  const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
+
+  if (!antagonist) {
+    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`]) };
+}
+````
+
+## File: game-state-server/tsconfig.json
+````json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "incremental": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+````
+
+## File: quick-start-guide.md
+````markdown
+# Quick Start Guide – Storyteller System (oWoD/Chronicles of Darkness)
+
+Welcome to the Model Context Protocol Storyteller System server suite! This quick-start will help you make characters, play scenes, roll pools, and use the powerful automation included.
+
+---
+
+## 1. Creating Your First Character
+
+Prompt the AI Storyteller/DM to create a World of Darkness character:
+
+> "I'd like to be a Brujah vampire named Marcus. My Nature is Rebel and Demeanor is Bon Vivant."
+
+The system will use the `create_character` tool and generate a character with Storyteller System stats:
+- Attributes (Physical, Social, Mental)
+- Abilities (Talents, Skills, Knowledges)
+- Backgrounds, Supernatural traits, and powers
+- Virtues, Willpower, Blood/Vitae (or Gnosis/Glamour/etc. by splat)
+
+---
+
+## 2. Beginning Play & Scenes
+
+Start your story by asking:
+
+> "Set the scene for my first night in Chicago."
+
+The AI will narrate a vivid oWoD environment, introduce NPCs, and invite you to act and react.
+
+---
+
+## 3. Rolling Dice – The Dice Pool System
+
+Actions are resolved using dice pools:
+
+- Most tasks = Attribute + Ability (e.g., Dexterity + Stealth)
+- The AI/DM prompts or rolls d10s for you, counting results of 6+ (successes).
+- Example:
+
+> "I try to sneak past the guard."
+>
+> (The AI rolls Dexterity + Stealth pool and narrates success/failure.)
+
+---
+
+## 4. Tracking Health, Willpower, and Resources
+
+Instead of HP, you have health levels (Bruised, Hurt, Injured, etc.), tracked using the HealthTracker system.
+- Damage is applied via `apply_damage`.
+- Spend and recover resources (Willpower, Vitae, Quintessence) with `spend_resource` or `restore_resource`.
+- XP can be spent to improve traits via `improve_trait`.
+
+---
+
+## 5. Checking Your Status
+
+At any time, ask:
+
+> "Show me my vampire sheet."
+
+The system will output your current:
+- Attributes, abilities, backgrounds
+- Health levels and penalties
+- Powers, disciplines, spendable resources
+
+---
+
+## 6. Example System Commands
+
+- **Create character**: `create_character`
+- **Roll dice pool**: `roll_wod_pool`
+- **Apply/heal damage**: `apply_damage`, `heal_damage`
+- **Resource use**: `spend_resource`, `restore_resource`
+- **Increase trait**: `improve_trait`
+- **Show initiative**: `get_initiative_order`
+- **Roll for damage**: `roll_damage_pool`
+
+---
+
+## 7. Immersive Play Tips
+
+- Describe what your character intends and their emotions.
+- Use your backgrounds and powers creatively.
+- Rely on the AI Storyteller for system mechanics—focus on ambiance and consequences.
+- Engage NPCs, make allies and enemies, and drive the story with your personal goals.
+
+---
+
+Have fun exploring the World of Darkness!
+````
+
 ## File: game-state-server/src/tool-handlers/apply_damage.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/apply_damage.handler.ts
@@ -6098,24 +3924,33 @@ type HandlerResponse = { content: { type: string, text: string }[]; isError?: bo
 
 export async function apply_damage_handler(db: GameDatabase, args: ApplyDamageArgs): Promise<HandlerResponse> {
   try {
-    // Ideally there should be an applyDamage method in CharacterRepository.
-    // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
-    const character = await db.characters.getCharacterById(args.target_id);
-    if (!character) {
-      return { content: makeTextContentArray([`❌ Character with ID ${args.target_id} not found.`]), isError: true };
+    const { target_id, amount = 1, level = "bruised" } = args;
+
+    if (typeof target_id !== 'number') {
+      return { content: makeTextContentArray(["❌ target_id must be a number."]), isError: true };
+    }
+    if (typeof amount !== 'number') {
+      return { content: makeTextContentArray(["❌ amount must be a number."]), isError: true };
+    }
+    if (typeof level !== 'string') {
+      return { content: makeTextContentArray(["❌ level must be a string."]), isError: true };
+    }
+    if (!['bruised', 'hurt', 'injured', 'wounded', 'mauled', 'crippled', 'incapacitated'].includes(level)) {
+      return { content: makeTextContentArray(["❌ Invalid level value."]), isError: true };
     }
 
-    // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
-    // NOTE: This is placeholder logic and may need to match your game's actual health model.
-    const { amount = 1, level = "bruised" } = args;
-    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
-    prevHealth[level] = (prevHealth[level] || 0) + amount;
+    const dmg = {
+      bashing: level === "bruised" ? amount : 0,
+      lethal: level === "hurt" || level === "injured" || level === "wounded" ? amount : 0,
+      aggravated: level === "mauled" || level === "crippled" || level === "incapacitated" ? amount : 0,
+    };
+    const character = db.characters.applyDamage(target_id, dmg);
 
-    // Save updated health_levels
-    await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${target_id} not found.`]), isError: true };
+    }
 
-    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${args.target_id}`]) };
-    // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
+    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${target_id}`]) };
   } catch (error: unknown) {
     // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
@@ -6131,10 +3966,26 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function apply_status_effect_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== 'string' ||
+    (args.target_type !== 'character' && args.target_type !== 'npc') ||
+    !Object.prototype.hasOwnProperty.call(args, 'target_id') ||
+    typeof args.target_id !== 'number' ||
+    Number.isNaN(args.target_id) ||
+    typeof args.effect_name !== 'string' ||
+    args.effect_name.trim().length === 0
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments. 'target_type' must be 'character' or 'npc', 'target_id' must be a valid number, 'effect_name' must be a non-empty string."
+    ]), isError: true };
+  }
   const { target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value } = args;
+
   const effectId = db.statusEffects.addStatusEffect({ target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value });
 
-  return { content: makeTextContentArray([`✅ Applied status effect "${effect_name}" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
+  return { content: makeTextContentArray([`✅ Applied status effect \"${effect_name}\" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
 }
 ````
 
@@ -6144,7 +3995,21 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function award_xp_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== 'number' ||
+    Number.isNaN(args.character_id) ||
+    typeof args.amount !== 'number' ||
+    Number.isNaN(args.amount)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'character_id' and 'amount' must be valid numbers."
+    ]), isError: true };
+  }
+
   const { character_id, amount, reason } = args;
+
   const character = db.characters.getCharacterById(character_id);
 
   if (!character) {
@@ -6154,7 +4019,7 @@ export async function award_xp_handler(db: GameDatabase, args: any) {
   const newExperience = (character.experience || 0) + amount;
   db.characters.updateCharacter(character_id, { experience: newExperience });
 
-  return { content: makeTextContentArray([`✅ Awarded ${amount} XP to ${character.name}. New total: ${newExperience}. Reason: ${reason || "No reason provided."}`]) };
+  return { content: makeTextContentArray([`✅ Awarded ${amount} XP to ${character.name}. New total: ${newExperience}. Reason: ${typeof reason === "string" && reason.trim().length > 0 ? reason : "No reason provided."}`]) };
 }
 ````
 
@@ -6175,14 +4040,27 @@ type HandlerResponse = { content: { type: string, text: string }[]; isError?: bo
  */
 export async function create_character_handler(
   db: GameDatabase,
-  args: Record<string, unknown> // TODO: Specify correct type
+  args: Record<string, unknown>
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.name !== 'string' ||
+    args.name.trim().length === 0 ||
+    typeof args.game_line !== 'string' ||
+    args.game_line.trim().length === 0 ||
+    !['vampire', 'werewolf', 'mage', 'changeling'].includes(args.game_line as string)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'name' must be a non-empty string and 'game_line' must be one of: vampire, werewolf, mage, changeling."
+    ]), isError: true };
+  }
   try {
     const character = await db.characters.createCharacter(args);
     if (!character) {
       return { content: makeTextContentArray([`❌ Error creating character: Character not found after creation.`]), isError: true };
     }
-    return { content: makeTextContentArray([`Character "${character.name}" created with ID ${character.id}`]) };
+    return { content: makeTextContentArray([`Character \"${character.name}\" created with ID ${character.id}`]) };
   } catch (error: unknown) {
     // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
@@ -6213,6 +4091,15 @@ export async function gain_resource_handler(
   args: GainResourceArgs
 ): Promise<HandlerResponse> {
   try {
+    if (typeof args.character_id !== 'number') {
+      return { content: makeTextContentArray(["❌ character_id must be a number."]), isError: true };
+    }
+    if (typeof args.resource_name !== 'string') {
+      return { content: makeTextContentArray(["❌ resource_name must be a string."]), isError: true };
+    }
+    if (typeof args.amount !== 'number') {
+      return { content: makeTextContentArray(["❌ amount must be a number."]), isError: true };
+    }
     // TODO: Implement CharacterRepository.gainResource for resource-specific logic.
     // For now, patch relevant field (e.g., increasing willpower, gnosis, etc.)
     const character = await db.characters.getCharacterById(args.character_id);
@@ -6253,6 +4140,19 @@ export async function get_character_by_name_handler(
   db: GameDatabase,
   args: GetCharacterByNameHandlerArgs
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.name !== "string" ||
+    args.name.trim().length === 0
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'name'. A non-empty string is required."
+      ]),
+      isError: true
+    };
+  }
   try {
     const character = await db.characters.getCharacterByName(args.name);
     if (!character) {
@@ -6284,6 +4184,19 @@ export async function get_character_handler(
   db: GameDatabase,
   args: GetCharacterHandlerArgs
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id)
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'character_id'. Must provide a valid number."
+      ]),
+      isError: true
+    };
+  }
   try {
     const character = await db.characters.getCharacterById(args.character_id);
     if (!character) {
@@ -6305,6 +4218,22 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_status_effects_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== "string" ||
+    args.target_type.trim().length === 0 ||
+    !Object.prototype.hasOwnProperty.call(args, "target_id") ||
+    typeof args.target_id !== "number" ||
+    Number.isNaN(args.target_id)
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments. 'target_type' must be a non-empty string, 'target_id' must be a valid number."
+      ]),
+      isError: true
+    };
+  }
   const { target_type, target_id } = args;
   const effects = db.statusEffects.listStatusEffects(target_type, target_id);
 
@@ -6320,13 +4249,23 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function remove_item_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== 'string' ||
+    args.target_type !== 'character' ||
+    typeof args.target_id !== 'number' ||
+    Number.isNaN(args.target_id) ||
+    typeof args.item_id !== 'number' ||
+    Number.isNaN(args.item_id)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'target_type' must be 'character', 'target_id' and 'item_id' must be valid numbers."
+    ]), isError: true };
+  }
   const { target_type, target_id, item_id } = args;
 
-  if (target_type !== 'character') {
-    return { content: makeTextContentArray(["❌ Tool remove_item only supports target_type 'character' at this time."]), isError: true };
-  }
   const success = db.inventory.removeItem(item_id);
-
   return { content: makeTextContentArray([`✅ Removed item with ID ${item_id} from ${target_type} with ID ${target_id}.`]) };
 }
 ````
@@ -6337,6 +4276,16 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function remove_status_effect_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.effect_id !== 'number' ||
+    Number.isNaN(args.effect_id)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing 'effect_id': must be a valid number."
+    ]), isError: true };
+  }
   const { effect_id } = args;
   const success = db.statusEffects.removeStatusEffect(effect_id);
 
@@ -6368,6 +4317,19 @@ export async function restore_resource_handler(
   db: GameDatabase,
   args: RestoreResourceArgs
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id) ||
+    typeof args.resource_name !== "string" ||
+    args.resource_name.trim().length === 0 ||
+    (args.amount !== undefined && (typeof args.amount !== "number" || Number.isNaN(args.amount)))
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'character_id' must be a valid number, 'resource_name' must be a non-empty string, and 'amount' (if provided) must be a valid number."
+    ]), isError: true };
+  }
   try {
     // TODO: Implement CharacterRepository.restoreResource for resource restoration semantics.
     const character = await db.characters.getCharacterById(args.character_id);
@@ -6583,140 +4545,30 @@ export async function update_character_handler(
 }
 ````
 
-## File: game-state-server/tsconfig.json
-````json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "incremental": false
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
-````
-
-## File: quick-start-guide.md
-````markdown
-# Quick Start Guide – Storyteller System (oWoD/Chronicles of Darkness)
-
-Welcome to the Model Context Protocol Storyteller System server suite! This quick-start will help you make characters, play scenes, roll pools, and use the powerful automation included.
-
----
-
-## 1. Creating Your First Character
-
-Prompt the AI Storyteller/DM to create a World of Darkness character:
-
-> "I'd like to be a Brujah vampire named Marcus. My Nature is Rebel and Demeanor is Bon Vivant."
-
-The system will use the `create_character` tool and generate a character with Storyteller System stats:
-- Attributes (Physical, Social, Mental)
-- Abilities (Talents, Skills, Knowledges)
-- Backgrounds, Supernatural traits, and powers
-- Virtues, Willpower, Blood/Vitae (or Gnosis/Glamour/etc. by splat)
-
----
-
-## 2. Beginning Play & Scenes
-
-Start your story by asking:
-
-> "Set the scene for my first night in Chicago."
-
-The AI will narrate a vivid oWoD environment, introduce NPCs, and invite you to act and react.
-
----
-
-## 3. Rolling Dice – The Dice Pool System
-
-Actions are resolved using dice pools:
-
-- Most tasks = Attribute + Ability (e.g., Dexterity + Stealth)
-- The AI/DM prompts or rolls d10s for you, counting results of 6+ (successes).
-- Example:
-
-> "I try to sneak past the guard."
->
-> (The AI rolls Dexterity + Stealth pool and narrates success/failure.)
-
----
-
-## 4. Tracking Health, Willpower, and Resources
-
-Instead of HP, you have health levels (Bruised, Hurt, Injured, etc.), tracked using the HealthTracker system.
-- Damage is applied via `apply_damage`.
-- Spend and recover resources (Willpower, Vitae, Quintessence) with `spend_resource` or `restore_resource`.
-- XP can be spent to improve traits via `improve_trait`.
-
----
-
-## 5. Checking Your Status
-
-At any time, ask:
-
-> "Show me my vampire sheet."
-
-The system will output your current:
-- Attributes, abilities, backgrounds
-- Health levels and penalties
-- Powers, disciplines, spendable resources
-
----
-
-## 6. Example System Commands
-
-- **Create character**: `create_character`
-- **Roll dice pool**: `roll_wod_pool`
-- **Apply/heal damage**: `apply_damage`, `heal_damage`
-- **Resource use**: `spend_resource`, `restore_resource`
-- **Increase trait**: `improve_trait`
-- **Show initiative**: `get_initiative_order`
-- **Roll for damage**: `roll_damage_pool`
-
----
-
-## 7. Immersive Play Tips
-
-- Describe what your character intends and their emotions.
-- Use your backgrounds and powers creatively.
-- Rely on the AI Storyteller for system mechanics—focus on ambiance and consequences.
-- Engage NPCs, make allies and enemies, and drive the story with your personal goals.
-
----
-
-Have fun exploring the World of Darkness!
-````
-
 ## File: game-state-server/src/tool-handlers/add_item.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function add_item_handler(db: GameDatabase, args: any) {
-  const { target_type, target_id, item_name, description } = args;
-  
   // Input validation
-  if (!target_type || !target_id || !item_name) {
-    return { content: makeTextContentArray(["❌ Missing required fields: target_type, target_id, and item_name."]), isError: true };
+  if (
+    !args ||
+    typeof args.target_type !== 'string' ||
+    args.target_type !== 'character' ||
+    !Object.prototype.hasOwnProperty.call(args, 'target_id') ||
+    typeof args.target_id !== 'number' ||
+    Number.isNaN(args.target_id) ||
+    typeof args.item_name !== 'string' ||
+    args.item_name.trim().length === 0
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid input: 'target_type' must be 'character', 'target_id' must be a valid number, and 'item_name' must be a non-empty string."
+    ]), isError: true };
   }
 
+  const { target_type, target_id, item_name, description } = args;
   try {
-    if (target_type !== 'character') {
-      return { content: makeTextContentArray(["❌ Tool add_item only supports target_type 'character' at this time."]), isError: true };
-    }
     const newItem = await db.inventory.add(target_id, { name: item_name, description: description });
     return { content: makeTextContentArray([`✅ Added item "${item_name}" (ID: ${newItem.id}) to character (ID: ${target_id}).`]) };
   } catch (error: any) {
@@ -6730,10 +4582,20 @@ export async function add_item_handler(db: GameDatabase, args: any) {
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function advance_turn_handler(args: any) {
+export async function advance_turn_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, 'scene_id') ||
+    (typeof args.scene_id !== 'string' && typeof args.scene_id !== 'number')
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing 'scene_id'. Must provide a scene_id as a string or number."
+    ]), isError: true };
+  }
+
   const { scene_id } = args;
-    const db = new GameDatabase();
-  const success = db.advanceTurn(scene_id);
+  db.worldState.advanceTurn(scene_id);
   return { content: makeTextContentArray([`✅ Advanced turn for scene ${scene_id}.`]) };
 }
 ````
@@ -6743,10 +4605,22 @@ export async function advance_turn_handler(args: any) {
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function get_current_turn_handler(args: any) {
+export async function get_current_turn_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, "scene_id") ||
+    (typeof args.scene_id !== "string" && typeof args.scene_id !== "number")
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'scene_id'. Must provide a string or number."
+      ]),
+      isError: true
+    };
+  }
   const { scene_id } = args;
-    const db = new GameDatabase();
-  const currentTurn = db.getCurrentTurn(scene_id);
+  const currentTurn = db.worldState.getCurrentTurn(scene_id);
   return { content: makeTextContentArray([JSON.stringify(currentTurn, null, 2)]) };
 }
 ````
@@ -6756,10 +4630,22 @@ export async function get_current_turn_handler(args: any) {
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function get_initiative_order_handler(args: any) {
+export async function get_initiative_order_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, "scene_id") ||
+    (typeof args.scene_id !== "string" && typeof args.scene_id !== "number")
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'scene_id'. Must provide a string or number."
+      ]),
+      isError: true
+    };
+  }
   const { scene_id } = args;
-    const db = new GameDatabase();
-  const initiativeOrder = db.getInitiativeOrder(scene_id);
+  const initiativeOrder = db.worldState.getInitiativeOrder(scene_id);
   return { content: makeTextContentArray([JSON.stringify(initiativeOrder, null, 2)]) };
 }
 ````
@@ -6770,6 +4656,22 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_inventory_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== "string" ||
+    args.target_type !== "character" ||
+    !Object.prototype.hasOwnProperty.call(args, "target_id") ||
+    typeof args.target_id !== "number" ||
+    Number.isNaN(args.target_id)
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments. 'target_type' must be 'character' and 'target_id' must be a valid number."
+      ]),
+      isError: true
+    };
+  }
   const { target_type, target_id } = args;
 
   if (target_type !== 'character') {
@@ -6787,6 +4689,21 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_trait_improvement_cost_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id) ||
+    typeof args.trait_name !== "string" ||
+    args.trait_name.trim().length === 0
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments. 'character_id' must be a valid number and 'trait_name' must be a non-empty string."
+      ]),
+      isError: true
+    };
+  }
   const { character_id, trait_name } = args;
   const character = db.characters.getCharacterById(character_id);
 
@@ -6819,9 +4736,8 @@ export async function get_trait_improvement_cost_handler(db: GameDatabase, args:
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function get_world_state_handler(args: any) {
-    const db = new GameDatabase();
-  const worldState = db.getWorldState();
+export async function get_world_state_handler(db: GameDatabase, args: any) {
+  const worldState = db.worldState.getWorldState();
   return { content: makeTextContentArray([JSON.stringify(worldState, null, 2)]) };
 }
 ````
@@ -6832,6 +4748,20 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function improve_trait_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id) ||
+    typeof args.trait_name !== "string" ||
+    args.trait_name.trim().length === 0 ||
+    typeof args.amount !== "number" ||
+    Number.isNaN(args.amount)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'character_id' and 'amount' must be valid numbers, 'trait_name' must be a non-empty string."
+    ]), isError: true };
+  }
   const { character_id, trait_name, amount } = args;
   const character = db.characters.getCharacterById(character_id);
 
@@ -6855,52 +4785,31 @@ export async function improve_trait_handler(db: GameDatabase, args: any) {
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function save_story_progress_handler(args: any) {
-  const { story_progress } = args;
-  const db = new GameDatabase();
-  const success = db.saveStoryProgress(story_progress);
-
-  if (!success) {
-    return { content: makeTextContentArray([`❌ Could not save story progress.`]), isError: true };
+export async function save_story_progress_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, 'story_progress') ||
+    !Object.prototype.hasOwnProperty.call(args, 'character_id')
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments: both 'character_id' and 'story_progress' are required."
+      ]),
+      isError: true
+    };
   }
+  const { character_id, story_progress } = args;
 
-  return { content: makeTextContentArray([`✅ Story progress saved successfully.`]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/save_world_state.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function save_world_state_handler(args: any) {
-  const { world_state } = args;
-    const db = new GameDatabase();
-    const success = db.saveWorldState(world_state);
-  
-    if (!success) {
-      return { content: makeTextContentArray([`❌ Could not save world state.`]), isError: true };
-    }
-  
-    return { content: makeTextContentArray([`✅ World state saved successfully.`]) };
+  try {
+    db.worldState.saveStoryProgress(character_id, story_progress);
+    return { content: makeTextContentArray([`✅ Story progress saved successfully.`]) };
+  } catch (error: any) {
+    return {
+      content: makeTextContentArray([`❌ Could not save story progress: ${error.message || error}`]),
+      isError: true
+    };
   }
-````
-
-## File: game-state-server/src/tool-handlers/set_initiative.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function set_initiative_handler(args: any) {
-  const { scene_id, entries } = args;
-    const db = new GameDatabase();
-  const success = db.setInitiative(scene_id, entries);
-
-  if (!success) {
-    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}.`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([`✅ Set initiative for scene ${scene_id}.`]) };
 }
 ````
 
@@ -6918,6 +4827,54 @@ export async function update_item_handler(db: GameDatabase, args: any) {
   const item = db.inventory.updateItem(item_id, updates);
 
   return { content: makeTextContentArray([`✅ Updated item with ID ${item_id}.`]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/save_world_state.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function save_world_state_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, 'world_state')
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments: 'world_state' is required."
+      ]),
+      isError: true
+    };
+  }
+  const { world_state } = args;
+  try {
+    db.worldState.saveWorldState(world_state);
+  } catch (err) {
+    const errorMsg = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : String(err);
+    return { content: makeTextContentArray([`❌ Could not save world state: ${errorMsg}`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ World state saved successfully.`]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/set_initiative.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
+
+export async function set_initiative_handler(db: GameDatabase, args: any) {
+  const { scene_id, entries } = args;
+  try {
+    db.worldState.setInitiative(scene_id, entries);
+  } catch (err) {
+    const errorMsg = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : String(err);
+    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}: ${errorMsg}`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ Set initiative for scene ${scene_id}.`]) };
 }
 ````
 
@@ -7995,6 +5952,7 @@ import { CharacterRepository } from './repositories/character.repository.js';
 import { AntagonistRepository } from './repositories/antagonist.repository.js';
 import { StatusEffectRepository } from './repositories/status-effect.repository.js';
 import { InventoryRepository } from './repositories/inventory.repository.js';
+import { WorldStateRepository } from './repositories/world-state.repository.js';
 
 /* Types are now imported from src/types/*.ts */
 
@@ -8046,6 +6004,7 @@ export class GameDatabase {
   public antagonists!: AntagonistRepository;
   public statusEffects!: StatusEffectRepository;
   public inventory!: InventoryRepository;
+  public worldState!: WorldStateRepository;
 
   constructor() {
     try {
@@ -8068,6 +6027,7 @@ export class GameDatabase {
       this.antagonists = new AntagonistRepository(this.db);
       this.statusEffects = new StatusEffectRepository(this.db);
       this.inventory = new InventoryRepository(this.db);
+      this.worldState = new WorldStateRepository(this.db);
 
       console.log('✅ Database connection and initialization successful');
     } catch (error: any) {
@@ -8196,178 +6156,15 @@ export class GameDatabase {
         FOREIGN KEY (character_id) REFERENCES characters(id)
       )
     `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npcs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        template TEXT,
-        name TEXT NOT NULL,
-        concept TEXT,
-        game_line TEXT NOT NULL,
-        strength INTEGER NOT NULL DEFAULT 1,
-        dexterity INTEGER NOT NULL DEFAULT 1,
-        stamina INTEGER NOT NULL DEFAULT 1,
-        charisma INTEGER NOT NULL DEFAULT 1,
-        manipulation INTEGER NOT NULL DEFAULT 1,
-        appearance INTEGER NOT NULL DEFAULT 1,
-        perception INTEGER NOT NULL DEFAULT 1,
-        intelligence INTEGER NOT NULL DEFAULT 1,
-        wits INTEGER NOT NULL DEFAULT 1,
-        willpower_current INTEGER NOT NULL DEFAULT 5,
-        willpower_permanent INTEGER NOT NULL DEFAULT 5,
-        health_levels TEXT,
-        notes TEXT
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_vampire_traits (
-        npc_id INTEGER NOT NULL,
-        clan TEXT,
-        generation INTEGER,
-        blood_pool_current INTEGER,
-        blood_pool_max INTEGER,
-        humanity INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_werewolf_traits (
-        npc_id INTEGER NOT NULL,
-        breed TEXT,
-        auspice TEXT,
-        tribe TEXT,
-        gnosis_current INTEGER,
-        gnosis_permanent INTEGER,
-        rage_current INTEGER,
-        rage_permanent INTEGER,
-        renown_glory INTEGER,
-        renown_honor INTEGER,
-        renown_wisdom INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_mage_traits (
-        npc_id INTEGER NOT NULL,
-        tradition_convention TEXT,
-        arete INTEGER,
-        quintessence INTEGER,
-        paradox INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_changeling_traits (
-        npc_id INTEGER NOT NULL,
-        kith TEXT,
-        seeming TEXT,
-        glamour_current INTEGER,
-        glamour_permanent INTEGER,
-        banality_permanent INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS status_effects (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        character_id INTEGER,
-        npc_id INTEGER,
-        effect_name TEXT NOT NULL,
-        description TEXT,
-        mechanical_effect TEXT,
-        duration_type TEXT,
-        duration_value INTEGER,
-        FOREIGN KEY (character_id) REFERENCES characters(id),
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_abilities (
-        character_id INTEGER NOT NULL,
-        ability_name TEXT NOT NULL,
-        ability_type TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        specialty TEXT,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_disciplines (
-        character_id INTEGER NOT NULL,
-        discipline_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_arts (
-        character_id INTEGER NOT NULL,
-        art_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_realms (
-        character_id INTEGER NOT NULL,
-        realm_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
   }
 
 private runMigrations() {
     // placeholder for migrations (future)
-  }
-
-  saveWorldState(worldState: any): boolean {
-    // TODO: Implement world state saving logic
-    console.log(`Saving world state: ${JSON.stringify(worldState)}`);
-    return true;
-  }
-
-  getWorldState(): any {
-    // TODO: Implement world state getting logic
-    console.log(`Getting world state`);
-    return {};
-  }
-
-  saveStoryProgress(storyProgress: any): boolean {
-    // TODO: Implement story progress saving logic
-    console.log(`Saving story progress: ${JSON.stringify(storyProgress)}`);
-    return true;
-  }
-
-  getInitiativeOrder(scene_id: string): any[] {
-    // TODO: Implement getting initiative order logic
-    console.log(`Getting initiative order for scene ${scene_id}`);
-    return [];
-  }
-
-  advanceTurn(scene_id: string): boolean {
-    // TODO: Implement advancing turn logic
-    console.log(`Advancing turn for scene ${scene_id}`);
-    return true;
-  }
-
-  getCurrentTurn(scene_id: string): any {
-    // TODO: Implement getting current turn logic
-    console.log(`Getting current turn for scene ${scene_id}`);
-    return {};
-  }
-
-  setInitiative(scene_id: string, entries: any[]): boolean {
-    // TODO: Implement setting initiative logic
-    console.log(`Setting initiative for scene ${scene_id} with entries ${JSON.stringify(entries)}`);
-    return true;
-  }
-
-  close() {
+}
+  public close() {
     this.db.close();
     console.log('Database connection closed.');
   }
-
-  // Other DB-specific (non-domain) methods, e.g., lock helpers, remain here.
 }
 ````
 
@@ -8376,8 +6173,10 @@ private runMigrations() {
 // File: game-state-server/src/index.ts
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import fs from 'fs';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Server as MCPServer } from '@modelcontextprotocol/sdk/server/index.js';
 
 // Utility: Serialize any array of strings/objects as { type: 'text', text: string }[] for MCP compliance
 export function makeTextContentArray(contentArr: any[]): { type: 'text', text: string }[] {
@@ -8432,108 +6231,54 @@ import { get_initiative_order_handler } from './tool-handlers/get_initiative_ord
 import { advance_turn_handler } from './tool-handlers/advance_turn.handler.js';
 import { get_current_turn_handler } from './tool-handlers/get_current_turn.handler.js';
 
-console.log("Initializing server...");
-
 // Centralized toolDefinitions import
 import { toolDefinitions } from './tool-definitions.js';
 
-console.log("Initial toolDefinitions array created. Length:", Object.keys(toolDefinitions).length);
+import { toolDispatcher } from './tool-handlers/index.js';
 
-const transport = new StdioServerTransport();
-const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: toolDefinitions } });
+async function startServer() {
+  try {
+    console.log("Initializing server...");
 
-console.log("Initializing database...");
-let db: GameDatabase;
-try {
-  db = new GameDatabase();
-  console.log("Database initialized successfully.");
-} catch (err) {
-  console.error("Error initializing database:", err);
-  process.exit(1);
+    const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: {} } });
+    const transport = new StdioServerTransport();
+    
+    console.log("Initializing database...");
+    let db: GameDatabase;
+    try {
+      db = new GameDatabase();
+      console.log("Database initialized successfully.");
+    } catch (err: any) {
+      console.error("Error initializing database:", err.message);
+      process.exit(1);
+    }
+    
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return { tools: Object.values(toolDefinitions) };
+    });
+
+    server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
+        const { name, arguments: args } = request.params;
+        const handler = toolDispatcher[name];
+        if (handler) {
+            try {
+                return await handler(db, args);
+            } catch (error: any) {
+                console.error(`Error in tool '${name}':`, error);
+                return { content: makeTextContentArray([`❌ Error in tool '${name}': ${error.message}`]), isError: true };
+            }
+        }
+        return { content: makeTextContentArray([`❌ Unknown tool: ${name}`]), isError: true };
+    });
+    
+    server.connect(transport);
+    console.error('✅ oWoD RPG Game State MCP Server v2.1.0 running on stdio');
+
+  } catch (error: any) {
+    console.error('❌ FATAL: Server failed to start:', error.message);
+    process.exit(1);
+  }
 }
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-
-const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
-  // Character Management
-  'create_character': create_character_handler,
-  'get_character': get_character_handler,
-  'get_character_by_name': get_character_by_name_handler,
-  'update_character': update_character_handler,
-  'list_characters': list_characters_handler,
-
-  // Antagonist Management
-  'create_antagonist': create_antagonist_handler,
-  'get_antagonist': get_antagonist_handler,
-  'update_antagonist': update_antagonist_handler,
-  'list_antagonists': list_antagonists_handler,
-  'remove_antagonist': remove_antagonist_handler,
-
-  // Resources & Health
-  'spend_resource': spend_resource_handler,
-  'restore_resource': restore_resource_handler,
-  'gain_resource': gain_resource_handler,
-  'apply_damage': apply_damage_handler,
-
-  // XP & Progression
-  'award_xp': award_xp_handler,
-  'spend_xp': spend_xp_handler,
-  'improve_trait': improve_trait_handler,
-  'get_trait_improvement_cost': get_trait_improvement_cost_handler,
-
-  // Status Effects
-  'apply_status_effect': apply_status_effect_handler,
-  'get_status_effects': get_status_effects_handler,
-  'remove_status_effect': remove_status_effect_handler,
-
-  // Inventory
-  'add_item': add_item_handler,
-  'get_inventory': get_inventory_handler,
-  'update_item': update_item_handler,
-  'remove_item': remove_item_handler,
-
-  // World State & Initiative
-  'save_world_state': save_world_state_handler,
-  'get_world_state': get_world_state_handler,
-  'save_story_progress': save_story_progress_handler,
-  'set_initiative': set_initiative_handler,
-  'get_initiative_order': get_initiative_order_handler,
-  'advance_turn': advance_turn_handler,
-  'get_current_turn': get_current_turn_handler,
-};
-
-// Register MCP handlers
-console.log("Registering ListToolsRequestSchema handler...");
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.log("ListToolsRequestSchema handler called!");
-  return { tools: Object.values(toolDefinitions) };
-});
-
-console.log("Registering CallToolRequestSchema handler...");
-server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-  const { name, arguments: args } = request.params;
-  console.log(`Handling tool request: ${name}`);
-  try {
-    console.log(`Inside dispatcher for tool name: ${name}`);
-    const handler = toolDispatcher[name];
-    if (handler) {
-      console.log(`Calling handler for tool: ${name} with args:`, args);
-      const result = await handler(db, args);
-      console.log(`Handler for tool: ${name} completed successfully with result:`, result);
-      return result;
-    }
-  } catch (error: any) {
-    console.error("handleToolRequest error:", error);
-    return { content: makeTextContentArray([`❌ Internal server error: ${error.message}`]), isError: true };
-  }
-  // If no handler matches, always return a MCP-compliant error response
-  return { content: makeTextContentArray(["❌ Unknown tool request."]) };
-});
+startServer();
 ````

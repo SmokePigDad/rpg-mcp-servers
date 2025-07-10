@@ -6,14 +6,7 @@
  * and robust fallback for malformed/corrupt health state objects.
  */
 type DamageType = 'bashing' | 'lethal' | 'aggravated';
-export type HealthLevel =
-  | 'bruised'
-  | 'hurt'
-  | 'injured'
-  | 'wounded'
-  | 'mauled'
-  | 'crippled'
-  | 'incapacitated';
+import { HealthLevel, DamageObject } from './types/health.types.js';
 
 const HEALTH_LEVELS: HealthLevel[] = [
   'bruised',
@@ -41,11 +34,6 @@ const DAMAGE_SYMBOL: Record<DamageType, string> = {
   aggravated: '*'
 };
 
-export interface DamageObject {
-  aggravated?: number;
-  lethal?: number;
-  bashing?: number;
-}
 
 export class HealthTracker {
   private boxes: ('' | '/' | 'X' | '*')[] = Array(7).fill('');

@@ -1,8 +1,10 @@
 // File: game-state-server/src/index.ts
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import fs from 'fs';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Server as MCPServer } from '@modelcontextprotocol/sdk/server/index.js';
 
 // Utility: Serialize any array of strings/objects as { type: 'text', text: string }[] for MCP compliance
 export function makeTextContentArray(contentArr: any[]): { type: 'text', text: string }[] {
@@ -57,107 +59,53 @@ import { get_initiative_order_handler } from './tool-handlers/get_initiative_ord
 import { advance_turn_handler } from './tool-handlers/advance_turn.handler.js';
 import { get_current_turn_handler } from './tool-handlers/get_current_turn.handler.js';
 
-console.log("Initializing server...");
-
 // Centralized toolDefinitions import
 import { toolDefinitions } from './tool-definitions.js';
 
-console.log("Initial toolDefinitions array created. Length:", Object.keys(toolDefinitions).length);
+import { toolDispatcher } from './tool-handlers/index.js';
 
-const transport = new StdioServerTransport();
-const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: toolDefinitions } });
+async function startServer() {
+  try {
+    console.log("Initializing server...");
 
-console.log("Initializing database...");
-let db: GameDatabase;
-try {
-  db = new GameDatabase();
-  console.log("Database initialized successfully.");
-} catch (err) {
-  console.error("Error initializing database:", err);
-  process.exit(1);
+    const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: {} } });
+    const transport = new StdioServerTransport();
+    
+    console.log("Initializing database...");
+    let db: GameDatabase;
+    try {
+      db = new GameDatabase();
+      console.log("Database initialized successfully.");
+    } catch (err: any) {
+      console.error("Error initializing database:", err.message);
+      process.exit(1);
+    }
+    
+    server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return { tools: Object.values(toolDefinitions) };
+    });
+
+    server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
+        const { name, arguments: args } = request.params;
+        const handler = toolDispatcher[name];
+        if (handler) {
+            try {
+                return await handler(db, args);
+            } catch (error: any) {
+                console.error(`Error in tool '${name}':`, error);
+                return { content: makeTextContentArray([`❌ Error in tool '${name}': ${error.message}`]), isError: true };
+            }
+        }
+        return { content: makeTextContentArray([`❌ Unknown tool: ${name}`]), isError: true };
+    });
+    
+    server.connect(transport);
+    console.error('✅ oWoD RPG Game State MCP Server v2.1.0 running on stdio');
+
+  } catch (error: any) {
+    console.error('❌ FATAL: Server failed to start:', error.message);
+    process.exit(1);
+  }
 }
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-
-const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
-  // Character Management
-  'create_character': (db, args) => create_character_handler(db, args),
-  'get_character': (db, args) => get_character_handler(db, args),
-  'get_character_by_name': (db, args) => get_character_by_name_handler(db, args),
-  'update_character': (db, args) => update_character_handler(db, args),
-  'list_characters': (db, args) => list_characters_handler(db, args),
-
-  // Antagonist Management
-  'create_antagonist': (db, args) => create_antagonist_handler(db, args),
-  'get_antagonist': (db, args) => get_antagonist_handler(db, args),
-  'update_antagonist': (db, args) => update_antagonist_handler(db, args),
-  'list_antagonists': (db, args) => list_antagonists_handler(db, args),
-  'remove_antagonist': (db, args) => remove_antagonist_handler(db, args),
-
-  // Resources & Health
-  'spend_resource': (db, args) => spend_resource_handler(db, args),
-  'restore_resource': (db, args) => restore_resource_handler(db, args),
-  'gain_resource': (db, args) => gain_resource_handler(db, args),
-  'apply_damage': (db, args) => apply_damage_handler(db, args),
-
-  // XP & Progression
-  'award_xp': (db, args) => award_xp_handler(db, args),
-  'spend_xp': (db, args) => spend_xp_handler(db, args),
-  'improve_trait': (db, args) => improve_trait_handler(db, args),
-  'get_trait_improvement_cost': (db, args) => get_trait_improvement_cost_handler(db, args),
-
-  // Status Effects
-  'apply_status_effect': (args) => apply_status_effect_handler(db, args),
-  'get_status_effects': (args) => get_status_effects_handler(db, args),
-  'remove_status_effect': (args) => remove_status_effect_handler(db, args),
-
-  // Inventory
-  'add_item': (args) => add_item_handler(db, args),
-  'get_inventory': (args) => get_inventory_handler(db, args),
-  'update_item': (args) => update_item_handler(db, args),
-  'remove_item': (args) => remove_item_handler(db, args),
-
-  // World State & Initiative
-  'save_world_state': (args) => save_world_state_handler(db, args),
-  'get_world_state': (args) => get_world_state_handler(db, args),
-  'save_story_progress': (args) => save_story_progress_handler(db, args),
-  'set_initiative': (args) => set_initiative_handler(db, args),
-  'get_initiative_order': (args) => get_initiative_order_handler(db, args),
-  'advance_turn': (args) => advance_turn_handler(db, args),
-  'get_current_turn': (args) => get_current_turn_handler(db, args),
-};
-
-// Register MCP handlers
-console.log("Registering ListToolsRequestSchema handler...");
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  console.log("ListToolsRequestSchema handler called!");
-  return { tools: Object.values(toolDefinitions) };
-});
-
-console.log("Registering CallToolRequestSchema handler...");
-server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-  const { name, arguments: args } = request.params;
-  console.log(`Handling tool request: ${name}`);
-  try {
-    console.log(`Inside dispatcher for tool name: ${name}`);
-    const handler = toolDispatcher[name];
-    if (handler) {
-      console.log(`Calling handler for tool: ${name} with args:`, args);
-      const result = await handler(db, args);
-      console.log(`Handler for tool: ${name} completed successfully with result:`, result);
-      return result;
-    }
-  } catch (error: any) {
-    console.error("handleToolRequest error:", error);
-    return { content: makeTextContentArray([`❌ Internal server error: ${error.message}`]), isError: true };
-  }
-  // If no handler matches, always return a MCP-compliant error response
-  return { content: makeTextContentArray(["❌ Unknown tool request."]) };
-});
+startServer();

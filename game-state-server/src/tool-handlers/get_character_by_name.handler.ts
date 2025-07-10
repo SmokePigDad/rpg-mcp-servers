@@ -12,6 +12,19 @@ export async function get_character_by_name_handler(
   db: GameDatabase,
   args: GetCharacterByNameHandlerArgs
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.name !== "string" ||
+    args.name.trim().length === 0
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'name'. A non-empty string is required."
+      ]),
+      isError: true
+    };
+  }
   try {
     const character = await db.characters.getCharacterByName(args.name);
     if (!character) {

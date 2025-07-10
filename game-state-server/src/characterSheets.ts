@@ -118,7 +118,6 @@ function formatCoreBlocks(character: any): string {
   // HEALTH using HealthTracker for graphic block
   let healthBlock = '';
   try {
-    // Lazy import to avoid circular dependency (if any)
     const tracker = HealthTracker.from(character.health_levels);
     const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
     const woundPenalty = tracker.getWoundPenalty();

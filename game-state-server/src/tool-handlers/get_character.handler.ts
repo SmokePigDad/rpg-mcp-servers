@@ -12,6 +12,19 @@ export async function get_character_handler(
   db: GameDatabase,
   args: GetCharacterHandlerArgs
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.character_id !== "number" ||
+    Number.isNaN(args.character_id)
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'character_id'. Must provide a valid number."
+      ]),
+      isError: true
+    };
+  }
   try {
     const character = await db.characters.getCharacterById(args.character_id);
     if (!character) {

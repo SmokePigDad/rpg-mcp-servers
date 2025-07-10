@@ -2,6 +2,22 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_status_effects_handler(db: GameDatabase, args: any) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== "string" ||
+    args.target_type.trim().length === 0 ||
+    !Object.prototype.hasOwnProperty.call(args, "target_id") ||
+    typeof args.target_id !== "number" ||
+    Number.isNaN(args.target_id)
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing arguments. 'target_type' must be a non-empty string, 'target_id' must be a valid number."
+      ]),
+      isError: true
+    };
+  }
   const { target_type, target_id } = args;
   const effects = db.statusEffects.listStatusEffects(target_type, target_id);
 

@@ -214,133 +214,13 @@ export class GameDatabase {
         FOREIGN KEY (character_id) REFERENCES characters(id)
       )
     `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npcs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        template TEXT,
-        name TEXT NOT NULL,
-        concept TEXT,
-        game_line TEXT NOT NULL,
-        strength INTEGER NOT NULL DEFAULT 1,
-        dexterity INTEGER NOT NULL DEFAULT 1,
-        stamina INTEGER NOT NULL DEFAULT 1,
-        charisma INTEGER NOT NULL DEFAULT 1,
-        manipulation INTEGER NOT NULL DEFAULT 1,
-        appearance INTEGER NOT NULL DEFAULT 1,
-        perception INTEGER NOT NULL DEFAULT 1,
-        intelligence INTEGER NOT NULL DEFAULT 1,
-        wits INTEGER NOT NULL DEFAULT 1,
-        willpower_current INTEGER NOT NULL DEFAULT 5,
-        willpower_permanent INTEGER NOT NULL DEFAULT 5,
-        health_levels TEXT,
-        notes TEXT
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_vampire_traits (
-        npc_id INTEGER NOT NULL,
-        clan TEXT,
-        generation INTEGER,
-        blood_pool_current INTEGER,
-        blood_pool_max INTEGER,
-        humanity INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_werewolf_traits (
-        npc_id INTEGER NOT NULL,
-        breed TEXT,
-        auspice TEXT,
-        tribe TEXT,
-        gnosis_current INTEGER,
-        gnosis_permanent INTEGER,
-        rage_current INTEGER,
-        rage_permanent INTEGER,
-        renown_glory INTEGER,
-        renown_honor INTEGER,
-        renown_wisdom INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_mage_traits (
-        npc_id INTEGER NOT NULL,
-        tradition_convention TEXT,
-        arete INTEGER,
-        quintessence INTEGER,
-        paradox INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS npc_changeling_traits (
-        npc_id INTEGER NOT NULL,
-        kith TEXT,
-        seeming TEXT,
-        glamour_current INTEGER,
-        glamour_permanent INTEGER,
-        banality_permanent INTEGER,
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS status_effects (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        character_id INTEGER,
-        npc_id INTEGER,
-        effect_name TEXT NOT NULL,
-        description TEXT,
-        mechanical_effect TEXT,
-        duration_type TEXT,
-        duration_value INTEGER,
-        FOREIGN KEY (character_id) REFERENCES characters(id),
-        FOREIGN KEY (npc_id) REFERENCES npcs(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_abilities (
-        character_id INTEGER NOT NULL,
-        ability_name TEXT NOT NULL,
-        ability_type TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        specialty TEXT,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_disciplines (
-        character_id INTEGER NOT NULL,
-        discipline_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_arts (
-        character_id INTEGER NOT NULL,
-        art_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS character_realms (
-        character_id INTEGER NOT NULL,
-        realm_name TEXT NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (character_id) REFERENCES characters(id)
-      )
-    `);
   }
 
 private runMigrations() {
     // placeholder for migrations (future)
 }
-  this.db.close();
-  console.log('Database connection closed.');
-}
-
-
-  // Other DB-specific (non-domain) methods, e.g., lock helpers, remain here.
+  public close() {
+    this.db.close();
+    console.log('Database connection closed.');
+  }
 }

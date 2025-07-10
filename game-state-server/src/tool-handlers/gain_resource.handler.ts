@@ -17,6 +17,15 @@ export async function gain_resource_handler(
   args: GainResourceArgs
 ): Promise<HandlerResponse> {
   try {
+    if (typeof args.character_id !== 'number') {
+      return { content: makeTextContentArray(["❌ character_id must be a number."]), isError: true };
+    }
+    if (typeof args.resource_name !== 'string') {
+      return { content: makeTextContentArray(["❌ resource_name must be a string."]), isError: true };
+    }
+    if (typeof args.amount !== 'number') {
+      return { content: makeTextContentArray(["❌ amount must be a number."]), isError: true };
+    }
     // TODO: Implement CharacterRepository.gainResource for resource-specific logic.
     // For now, patch relevant field (e.g., increasing willpower, gnosis, etc.)
     const character = await db.characters.getCharacterById(args.character_id);

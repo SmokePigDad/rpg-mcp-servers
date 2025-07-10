@@ -31,9 +31,63 @@ constructor(db: Database.Database) {
     stmt.run(...values, id);
     return this.getCharacterById(id);
   }
-    listCharacters(): CharacterData[] {
+  listCharacters(): CharacterData[] {
     const rows = this.db.prepare('SELECT * FROM characters').all();
     return rows as CharacterData[];
+  }
+
+  /** Applies damage to a character, considering damage type and overflow. */
+  public applyDamage(characterId: number, dmg: { aggravated?: number; lethal?: number; bashing?: number }): CharacterData | null {
+    const character = this.getCharacterById(characterId);
+    if (!character) {
+      return null;
+    }
+
+    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
+    let boxes: ('/' | 'X' | '*' | '')[] = Array(7).fill('');
+
+    // Apply damage logic here, considering types and overflow
+    const applyType = (count: number, symbol: '/' | 'X' | '*') => {
+      for (let i = 0; i < (count || 0); ++i) {
+        let idx = -1;
+        if (symbol === '*') {
+          idx = boxes.findIndex(x => x === '' || x === '/' || x === 'X');
+        } else if (symbol === 'X') {
+          idx = boxes.findIndex(x => x === '' || x === '/');
+        } else if (symbol === '/') {
+          idx = boxes.findIndex(x => x === '');
+        }
+        if (idx !== -1) {
+          if (
+            boxes[idx] === '' ||
+            (symbol === 'X' && boxes[idx] === '/') ||
+            (symbol === '*' && (boxes[idx] === '/' || boxes[idx] === 'X'))
+          ) {
+            boxes[idx] = symbol;
+          }
+        }
+      }
+    };
+
+    applyType(dmg.aggravated || 0, '*');
+    applyType(dmg.lethal || 0, 'X');
+    applyType(dmg.bashing || 0, '/');
+
+    let over = boxes.filter(c => c === '*' || c === 'X' || c === '/').length - 7;
+    if (over > 0) {
+      for (let i = boxes.length - 1; i >= 0 && over > 0; --i) {
+        if (boxes[i] !== '*') {
+          boxes[i] = '*';
+          over--;
+        }
+      }
+    }
+
+    const updatedHealthLevels = boxes.join('');
+
+    this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthLevels, characterId);
+
+    return this.getCharacterById(characterId);
   }
 
   createCharacter(data: any) {

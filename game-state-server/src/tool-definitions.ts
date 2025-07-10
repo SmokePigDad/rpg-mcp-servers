@@ -1,71 +1,82 @@
 /**
  * Centralized tool definitions for every MCP tool supported by the game-state server.
- * To add new tools or update schemas, modify this file.
+ * Exports ONLY a plain object, with tool name as key and tool data as value.
  */
 export const toolDefinitions = {
-  // Character Management
-  create_character: {},
-  get_character: {},
-  get_character_by_name: {},
-  update_character: {},
-  list_characters: {},
-
-  // Antagonist Management
-  create_antagonist: {},
-  get_antagonist: {},
-  update_antagonist: {},
-  list_antagonists: {},
-  remove_antagonist: {},
-
-  // Resources & Health
-  spend_resource: {},
-  restore_resource: {},
-  gain_resource: {},
-  apply_damage: {},
-
-  // XP & Progression
-  award_xp: {},
-  spend_xp: {},
-  improve_trait: {},
-  get_trait_improvement_cost: {},
-
-  // Status Effects
-  apply_status_effect: {},
-  get_status_effects: {},
-  remove_status_effect: {},
-
-  // Inventory
-  add_item: {
-        "character_id": {
-          "type": "number",
-          "description": "The ID of the character to add the item to"
-        },
-        "item": {
-          "type": "object",
-          "description": "The item to add to the inventory",
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "The name of the item"
-            },
-            "description": {
-              "type": "string",
-              "description": "The description of the item"
-            }
-          },
-          "required": ["name"]
-        }
+  create_character: {
+    name: "create_character",
+    description: "Create a new character in the game state.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Character name" },
+        game_line: { type: "string", description: "Game line (e.g., Vampire, Werewolf, Mage, etc.)" },
+        player: { type: "string", description: "Player name (optional)" }
       },
-  get_inventory: {},
-  update_item: {},
-  remove_item: {},
-
-  // World State & Initiative
-  save_world_state: {},
-  get_world_state: {},
-  save_story_progress: {},
-  set_initiative: {},
-  get_initiative_order: {},
-  advance_turn: {},
-  get_current_turn: {}
+      required: ["name", "game_line"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        character_id: { type: "number" }
+      }
+    }
+  },
+  get_character: {
+    name: "get_character",
+    description: "Retrieve a character and their full data by character ID.",
+    parameters: {
+      type: "object",
+      properties: {
+        character_id: { type: "number", description: "ID of the character" }
+      },
+      required: ["character_id"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        found: { type: "boolean" },
+        character: { type: "object" }
+      }
+    }
+  },
+  get_character_by_name: {
+    name: "get_character_by_name",
+    description: "Retrieve a character and their full data by character name.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Character name" }
+      },
+      required: ["name"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        found: { type: "boolean" },
+        character: { type: "object" }
+      }
+    }
+  },
+  proxy_tool: {
+    name: "proxy_tool",
+    description: "Proxy tool to call tools on other MCP servers.",
+    parameters: {
+      type: "object",
+      properties: {
+        server_address: { type: "string", description: "Address of the target MCP server" },
+        tool_name: { type: "string", description: "Name of the tool to call on the target server" },
+        arguments: { type: "object", description: "Arguments to pass to the tool" }
+      },
+      required: ["server_address", "tool_name", "arguments"]
+    },
+    result: {
+      type: "object",
+      properties: {
+        content: { type: "array", items: { type: "object" } },
+        isError: { type: "boolean" }
+      }
+    }
+  }
 };

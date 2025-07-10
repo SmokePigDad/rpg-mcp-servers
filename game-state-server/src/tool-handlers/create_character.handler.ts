@@ -13,14 +13,27 @@ type HandlerResponse = { content: { type: string, text: string }[]; isError?: bo
  */
 export async function create_character_handler(
   db: GameDatabase,
-  args: Record<string, unknown> // TODO: Specify correct type
+  args: Record<string, unknown>
 ): Promise<HandlerResponse> {
+  // Input validation
+  if (
+    !args ||
+    typeof args.name !== 'string' ||
+    args.name.trim().length === 0 ||
+    typeof args.game_line !== 'string' ||
+    args.game_line.trim().length === 0 ||
+    !['vampire', 'werewolf', 'mage', 'changeling'].includes(args.game_line as string)
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments: 'name' must be a non-empty string and 'game_line' must be one of: vampire, werewolf, mage, changeling."
+    ]), isError: true };
+  }
   try {
     const character = await db.characters.createCharacter(args);
     if (!character) {
       return { content: makeTextContentArray([`❌ Error creating character: Character not found after creation.`]), isError: true };
     }
-    return { content: makeTextContentArray([`Character "${character.name}" created with ID ${character.id}`]) };
+    return { content: makeTextContentArray([`Character \"${character.name}\" created with ID ${character.id}`]) };
   } catch (error: unknown) {
     // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);

@@ -2,6 +2,20 @@ import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
 export async function get_antagonist_handler(db: GameDatabase, args: any) {
+  // Validate input
+  if (
+    !args ||
+    !Object.prototype.hasOwnProperty.call(args, "antagonist_id") ||
+    (typeof args.antagonist_id !== "string" && typeof args.antagonist_id !== "number")
+  ) {
+    return {
+      content: makeTextContentArray([
+        "❌ Invalid or missing 'antagonist_id'. It must be a string or number."
+      ]),
+      isError: true
+    };
+  }
+
   const { antagonist_id } = args;
   const antagonist = db.antagonists.getAntagonistById(antagonist_id);
 

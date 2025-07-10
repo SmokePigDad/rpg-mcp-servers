@@ -14,24 +14,33 @@ type HandlerResponse = { content: { type: string, text: string }[]; isError?: bo
 
 export async function apply_damage_handler(db: GameDatabase, args: ApplyDamageArgs): Promise<HandlerResponse> {
   try {
-    // Ideally there should be an applyDamage method in CharacterRepository.
-    // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
-    const character = await db.characters.getCharacterById(args.target_id);
-    if (!character) {
-      return { content: makeTextContentArray([`❌ Character with ID ${args.target_id} not found.`]), isError: true };
+    const { target_id, amount = 1, level = "bruised" } = args;
+
+    if (typeof target_id !== 'number') {
+      return { content: makeTextContentArray(["❌ target_id must be a number."]), isError: true };
+    }
+    if (typeof amount !== 'number') {
+      return { content: makeTextContentArray(["❌ amount must be a number."]), isError: true };
+    }
+    if (typeof level !== 'string') {
+      return { content: makeTextContentArray(["❌ level must be a string."]), isError: true };
+    }
+    if (!['bruised', 'hurt', 'injured', 'wounded', 'mauled', 'crippled', 'incapacitated'].includes(level)) {
+      return { content: makeTextContentArray(["❌ Invalid level value."]), isError: true };
     }
 
-    // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
-    // NOTE: This is placeholder logic and may need to match your game's actual health model.
-    const { amount = 1, level = "bruised" } = args;
-    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
-    prevHealth[level] = (prevHealth[level] || 0) + amount;
+    const dmg = {
+      bashing: level === "bruised" ? amount : 0,
+      lethal: level === "hurt" || level === "injured" || level === "wounded" ? amount : 0,
+      aggravated: level === "mauled" || level === "crippled" || level === "incapacitated" ? amount : 0,
+    };
+    const character = db.characters.applyDamage(target_id, dmg);
 
-    // Save updated health_levels
-    await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${target_id} not found.`]), isError: true };
+    }
 
-    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${args.target_id}`]) };
-    // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
+    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${target_id}`]) };
   } catch (error: unknown) {
     // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
