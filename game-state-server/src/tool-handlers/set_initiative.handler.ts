@@ -3,10 +3,11 @@ import { GameDatabase } from '../db.js';
 
 export async function set_initiative_handler(db: GameDatabase, args: any) {
   const { scene_id, entries } = args;
-  const success = db.worldState.setInitiative(scene_id, entries);
-
-  if (!success) {
-    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}.`]), isError: true };
+  try {
+    db.worldState.setInitiative(scene_id, entries);
+  } catch (err) {
+    const errorMsg = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : String(err);
+    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}: ${errorMsg}`]), isError: true };
   }
 
   return { content: makeTextContentArray([`✅ Set initiative for scene ${scene_id}.`]) };
