@@ -33,7 +33,7 @@ async function startServer() {
   try {
     console.log("Initializing game-state-server...");
 
-    // --- 1. Database Setup (Do this first) ---
+    // --- 1. Database Setup ---
     const DATA_DIR = join(process.cwd(), 'data');
     if (!existsSync(DATA_DIR)) {
       mkdirSync(DATA_DIR, { recursive: true });
@@ -44,56 +44,49 @@ async function startServer() {
     const gameDatabase: GameDatabaseType = createGameDatabase(db);
     console.log("Database initialized successfully.");
 
-    // --- 2. Prepare Tool Definitions for the Server ---
-    const allToolDefinitions = Object.values(toolDefinitions);
-    const toolsForServer = Object.fromEntries(
-      allToolDefinitions.map(tool => [tool.name, tool])
-    );
-
-    // --- 3. Initialize the Server with All Tools Defined ---
+    // --- 2. Initialize the Server with the Correct Tool Definitions Object ---
     const server = new Server(
       { name: 'rpg-game-state-server', version: '2.1.0' },
       {
         capabilities: {
-          // This is the critical part: tools are registered at creation time.
-          tools: toolsForServer
+          // THIS IS THE FIX: Pass the imported object directly.
+          // The SDK expects a map of { [tool_name]: tool_definition }, which is exactly
+          // what your tool-definitions.ts file exports.
+          tools: toolDefinitions
         },
       }
     );
 
-    // --- 4. Set Up Request Handlers ---
-    
-    // This handler responds when a client asks "what tools do you have?"
+    // --- 3. Set Up Request Handlers ---
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return { tools: allToolDefinitions };
+      // For this handler, you must return an ARRAY of definitions.
+      // Object.values() is correct here.
+      return { tools: Object.values(toolDefinitions) };
     });
 
-    // This handler executes a tool when a client calls one.
     server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       const { name, arguments: args } = request.params;
       const handler = toolDispatcher[name];
 
       if (handler) {
         try {
-          // Call the correct handler function from our dispatcher
           return await handler(gameDatabase, args);
         } catch (error: any) {
           console.error(`Error in tool '${name}':`, error);
-          return { 
-            content: makeTextContentArray([`❌ Error executing '${name}': ${error.message}`]), 
-            isError: true 
+          return {
+            content: makeTextContentArray([`❌ Error executing '${name}': ${error.message}`]),
+            isError: true
           };
         }
       }
 
-      // If the handler is not found in our dispatcher
-      return { 
-        content: makeTextContentArray([`❌ Unknown tool in game-state-server: ${name}`]), 
-        isError: true 
+      return {
+        content: makeTextContentArray([`❌ Unknown tool in game-state-server: ${name}`]),
+        isError: true
       };
     });
 
-    // --- 5. Connect and Start Listening ---
+    // --- 4. Connect and Start Listening ---
     const transport = new StdioServerTransport();
     server.connect(transport);
     console.error('✅ oWoD RPG Game State MCP Server v2.1.0 running on stdio');
