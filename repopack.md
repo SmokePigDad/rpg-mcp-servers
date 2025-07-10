@@ -62,15 +62,41 @@ game-state-server/src/repositories/character.repository.ts
 game-state-server/src/repositories/inventory.repository.ts
 game-state-server/src/repositories/status-effect.repository.ts
 game-state-server/src/simple_index.ts
+game-state-server/src/tool-definitions.ts
+game-state-server/src/tool-handlers/__BATCH_STUBS_CREATE.ts
+game-state-server/src/tool-handlers/__REQUIRED_HANDLERS.md
+game-state-server/src/tool-handlers/add_item.handler.ts
+game-state-server/src/tool-handlers/advance_turn.handler.ts
 game-state-server/src/tool-handlers/apply_damage.handler.ts
+game-state-server/src/tool-handlers/apply_status_effect.handler.ts
+game-state-server/src/tool-handlers/award_xp.handler.ts
+game-state-server/src/tool-handlers/create_antagonist.handler.ts
 game-state-server/src/tool-handlers/create_character.handler.ts
 game-state-server/src/tool-handlers/gain_resource.handler.ts
+game-state-server/src/tool-handlers/get_antagonist.handler.ts
 game-state-server/src/tool-handlers/get_character_by_name.handler.ts
 game-state-server/src/tool-handlers/get_character.handler.ts
+game-state-server/src/tool-handlers/get_current_turn.handler.ts
+game-state-server/src/tool-handlers/get_initiative_order.handler.ts
+game-state-server/src/tool-handlers/get_inventory.handler.ts
+game-state-server/src/tool-handlers/get_status_effects.handler.ts
+game-state-server/src/tool-handlers/get_trait_improvement_cost.handler.ts
+game-state-server/src/tool-handlers/get_world_state.handler.ts
+game-state-server/src/tool-handlers/improve_trait.handler.ts
+game-state-server/src/tool-handlers/list_antagonists.handler.ts
+game-state-server/src/tool-handlers/list_characters.handler.ts
+game-state-server/src/tool-handlers/remove_antagonist.handler.ts
+game-state-server/src/tool-handlers/remove_item.handler.ts
+game-state-server/src/tool-handlers/remove_status_effect.handler.ts
 game-state-server/src/tool-handlers/restore_resource.handler.ts
+game-state-server/src/tool-handlers/save_story_progress.handler.ts
+game-state-server/src/tool-handlers/save_world_state.handler.ts
+game-state-server/src/tool-handlers/set_initiative.handler.ts
 game-state-server/src/tool-handlers/spend_resource.handler.ts
 game-state-server/src/tool-handlers/spend_xp.handler.ts
+game-state-server/src/tool-handlers/update_antagonist.handler.ts
 game-state-server/src/tool-handlers/update_character.handler.ts
+game-state-server/src/tool-handlers/update_item.handler.ts
 game-state-server/src/types/antagonist.types.ts
 game-state-server/src/types/character.types.ts
 game-state-server/src/types/db.types.ts
@@ -1595,6 +1621,330 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 server.connect(transport);
 
 console.error('Simple game state server running on stdio');
+````
+
+## File: game-state-server/src/tool-definitions.ts
+````typescript
+/**
+ * Centralized tool definitions for every MCP tool supported by the game-state server.
+ * To add new tools or update schemas, modify this file.
+ */
+export const toolDefinitions = {
+  // Character Management
+  create_character: {},
+  get_character: {},
+  get_character_by_name: {},
+  update_character: {},
+  list_characters: {},
+
+  // Antagonist Management
+  create_antagonist: {},
+  get_antagonist: {},
+  update_antagonist: {},
+  list_antagonists: {},
+  remove_antagonist: {},
+
+  // Resources & Health
+  spend_resource: {},
+  restore_resource: {},
+  gain_resource: {},
+  apply_damage: {},
+
+  // XP & Progression
+  award_xp: {},
+  spend_xp: {},
+  improve_trait: {},
+  get_trait_improvement_cost: {},
+
+  // Status Effects
+  apply_status_effect: {},
+  get_status_effects: {},
+  remove_status_effect: {},
+
+  // Inventory
+  add_item: {},
+  get_inventory: {},
+  update_item: {},
+  remove_item: {},
+
+  // World State & Initiative
+  save_world_state: {},
+  get_world_state: {},
+  save_story_progress: {},
+  set_initiative: {},
+  get_initiative_order: {},
+  advance_turn: {},
+  get_current_turn: {}
+};
+````
+
+## File: game-state-server/src/tool-handlers/__BATCH_STUBS_CREATE.ts
+````typescript
+// Batch creation helper: do not include in your dispatcher, this is just for visibility.
+// The following files should exist as stubs for dispatcher robustness—they export an async handler.
+export const stub_list = [
+  "create_antagonist.handler.ts",
+  "get_antagonist.handler.ts",
+  "update_antagonist.handler.ts",
+  "list_antagonists.handler.ts",
+  "remove_antagonist.handler.ts",
+  "award_xp.handler.ts",
+  "improve_trait.handler.ts",
+  "get_trait_improvement_cost.handler.ts",
+  "apply_status_effect.handler.ts",
+  "get_status_effects.handler.ts",
+  "remove_status_effect.handler.ts",
+  "add_item.handler.ts",
+  "get_inventory.handler.ts",
+  "update_item.handler.ts",
+  "remove_item.handler.ts",
+  "save_world_state.handler.ts",
+  "get_world_state.handler.ts",
+  "save_story_progress.handler.ts",
+  "set_initiative.handler.ts",
+  "get_initiative_order.handler.ts",
+  "advance_turn.handler.ts",
+  "get_current_turn.handler.ts"
+];
+// Each stub:
+///// FILE TEMPLATE /////
+// import { makeTextContentArray } from "../index.js";
+// export async function <name>_handler(args: any) {
+//   return { content: makeTextContentArray(["Not implemented (<name>_handler)"]) };
+// }
+````
+
+## File: game-state-server/src/tool-handlers/__REQUIRED_HANDLERS.md
+````markdown
+# Required Handlers for Complete Game MCP Dispatcher
+
+*These are the handler files that must exist for dispatcher completeness and CRUD coverage, per best practice and your roadmap doc.*
+(Present: [X], Needs creation: [ ])
+
+- [X] create_character.handler.ts
+- [X] get_character.handler.ts
+- [X] get_character_by_name.handler.ts
+- [X] update_character.handler.ts
+- [ ] list_characters.handler.ts
+
+- [ ] create_antagonist.handler.ts
+- [ ] get_antagonist.handler.ts
+- [ ] update_antagonist.handler.ts
+- [ ] list_antagonists.handler.ts
+- [ ] remove_antagonist.handler.ts
+
+- [X] spend_resource.handler.ts
+- [X] restore_resource.handler.ts
+- [X] gain_resource.handler.ts
+- [X] apply_damage.handler.ts
+
+- [ ] award_xp.handler.ts
+- [X] spend_xp.handler.ts
+- [ ] improve_trait.handler.ts
+- [ ] get_trait_improvement_cost.handler.ts
+
+- [ ] apply_status_effect.handler.ts
+- [ ] get_status_effects.handler.ts
+- [ ] remove_status_effect.handler.ts
+
+- [ ] add_item.handler.ts
+- [ ] get_inventory.handler.ts
+- [ ] update_item.handler.ts
+- [ ] remove_item.handler.ts
+
+- [ ] save_world_state.handler.ts
+- [ ] get_world_state.handler.ts
+- [ ] save_story_progress.handler.ts
+- [ ] set_initiative.handler.ts
+- [ ] get_initiative_order.handler.ts
+- [ ] advance_turn.handler.ts
+- [ ] get_current_turn.handler.ts
+
+Check off as implemented.
+````
+
+## File: game-state-server/src/tool-handlers/add_item.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function add_item_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (add_item_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/advance_turn.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function advance_turn_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (advance_turn_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/apply_status_effect.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function apply_status_effect_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (apply_status_effect_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/award_xp.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function award_xp_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (award_xp_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/create_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function create_antagonist_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (create_antagonist_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_antagonist_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_antagonist_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_current_turn.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_current_turn_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_current_turn_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_initiative_order.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_initiative_order_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_initiative_order_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_inventory.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_inventory_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_inventory_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_status_effects.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_status_effects_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_status_effects_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_trait_improvement_cost.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_trait_improvement_cost_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_trait_improvement_cost_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_world_state.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function get_world_state_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (get_world_state_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/improve_trait.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function improve_trait_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (improve_trait_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/list_antagonists.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function list_antagonists_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (list_antagonists_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/list_characters.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function list_characters_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (list_characters_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/remove_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function remove_antagonist_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (remove_antagonist_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/remove_item.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function remove_item_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (remove_item_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/remove_status_effect.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function remove_status_effect_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (remove_status_effect_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/save_story_progress.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function save_story_progress_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (save_story_progress_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/save_world_state.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function save_world_state_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (save_world_state_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/set_initiative.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function set_initiative_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (set_initiative_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/update_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function update_antagonist_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (update_antagonist_handler)"]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/update_item.handler.ts
+````typescript
+import { makeTextContentArray } from "../index.js";
+export async function update_item_handler(args: any) {
+  return { content: makeTextContentArray(["Not implemented (update_item_handler)"]) };
+}
 ````
 
 ## File: game-state-server/src/types/antagonist.types.ts
@@ -5227,568 +5577,6 @@ export const ANTAGONIST_TEMPLATES: AntagonistTemplates = {
 };
 ````
 
-## File: game-state-server/src/characterSheets.ts
-````typescript
-/**
- * Modular Character Sheet Formatters
- * -----------------------------------
- * Provides template-driven, game-line-specific character sheet output, supporting 
- * Vampire, Werewolf, Mage, Changeling, and a generic fallback. Formatting is 
- * functionally and thematically correct for each game. Cleanly integrates 
- * conditions/status, derangements, and XP reporting.
- *
- * To add a new game line: Add a function here with the signature below and update
- * the formatSheetByGameLine selector below.
- *
- * API: Each formatter receives a CharacterSheetOptions object and returns 
- *      { type: 'text', text: string }
- */
-export type CharacterSheetOptions = {
-  character: any,                   // Core character object (db shape)
-  extra?: Record<string, any>,      // Game-line-specific joined data (e.g., disciplines)
-  derangements?: any[],             // Array of derangement objects
-  conditions?: any[],               // Array of active conditions
-  xpHistory?: any[]                 // Array of XP change records (optional; fallback if empty)
-};
-
-/**
- * Utility to format derangements/status/XP blocks for all sheets.
- */
-function formatStatusBlocks({
-  derangements = [],
-  conditions = [],
-  xpHistory = []
-}: Partial<CharacterSheetOptions>): string {
-  let blocks = '';
-  // Mental State / Derangements
-  if (derangements.length) {
-    blocks += `🧠 Mental State / Derangements:\n`;
-    derangements.forEach(d => {
-      blocks += `  - ${d.derangement}${d.description ? `: ${d.description}` : ''}\n`;
-    });
-  }
-  // Conditions/Status Effects
-  if (conditions.length) {
-    blocks += `🦠 Conditions / Status Effects:\n`;
-    conditions.forEach(c => {
-      blocks += `  - ${c.condition_name}`;
-      if (c.duration !== null && c.duration !== undefined) blocks += ` [${c.duration} rounds left]`;
-      if (c.effect_json) blocks += `: ${typeof c.effect_json === 'object' ? JSON.stringify(c.effect_json) : c.effect_json}`;
-      blocks += `\n`;
-    });
-  }
-  // XP History (if any)
-  if (xpHistory.length) {
-    blocks += `📈 XP History (last ${xpHistory.length}):\n`;
-    xpHistory.forEach(xp => {
-      blocks += `  - ${xp.amount > 0 ? '+' : ''}${xp.amount} XP: ${xp.reason || ''} (${xp.timestamp ? new Date(xp.timestamp).toLocaleDateString() : ''})\n`;
-    });
-  }
-  return blocks;
-}
-/** Fallback: All WoD lines share these core blocks */
-function formatCoreBlocks(character: any): string {
-  // Helper: lookup ability rating by case-insensitive name
-  function getAbilityRating(abilities: any[], name: string): number {
-    if (!Array.isArray(abilities)) return 0;
-    const found = abilities.find(
-      ab => typeof ab.ability_name === "string" && ab.ability_name.toLowerCase() === name.toLowerCase()
-    );
-    return found ? Number(found.rating) || 0 : 0;
-  }
-  // COMMON DICE POOLS for Vampire
-  function formatCommonDicePools(character: any): string {
-    const abilities = character.abilities || [];
-    // For Vampire/oWoD, most frequent pools:
-    const pools = [
-      {
-        label: "Perception + Alertness",
-        total:
-          Number(character.perception || 0) +
-          getAbilityRating(abilities, "Alertness"),
-      },
-      {
-        label: "Dexterity + Brawl",
-        total:
-          Number(character.dexterity || 0) +
-          getAbilityRating(abilities, "Brawl"),
-      },
-      {
-        label: "Manipulation + Subterfuge",
-        total:
-          Number(character.manipulation || 0) +
-          getAbilityRating(abilities, "Subterfuge"),
-      },
-      // Add more as needed (optional):
-      {
-        label: "Wits + Intimidation",
-        total:
-          Number(character.wits || 0) +
-          getAbilityRating(abilities, "Intimidation"),
-      },
-      {
-        label: "Dexterity + Firearms",
-        total:
-          Number(character.dexterity || 0) +
-          getAbilityRating(abilities, "Firearms"),
-      },
-    ];
-    // Only show pools where at least one component is nonzero or ability is present
-    const filtered = pools.filter(
-      p => p.total > 0
-    );
-    if (filtered.length === 0) return "";
-    let block = "🎲 Most-Used Dice Pools:\n";
-    block += filtered
-      .map((p) => `  - ${p.label}: ${p.total}`)
-      .join("\n");
-    return block + "\n─────────────────────────────────────────────\n";
-  }
-
-  // HEALTH using HealthTracker for graphic block
-  let healthBlock = '';
-  try {
-    // Lazy import to avoid circular dependency (if any)
-    const { HealthTracker } = require('./health-tracker.js');
-    const tracker = HealthTracker.from(character.health_levels);
-    const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
-    const woundPenalty = tracker.getWoundPenalty();
-    healthBlock = '❤️ Health Levels:\n';
-    healthBlock += `  [${healthBoxes.map((b: string) => b ? b : ' ').join('][')}] (Penalty: ${woundPenalty})\n`;
-  } catch (e) {
-    // fallback (should never trigger)
-    healthBlock = '';
-  }
-
-  return [
-    `👤 Name: ${character.name}`,
-    character.concept ? `🧠 Concept: ${character.concept}` : '',
-    `🗂️  Game Line: ${character.game_line?.[0]?.toUpperCase() + character.game_line?.slice(1)}`,
-    '',
-    `💪 Strength: ${character.strength}\n🏃 Dexterity: ${character.dexterity}\n❤️ Stamina: ${character.stamina}`,
-    `🎭 Charisma: ${character.charisma}\n🗣️ Manipulation: ${character.manipulation}\n🌟 Appearance: ${character.appearance}`,
-    `👁️ Perception: ${character.perception}\n🧠 Intelligence: ${character.intelligence}\n⚡ Wits: ${character.wits}`,
-    '',
-    '────────────── ABILITIES ──────────────',
-    character.abilities?.length
-      ? character.abilities.map(
-          (ab: any) => `  - ${ab.ability_type}: ${ab.ability_name} (${ab.rating}${ab.specialty ? `, ${ab.specialty}` : ''})`
-        ).join('\n')
-      : '  (none recorded)',
-    '',
-    formatCommonDicePools(character),
-    healthBlock,
-    '────────────── CORE TRAITS ──────────────',
-    `🔵 Willpower: ${character.willpower_current}/${character.willpower_permanent}`,
-    character.power_stat_name && character.power_stat_rating !== undefined
-      ? `🪄 ${character.power_stat_name}: ${character.power_stat_rating}` : ''
-  ].filter(Boolean).join('\n');
-}
-/**
- * Vampire: Adds Disciplines, Blood Pool, Humanity
- */
-export function formatVampireSheet(opts: CharacterSheetOptions) {
-  const { character, extra = {} } = opts;
-  let out = `🎲 World of Darkness: VAMPIRE Sheet\n\n`;
-  out += formatCoreBlocks(character) + '\n';
-  out += formatStatusBlocks(opts);
-
-  // Health
-  // (health block now included in formatCoreBlocks)
-
-  // Disciplines, Blood Pool, Humanity
-  if (extra.disciplines?.length) {
-    out += "\n🩸 Disciplines:\n";
-    extra.disciplines.forEach((d: any) => {
-      out += `  - ${d.discipline_name}: ${d.rating}\n`;
-    });
-  }
-  out += `Blood Pool: ${character.blood_pool_current || 0}/${character.blood_pool_max || 0}, Humanity: ${character.humanity ?? ''}\n`;
-  return { type: 'text', text: out };
-}
-/**
- * Werewolf: Adds Gifts, Rage, Gnosis, Renown
- */
-export function formatWerewolfSheet(opts: CharacterSheetOptions) {
-  const { character, extra = {} } = opts;
-  let out = `🎲 World of Darkness: WEREWOLF Sheet\n\n`;
-  out += formatCoreBlocks(character) + '\n';
-  out += formatStatusBlocks(opts);
-
-  // Health
-  // (health block now included in formatCoreBlocks)
-
-  // Gifts, Rage, Gnosis, Renown
-  if (extra.gifts?.length) {
-    out += "\n🐺 Gifts:\n";
-    extra.gifts.forEach((g: any) => {
-      out += `  - ${g.gift_name} (Rank ${g.rank})\n`;
-    });
-  }
-  out += `Rage: ${character.rage_current || 0}, Gnosis: ${character.gnosis_current || 0}, Renown: Glory ${character.renown_glory || 0}, Honor ${character.renown_honor || 0}, Wisdom ${character.renown_wisdom || 0}\n`;
-  return { type: 'text', text: out };
-}
-/**
- * Mage: Adds Spheres, Arete, Quintessence, Paradox
- */
-export function formatMageSheet(opts: CharacterSheetOptions) {
-  const { character, extra = {} } = opts;
-  let out = `🎲 World of Darkness: MAGE Sheet\n\n`;
-  out += formatCoreBlocks(character) + '\n';
-  out += formatStatusBlocks(opts);
-
-  // Health
-  // (health block now included in formatCoreBlocks)
-
-  // Spheres, Arete, Quintessence, Paradox
-  if (extra.spheres?.length) {
-    out += "\n🕯️ Spheres:\n";
-    extra.spheres.forEach((s: any) => {
-      out += `  - ${s.sphere_name}: ${s.rating}\n`;
-    });
-  }
-  out += `Arete: ${character.arete || 0}, Quintessence: ${character.quintessence || 0}, Paradox: ${character.paradox || 0}\n`;
-  return { type: 'text', text: out };
-}
-/**
- * Changeling: Adds Arts, Realms, Glamour, Banality
- */
-export function formatChangelingSheet(opts: CharacterSheetOptions) {
-  const { character, extra = {} } = opts;
-  let out = `🎲 World of Darkness: CHANGELING Sheet\n\n`;
-  out += formatCoreBlocks(character) + '\n';
-  out += formatStatusBlocks(opts);
-
-  // Health
-  // (health block now included in formatCoreBlocks)
-
-  if (extra.arts?.length) {
-    out += "\n✨ Arts:\n";
-    extra.arts.forEach((a: any) => {
-      out += `  - ${a.art_name}: ${a.rating}\n`;
-    });
-  }
-  if (extra.realms?.length) {
-    out += "🌐 Realms:\n";
-    extra.realms.forEach((r: any) => {
-      out += `  - ${r.realm_name}: ${r.rating}\n`;
-    });
-  }
-  out += `Glamour: ${character.glamour_current || 0}/${character.glamour_permanent || 0}, Banality: ${character.banality_permanent || 0}\n`;
-  return { type: 'text', text: out };
-}
-/**
- * Fallback: Core WoD sheet structure
- */
-export function formatGenericWoDSheet(opts: CharacterSheetOptions) {
-  const { character } = opts;
-  let out = `🎲 World of Darkness Character Sheet (Generic)\n\n`;
-  out += formatCoreBlocks(character) + '\n';
-  out += formatStatusBlocks(opts);
-
-  // Health
-  // (health block now included in formatCoreBlocks)
-
-  // Power stat if present
-  if (character.power_stat_name && character.power_stat_rating !== undefined) {
-    out += `${character.power_stat_name}: ${character.power_stat_rating}\n`;
-  }
-  return { type: 'text', text: out };
-}
-/**
- * Selector for formatter function (UI/readability extensibility point)
- */
-export function formatSheetByGameLine(opts: CharacterSheetOptions) {
-  switch ((opts.character.game_line || '').toLowerCase()) {
-    case 'vampire':    return formatVampireSheet(opts);
-    case 'werewolf':   return formatWerewolfSheet(opts);
-    case 'mage':       return formatMageSheet(opts);
-    case 'changeling': return formatChangelingSheet(opts);
-    default:           return formatGenericWoDSheet(opts);
-  }
-}
-/**
- * To extend for a new game line:
- * 1. Write `function formatHunterSheet(opts: CharacterSheetOptions) {...}`
- * 2. Add `case 'hunter': return formatHunterSheet(opts);` to formatSheetByGameLine
- * 3. (Optionally) update docs/UI layer
- */
-````
-
-## File: game-state-server/src/tool-handlers/apply_damage.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/apply_damage.handler.ts
-import { GameDatabase } from '../db.js';
-
-import type { CharacterData } from '../types/character.types.js';
-
-export interface ApplyDamageArgs {
-  target_id: number;
-  amount?: number;
-  level?: string;
-}
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function apply_damage_handler(args: ApplyDamageArgs): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    // Ideally there should be an applyDamage method in CharacterRepository.
-    // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
-    const character = await db.characters.getCharacterById(args.target_id);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.target_id} not found.` }], isError: true };
-    }
-
-    // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
-    // NOTE: This is placeholder logic and may need to match your game's actual health model.
-    const { amount = 1, level = "bruised" } = args;
-    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
-    prevHealth[level] = (prevHealth[level] || 0) + amount;
-
-    // Save updated health_levels
-    await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
-
-    return { content: [{ type: 'text', text: `Damage applied (${amount} ${level}) to Character id ${args.target_id}` }] };
-    // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("apply_damage_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error applying damage: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/create_character.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/create_character.handler.ts
-import { GameDatabase } from '../db.js';
-
-import type { CharacterData } from '../types/character.types.js';
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-/**
- * Creates a new character from the provided arg fields.
- * args: Opaque; expected to match CharacterData fields.
- * TODO: Specify arg type if possible.
- */
-export async function create_character_handler(
-  args: Record<string, unknown> // TODO: Specify correct type
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    const character = await db.characters.createCharacter(args);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Error creating character: Character not found after creation.` }], isError: true };
-    }
-    return { content: [{ type: 'text', text: `Character "${character.name}" created with ID ${character.id}` }] };
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("create_character_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error creating character: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/gain_resource.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/gain_resource.handler.ts
-import { GameDatabase } from '../db.js';
-
-import type { CharacterData } from '../types/character.types.js';
-
-export interface GainResourceArgs {
-  character_id: number;
-  resource_name: string;
-  amount?: number;
-}
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function gain_resource_handler(
-  args: GainResourceArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    // TODO: Implement CharacterRepository.gainResource for resource-specific logic.
-    // For now, patch relevant field (e.g., increasing willpower, gnosis, etc.)
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.character_id} not found.` }], isError: true };
-    }
-    // Example: args.resource_name = 'willpower_current', args.amount = 1
-    const { resource_name, amount = 1 } = args;
-    const prev = character[resource_name] ?? 0;
-    const updates: Partial<CharacterData> = {};
-    updates[resource_name] = prev + amount;
-    await db.characters.updateCharacter(args.character_id, updates);
-
-    return { content: [{ type: 'text', text: `Resource ${resource_name} (+${amount}) gained for Character id ${args.character_id}` }] };
-    // TODO: Dedicated gainResource logic (e.g., cap checks) should go in repo layer.
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("gain_resource_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error gaining resource: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/get_character_by_name.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/get_character_by_name.handler.ts
-import { GameDatabase } from '../db.js';
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export interface GetCharacterByNameHandlerArgs {
-  name: string;
-}
-
-export async function get_character_by_name_handler(
-  args: GetCharacterByNameHandlerArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    const character = await db.characters.getCharacterByName(args.name);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with name ${args.name} not found.` }], isError: true };
-    }
-    return { content: [{ type: 'text', text: JSON.stringify(character, null, 2) }] };
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("get_character_by_name_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error getting character: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/get_character.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/get_character.handler.ts
-import { GameDatabase } from '../db.js';
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export interface GetCharacterHandlerArgs {
-  character_id: number;
-}
-
-export async function get_character_handler(
-  args: GetCharacterHandlerArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.character_id} not found.` }], isError: true };
-    }
-    return { content: [{ type: 'text', text: JSON.stringify(character, null, 2) }] };
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("get_character_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error getting character: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/restore_resource.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/restore_resource.handler.ts
-import { GameDatabase } from '../db.js';
-
-import type { CharacterData } from '../types/character.types.js';
-
-export interface RestoreResourceArgs {
-  character_id: number;
-  resource_name: string;
-  amount?: number;
-}
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function restore_resource_handler(
-  args: RestoreResourceArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    // TODO: Implement CharacterRepository.restoreResource for resource restoration semantics.
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.character_id} not found.` }], isError: true };
-    }
-    // Example: args.resource_name = 'willpower_current', args.amount restores to value or adds amount
-    const { resource_name, amount } = args;
-    const maxResource = character[`${resource_name}_permanent`] || character[resource_name]; // Fallback
-    const updates: Partial<CharacterData> = {};
-    if (typeof amount === 'number') {
-      // Clamp to max
-      updates[resource_name] = Math.min((character[resource_name] ?? 0) + amount, maxResource ?? amount);
-    } else {
-      // Optional: If direct restore
-      // updates[resource_name] = maxResource;
-    }
-    await db.characters.updateCharacter(args.character_id, updates);
-
-    return { content: [{ type: 'text', text: `Resource ${resource_name} restored for Character id ${args.character_id}` }] };
-    // TODO: Dedicated restoreResource logic (caps, full/partial restore rules) should go in repo layer.
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("restore_resource_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error restoring resource: ${errMsg}` }], isError: true };
-  }
-}
-````
-
-## File: game-state-server/src/tool-handlers/spend_resource.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/spend_resource.handler.ts
-import { GameDatabase } from '../db.js';
-
-import type { CharacterData } from '../types/character.types.js';
-
-export interface SpendResourceArgs {
-  character_id: number;
-  resource_name: string;
-  amount?: number;
-}
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function spend_resource_handler(
-  args: SpendResourceArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    // TODO: Implement CharacterRepository.spendResource for resource spending validation.
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.character_id} not found.` }], isError: true };
-    }
-    // Example: args.resource_name = 'willpower_current', args.amount = 1
-    const { resource_name, amount = 1 } = args;
-    const prev = character[resource_name] ?? 0;
-    const updates: Partial<CharacterData> = {};
-    updates[resource_name] = Math.max(prev - amount, 0);
-    await db.characters.updateCharacter(args.character_id, updates);
-
-    return { content: [{ type: 'text', text: `Resource ${resource_name} (-${amount}) spent for Character id ${args.character_id}` }] };
-    // TODO: Dedicated spendResource logic (checks for overspending) should go in repo layer.
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("spend_resource_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error spending resource: ${errMsg}` }], isError: true };
-  }
-}
-````
-
 ## File: game-state-server/src/tool-handlers/spend_xp.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
@@ -5896,38 +5684,6 @@ export async function spend_xp_handler(
     };
   }
   return result;
-}
-````
-
-## File: game-state-server/src/tool-handlers/update_character.handler.ts
-````typescript
-// game-state-server/src/tool-handlers/update_character.handler.ts
-import { GameDatabase } from '../db.js';
-import type { CharacterData } from '../types/character.types.js';
-
-export interface UpdateCharacterHandlerArgs {
-  character_id: number;
-  updates: Partial<CharacterData>;
-}
-
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function update_character_handler(
-  args: UpdateCharacterHandlerArgs
-): Promise<HandlerResponse> {
-  try {
-    const db = new GameDatabase();
-    const character = await db.characters.updateCharacter(args.character_id, args.updates);
-    if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.character_id} not found.` }], isError: true };
-    }
-    return { content: [{ type: 'text', text: `Character "${character.name}" (ID ${character.id}) updated.` }] };
-  } catch (error: unknown) {
-    // TODO: Specify correct type for 'error'
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("update_character_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error updating character: ${errMsg}` }], isError: true };
-  }
 }
 ````
 
@@ -6194,6 +5950,608 @@ New tool for combat management:
         "invoke_cantrip"
       ]
     }
+  }
+}
+````
+
+## File: game-state-server/src/characterSheets.ts
+````typescript
+/**
+ * Modular Character Sheet Formatters
+ * -----------------------------------
+ * Provides template-driven, game-line-specific character sheet output, supporting
+ * Vampire, Werewolf, Mage, Changeling, and a generic fallback. Formatting is
+ * functionally and thematically correct for each game. Cleanly integrates
+ * conditions/status, derangements, and XP reporting.
+ *
+ * To add a new game line: Add a function here with the signature below and update
+ * the formatSheetByGameLine selector below.
+ *
+ * API: Each formatter receives a CharacterSheetOptions object and returns
+ *      { type: 'text', text: string }
+ */
+import { HealthTracker } from './health-tracker.js';
+export type CharacterSheetOptions = {
+  character: any,                   // Core character object (db shape)
+  extra?: Record<string, any>,      // Game-line-specific joined data (e.g., disciplines)
+  derangements?: any[],             // Array of derangement objects
+  conditions?: any[],               // Array of active conditions
+  xpHistory?: any[]                 // Array of XP change records (optional; fallback if empty)
+};
+
+/**
+ * Utility to format derangements/status/XP blocks for all sheets.
+ */
+function formatStatusBlocks({
+  derangements = [],
+  conditions = [],
+  xpHistory = []
+}: Partial<CharacterSheetOptions>): string {
+  let blocks = '';
+  // Mental State / Derangements
+  if (derangements.length) {
+    blocks += `🧠 Mental State / Derangements:\n`;
+    derangements.forEach(d => {
+      blocks += `  - ${d.derangement}${d.description ? `: ${d.description}` : ''}\n`;
+    });
+  }
+  // Conditions/Status Effects
+  if (conditions.length) {
+    blocks += `🦠 Conditions / Status Effects:\n`;
+    conditions.forEach(c => {
+      blocks += `  - ${c.condition_name}`;
+      if (c.duration !== null && c.duration !== undefined) blocks += ` [${c.duration} rounds left]`;
+      if (c.effect_json) blocks += `: ${typeof c.effect_json === 'object' ? JSON.stringify(c.effect_json) : c.effect_json}`;
+      blocks += `\n`;
+    });
+  }
+  // XP History (if any)
+  if (xpHistory.length) {
+    blocks += `📈 XP History (last ${xpHistory.length}):\n`;
+    xpHistory.forEach(xp => {
+      blocks += `  - ${xp.amount > 0 ? '+' : ''}${xp.amount} XP: ${xp.reason || ''} (${xp.timestamp ? new Date(xp.timestamp).toLocaleDateString() : ''})\n`;
+    });
+  }
+  return blocks;
+}
+/** Fallback: All WoD lines share these core blocks */
+function formatCoreBlocks(character: any): string {
+  // Helper: lookup ability rating by case-insensitive name
+  function getAbilityRating(abilities: any[], name: string): number {
+    if (!Array.isArray(abilities)) return 0;
+    const found = abilities.find(
+      ab => typeof ab.ability_name === "string" && ab.ability_name.toLowerCase() === name.toLowerCase()
+    );
+    return found ? Number(found.rating) || 0 : 0;
+  }
+  // COMMON DICE POOLS for Vampire
+  function formatCommonDicePools(character: any): string {
+    const abilities = character.abilities || [];
+    // For Vampire/oWoD, most frequent pools:
+    const pools = [
+      {
+        label: "Perception + Alertness",
+        total:
+          Number(character.perception || 0) +
+          getAbilityRating(abilities, "Alertness"),
+      },
+      {
+        label: "Dexterity + Brawl",
+        total:
+          Number(character.dexterity || 0) +
+          getAbilityRating(abilities, "Brawl"),
+      },
+      {
+        label: "Manipulation + Subterfuge",
+        total:
+          Number(character.manipulation || 0) +
+          getAbilityRating(abilities, "Subterfuge"),
+      },
+      // Add more as needed (optional):
+      {
+        label: "Wits + Intimidation",
+        total:
+          Number(character.wits || 0) +
+          getAbilityRating(abilities, "Intimidation"),
+      },
+      {
+        label: "Dexterity + Firearms",
+        total:
+          Number(character.dexterity || 0) +
+          getAbilityRating(abilities, "Firearms"),
+      },
+    ];
+    // Only show pools where at least one component is nonzero or ability is present
+    const filtered = pools.filter(
+      p => p.total > 0
+    );
+    if (filtered.length === 0) return "";
+    let block = "🎲 Most-Used Dice Pools:\n";
+    block += filtered
+      .map((p) => `  - ${p.label}: ${p.total}`)
+      .join("\n");
+    return block + "\n─────────────────────────────────────────────\n";
+  }
+
+  // HEALTH using HealthTracker for graphic block
+  let healthBlock = '';
+  try {
+    // Lazy import to avoid circular dependency (if any)
+    const tracker = HealthTracker.from(character.health_levels);
+    const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
+    const woundPenalty = tracker.getWoundPenalty();
+    healthBlock = '❤️ Health Levels:\n';
+    healthBlock += `  [${healthBoxes.map((b: string) => b ? b : ' ').join('][')}] (Penalty: ${woundPenalty})\n`;
+  } catch (e) {
+    // fallback (should never trigger)
+    healthBlock = '';
+  }
+
+  return [
+    `👤 Name: ${character.name}`,
+    character.concept ? `🧠 Concept: ${character.concept}` : '',
+    `🗂️  Game Line: ${character.game_line?.[0]?.toUpperCase() + character.game_line?.slice(1)}`,
+    '',
+    `💪 Strength: ${character.strength}\n🏃 Dexterity: ${character.dexterity}\n❤️ Stamina: ${character.stamina}`,
+    `🎭 Charisma: ${character.charisma}\n🗣️ Manipulation: ${character.manipulation}\n🌟 Appearance: ${character.appearance}`,
+    `👁️ Perception: ${character.perception}\n🧠 Intelligence: ${character.intelligence}\n⚡ Wits: ${character.wits}`,
+    '',
+    '────────────── ABILITIES ──────────────',
+    character.abilities?.length
+      ? character.abilities.map(
+          (ab: any) => `  - ${ab.ability_type}: ${ab.ability_name} (${ab.rating}${ab.specialty ? `, ${ab.specialty}` : ''})`
+        ).join('\n')
+      : '  (none recorded)',
+    '',
+    formatCommonDicePools(character),
+    healthBlock,
+    '────────────── CORE TRAITS ──────────────',
+    `🔵 Willpower: ${character.willpower_current}/${character.willpower_permanent}`,
+    character.power_stat_name && character.power_stat_rating !== undefined
+      ? `🪄 ${character.power_stat_name}: ${character.power_stat_rating}` : ''
+  ].filter(Boolean).join('\n');
+}
+/**
+ * Vampire: Adds Disciplines, Blood Pool, Humanity
+ */
+export function formatVampireSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: VAMPIRE Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  // (health block now included in formatCoreBlocks)
+
+  // Disciplines, Blood Pool, Humanity
+  if (extra.disciplines?.length) {
+    out += "\n🩸 Disciplines:\n";
+    extra.disciplines.forEach((d: any) => {
+      out += `  - ${d.discipline_name}: ${d.rating}\n`;
+    });
+  }
+  out += `Blood Pool: ${character.blood_pool_current || 0}/${character.blood_pool_max || 0}, Humanity: ${character.humanity ?? ''}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Werewolf: Adds Gifts, Rage, Gnosis, Renown
+ */
+export function formatWerewolfSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: WEREWOLF Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  // (health block now included in formatCoreBlocks)
+
+  // Gifts, Rage, Gnosis, Renown
+  if (extra.gifts?.length) {
+    out += "\n🐺 Gifts:\n";
+    extra.gifts.forEach((g: any) => {
+      out += `  - ${g.gift_name} (Rank ${g.rank})\n`;
+    });
+  }
+  out += `Rage: ${character.rage_current || 0}, Gnosis: ${character.gnosis_current || 0}, Renown: Glory ${character.renown_glory || 0}, Honor ${character.renown_honor || 0}, Wisdom ${character.renown_wisdom || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Mage: Adds Spheres, Arete, Quintessence, Paradox
+ */
+export function formatMageSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: MAGE Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  // (health block now included in formatCoreBlocks)
+
+  // Spheres, Arete, Quintessence, Paradox
+  if (extra.spheres?.length) {
+    out += "\n🕯️ Spheres:\n";
+    extra.spheres.forEach((s: any) => {
+      out += `  - ${s.sphere_name}: ${s.rating}\n`;
+    });
+  }
+  out += `Arete: ${character.arete || 0}, Quintessence: ${character.quintessence || 0}, Paradox: ${character.paradox || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Changeling: Adds Arts, Realms, Glamour, Banality
+ */
+export function formatChangelingSheet(opts: CharacterSheetOptions) {
+  const { character, extra = {} } = opts;
+  let out = `🎲 World of Darkness: CHANGELING Sheet\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  // (health block now included in formatCoreBlocks)
+
+  if (extra.arts?.length) {
+    out += "\n✨ Arts:\n";
+    extra.arts.forEach((a: any) => {
+      out += `  - ${a.art_name}: ${a.rating}\n`;
+    });
+  }
+  if (extra.realms?.length) {
+    out += "🌐 Realms:\n";
+    extra.realms.forEach((r: any) => {
+      out += `  - ${r.realm_name}: ${r.rating}\n`;
+    });
+  }
+  out += `Glamour: ${character.glamour_current || 0}/${character.glamour_permanent || 0}, Banality: ${character.banality_permanent || 0}\n`;
+  return { type: 'text', text: out };
+}
+/**
+ * Fallback: Core WoD sheet structure
+ */
+export function formatGenericWoDSheet(opts: CharacterSheetOptions) {
+  const { character } = opts;
+  let out = `🎲 World of Darkness Character Sheet (Generic)\n\n`;
+  out += formatCoreBlocks(character) + '\n';
+  out += formatStatusBlocks(opts);
+
+  // Health
+  // (health block now included in formatCoreBlocks)
+
+  // Power stat if present
+  if (character.power_stat_name && character.power_stat_rating !== undefined) {
+    out += `${character.power_stat_name}: ${character.power_stat_rating}\n`;
+  }
+  return { type: 'text', text: out };
+}
+/**
+ * Selector for formatter function (UI/readability extensibility point)
+ */
+export function formatSheetByGameLine(opts: CharacterSheetOptions) {
+  switch ((opts.character.game_line || '').toLowerCase()) {
+    case 'vampire':    return formatVampireSheet(opts);
+    case 'werewolf':   return formatWerewolfSheet(opts);
+    case 'mage':       return formatMageSheet(opts);
+    case 'changeling': return formatChangelingSheet(opts);
+    default:           return formatGenericWoDSheet(opts);
+  }
+}
+/**
+ * To extend for a new game line:
+ * 1. Write `function formatHunterSheet(opts: CharacterSheetOptions) {...}`
+ * 2. Add `case 'hunter': return formatHunterSheet(opts);` to formatSheetByGameLine
+ * 3. (Optionally) update docs/UI layer
+ */
+````
+
+## File: game-state-server/src/tool-handlers/apply_damage.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/apply_damage.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+import type { CharacterData } from '../types/character.types.js';
+
+export interface ApplyDamageArgs {
+  target_id: number;
+  amount?: number;
+  level?: string;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function apply_damage_handler(args: ApplyDamageArgs): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    // Ideally there should be an applyDamage method in CharacterRepository.
+    // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
+    const character = await db.characters.getCharacterById(args.target_id);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.target_id} not found.`]), isError: true };
+    }
+
+    // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
+    // NOTE: This is placeholder logic and may need to match your game's actual health model.
+    const { amount = 1, level = "bruised" } = args;
+    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
+    prevHealth[level] = (prevHealth[level] || 0) + amount;
+
+    // Save updated health_levels
+    await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
+
+    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${args.target_id}`]) };
+    // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("apply_damage_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error applying damage: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/create_character.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/create_character.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+import type { CharacterData } from '../types/character.types.js';
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+/**
+ * Creates a new character from the provided arg fields.
+ * args: Opaque; expected to match CharacterData fields.
+ * TODO: Specify arg type if possible.
+ */
+export async function create_character_handler(
+  args: Record<string, unknown> // TODO: Specify correct type
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    const character = await db.characters.createCharacter(args);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Error creating character: Character not found after creation.`]), isError: true };
+    }
+    return { content: makeTextContentArray([`Character "${character.name}" created with ID ${character.id}`]) };
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("create_character_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error creating character: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/gain_resource.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/gain_resource.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+import type { CharacterData } from '../types/character.types.js';
+
+export interface GainResourceArgs {
+  character_id: number;
+  resource_name: string;
+  amount?: number;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function gain_resource_handler(
+  args: GainResourceArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    // TODO: Implement CharacterRepository.gainResource for resource-specific logic.
+    // For now, patch relevant field (e.g., increasing willpower, gnosis, etc.)
+    const character = await db.characters.getCharacterById(args.character_id);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
+    }
+    // Example: args.resource_name = 'willpower_current', args.amount = 1
+    const { resource_name, amount = 1 } = args;
+    const prev = character[resource_name] ?? 0;
+    const updates: Partial<CharacterData> = {};
+    updates[resource_name] = prev + amount;
+    await db.characters.updateCharacter(args.character_id, updates);
+
+    return { content: makeTextContentArray([`Resource ${resource_name} (+${amount}) gained for Character id ${args.character_id}`]) };
+    // TODO: Dedicated gainResource logic (e.g., cap checks) should go in repo layer.
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("gain_resource_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error gaining resource: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_character_by_name.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/get_character_by_name.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export interface GetCharacterByNameHandlerArgs {
+  name: string;
+}
+
+export async function get_character_by_name_handler(
+  args: GetCharacterByNameHandlerArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    const character = await db.characters.getCharacterByName(args.name);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with name ${args.name} not found.`]), isError: true };
+    }
+    return { content: makeTextContentArray([JSON.stringify(character, null, 2)]) };
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("get_character_by_name_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error getting character: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/get_character.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/get_character.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export interface GetCharacterHandlerArgs {
+  character_id: number;
+}
+
+export async function get_character_handler(
+  args: GetCharacterHandlerArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    const character = await db.characters.getCharacterById(args.character_id);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
+    }
+    return { content: makeTextContentArray([JSON.stringify(character, null, 2)]) };
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("get_character_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error getting character: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/restore_resource.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/restore_resource.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+import type { CharacterData } from '../types/character.types.js';
+
+export interface RestoreResourceArgs {
+  character_id: number;
+  resource_name: string;
+  amount?: number;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function restore_resource_handler(
+  args: RestoreResourceArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    // TODO: Implement CharacterRepository.restoreResource for resource restoration semantics.
+    const character = await db.characters.getCharacterById(args.character_id);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
+    }
+    // Example: args.resource_name = 'willpower_current', args.amount restores to value or adds amount
+    const { resource_name, amount } = args;
+    const maxResource = character[`${resource_name}_permanent`] || character[resource_name]; // Fallback
+    const updates: Partial<CharacterData> = {};
+    if (typeof amount === 'number') {
+      // Clamp to max
+      updates[resource_name] = Math.min((character[resource_name] ?? 0) + amount, maxResource ?? amount);
+    } else {
+      // Optional: If direct restore
+      // updates[resource_name] = maxResource;
+    }
+    await db.characters.updateCharacter(args.character_id, updates);
+
+    return { content: makeTextContentArray([`Resource ${resource_name} restored for Character id ${args.character_id}`]) };
+    // TODO: Dedicated restoreResource logic (caps, full/partial restore rules) should go in repo layer.
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("restore_resource_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error restoring resource: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/spend_resource.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/spend_resource.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+
+import type { CharacterData } from '../types/character.types.js';
+
+export interface SpendResourceArgs {
+  character_id: number;
+  resource_name: string;
+  amount?: number;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function spend_resource_handler(
+  args: SpendResourceArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    // TODO: Implement CharacterRepository.spendResource for resource spending validation.
+    const character = await db.characters.getCharacterById(args.character_id);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
+    }
+    // Example: args.resource_name = 'willpower_current', args.amount = 1
+    const { resource_name, amount = 1 } = args;
+    const prev = character[resource_name] ?? 0;
+    const updates: Partial<CharacterData> = {};
+    updates[resource_name] = Math.max(prev - amount, 0);
+    await db.characters.updateCharacter(args.character_id, updates);
+
+    return { content: makeTextContentArray([`Resource ${resource_name} (-${amount}) spent for Character id ${args.character_id}`]) };
+    // TODO: Dedicated spendResource logic (checks for overspending) should go in repo layer.
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("spend_resource_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error spending resource: ${errMsg}`]), isError: true };
+  }
+}
+````
+
+## File: game-state-server/src/tool-handlers/update_character.handler.ts
+````typescript
+// game-state-server/src/tool-handlers/update_character.handler.ts
+import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
+import type { CharacterData } from '../types/character.types.js';
+
+export interface UpdateCharacterHandlerArgs {
+  character_id: number;
+  updates: Partial<CharacterData>;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function update_character_handler(
+  args: UpdateCharacterHandlerArgs
+): Promise<HandlerResponse> {
+  try {
+    const db = new GameDatabase();
+    const character = await db.characters.updateCharacter(args.character_id, args.updates);
+    if (!character) {
+      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
+    }
+    return { content: makeTextContentArray([`Character "${character.name}" (ID ${character.id}) updated.`]) };
+  } catch (error: unknown) {
+    // TODO: Specify correct type for 'error'
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
+    console.error("update_character_handler error:", error);
+    return { content: makeTextContentArray([`❌ Error updating character: ${errMsg}`]), isError: true };
   }
 }
 ````
@@ -7596,137 +7954,8 @@ import { apply_damage_handler } from './tool-handlers/apply_damage.handler.js';
 
 console.log("Initializing server...");
 
-// Define tool definitions
-const toolDefinitions = {
-  create_character: {
-    name: 'create_character',
-    description: 'Create a new oWoD character.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        // Core character properties
-        name: { type: 'string', description: 'Character name' },
-        concept: { type: 'string', description: 'Character concept', nullable: true },
-        game_line: { type: 'string', enum: ['vampire', 'werewolf', 'mage', 'changeling'], description: 'Game line/splat' },
-        // Vampire-specific fields
-        clan: { type: 'string', description: 'Vampire clan (e.g., Brujah, Malkavian)', nullable: true },
-        generation: { type: 'number', description: 'Vampire generation', nullable: true },
-        blood_pool_current: { type: 'number', description: 'Current Blood Pool', nullable: true },
-        blood_pool_max: { type: 'number', description: 'Max Blood Pool', nullable: true },
-        humanity: { type: 'number', description: 'Humanity (Vampire only)', nullable: true },
-        // Werewolf-specific fields
-        breed: { type: 'string', description: 'Werewolf breed (e.g., Homid, Metis, Lupus)', nullable: true },
-        auspice: { type: 'string', description: 'Werewolf auspice (e.g., Ragabash, Theurge)', nullable: true },
-        tribe: { type: 'string', description: 'Werewolf tribe', nullable: true },
-        gnosis_current: { type: 'number', description: 'Current Gnosis', nullable: true },
-        gnosis_permanent: { type: 'number', description: 'Permanent Gnosis', nullable: true },
-        rage_current: { type: 'number', description: 'Current Rage', nullable: true },
-        rage_permanent: { type: 'number', description: 'Permanent Rage', nullable: true },
-        renown_glory: { type: 'string', description: 'Glory Renown', nullable: true },
-        renown_honor: { type: 'string', description: 'Honor Renown', nullable: true },
-        renown_wisdom: { type: 'string', description: 'Wisdom Renown', nullable: true },
-        tradition_convention: { type: 'string', description: 'Mage tradition or Convention', nullable: true },
-        arete: { type: 'number', description: 'Mage Arete', nullable: true },
-        quintessence: { type: 'number', description: 'Mage Quintessence', nullable: true },
-        paradox: { type: 'number', description: 'Mage Paradox', nullable: true },
-        kith: { type: 'string', description: 'Changeling kith', nullable: true },
-        seeming: { type: 'string', description: 'Changeling seeming', nullable: true },
-        glamour_current: { type: 'number', description: 'Current Glamour', nullable: true },
-        glamour_permanent: { type: 'number', description: 'Permanent Glamour', nullable: true },
-        banality_permanent: { type: 'number', description: 'Permanent Banality', nullable: true },
-        abilities: { type: 'array', items: { type: 'object' }, nullable: true, description: 'Starting abilities for the character' },
-        disciplines: { type: 'array', items: { type: 'object' }, nullable: true, description: 'Starting disciplines (Vampire only)' },
-        spheres: { type: 'array', items: { type: 'object' }, nullable: true, description: 'Spheres (Mage only)' },
-        arts: { type: 'array', items: { type: 'object' }, nullable: true, description: 'Changeling Arts' },
-        realms: { type: 'array', items: { type: 'object' }, nullable: true, description: 'Changeling Realms' }
-      },
-      required: ['name', 'game_line']
-    }
-  },
-  get_character: {
-    name: 'get_character',
-    description: 'Retrieve full character data.',
-    inputSchema: {
-      type: 'object',
-      properties: { character_id: { type: 'number' } },
-      required: ['character_id']
-    }
-  },
-  get_character_by_name: {
-    name: 'get_character_by_name',
-    description: 'Retrieve character by name.',
-    inputSchema: {
-      type: 'object',
-      properties: { name: { type: 'string' } },
-      required: ['name']
-    }
-  },
-  update_character: {
-    name: 'update_character',
-    description: 'Update character traits.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        character_id: { type: 'number' },
-        updates: { type: 'object' }
-      },
-      required: ['character_id', 'updates']
-    }
-  },
-  spend_resource: {
-    name: 'spend_resource',
-    description: 'Spend a character resource.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        character_id: { type: 'number' },
-        resource_name: { type: 'string', enum: ['willpower', 'blood', 'gnosis', 'rage', 'glamour', 'quintessence', 'paradox'] },
-        amount: { type: 'number', default: 1 }
-      },
-      required: ['character_id', 'resource_name']
-    }
-  },
-  restore_resource: {
-    name: "restore_resource",
-    description: "Restore a character resource like Willpower, Blood, etc.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        character_id: { type: "number" },
-        resource_name: { type: "string", enum: ['willpower', 'blood', 'gnosis', 'rage', 'glamour', 'quintessence'] },
-        amount: { type: 'number', default: 1 }
-      },
-      required: ['character_id', 'resource_name']
-    }
-  },
-  gain_resource: {
-    name: 'gain_resource',
-    description: 'Gain a resource through an in-game action (e.g., feeding, meditation, quest). Applies game-line–specific logic.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        character_id: { type: 'number' },
-        resource_name: { type: 'string', enum: ['willpower', 'blood', 'gnosis', 'glamour', 'quintessence'] },
-        roll_successes: { type: 'number', minimum: 1 }
-      },
-      required: ['character_id', 'resource_name', 'roll_successes']
-    }
-  },
-  apply_damage: {
-    name: 'apply_damage',
-    description: 'Apply health level damage to a target after a successful damage roll.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        target_type: { type: 'string', enum: ['character', 'npc'] },
-        target_id: { type: 'number' },
-        damage_successes: { type: 'number', description: 'The number of successes from the damage roll.' },
-        damage_type: { type: 'string', enum: ['bashing', 'lethal', 'aggravated'], default: 'lethal' }
-      },
-      required: ['target_type', 'target_id', 'damage_successes', 'damage_type']
-    }
-  }
-};
+// Centralized toolDefinitions import
+import { toolDefinitions } from './tool-definitions.js';
 
 console.log("Initial toolDefinitions array created. Length:", Object.keys(toolDefinitions).length);
 

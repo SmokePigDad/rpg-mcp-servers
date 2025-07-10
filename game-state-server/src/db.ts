@@ -4,128 +4,37 @@ import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { ANTAGONIST_TEMPLATES } from './antagonists.js';
-import { HealthTracker, DamageObject } from './health-tracker.js';
+import { HealthTracker } from './health-tracker.js';
 
 import { CharacterRepository } from './repositories/character.repository.js';
 import { AntagonistRepository } from './repositories/antagonist.repository.js';
 import { StatusEffectRepository } from './repositories/status-effect.repository.js';
 import { InventoryRepository } from './repositories/inventory.repository.js';
 
-// --- Interface Definitions ---
-// --- Type Definitions (Cleaned) ---
-/*
- * --- Normalized Type and Interface Definitions ---
- */
-export interface DatabaseResult {
-  lastInsertRowid: number | bigint;
-  changes: number;
-}
-export interface QueryResult<T> {
-  [key: string]: T | undefined;
-}
-export interface Lock {
-  timestamp: number;
-  operation: string;
-}
-export type GameLine = 'vampire' | 'werewolf' | 'mage' | 'changeling';
+/* Types are now imported from src/types/*.ts */
 
-export interface CharacterAttributes {
-  strength: number;
-  dexterity: number;
-  stamina: number;
-  charisma: number;
-  manipulation: number;
-  appearance: number;
-  perception: number;
-  intelligence: number;
-  wits: number;
-}
-export interface InventoryItem {
-  id: number;
-  character_id: number;
-  item_name: string;
-  item_type: string;
-  quantity: number;
-  description?: string;
-  properties?: any;
-  equipped: boolean;
-  condition: string;
-  last_modified: string;
-}
-export interface StatusEffect {
-  id: number;
-  character_id?: number;
-  npc_id?: number;
-  effect_name: string;
-  description?: string;
-  mechanical_effect?: any;
-  duration_type: string;
-  duration_value?: number;
-}
-export interface CharacterData extends CharacterAttributes {
-  id: number;
-  name: string;
-  concept?: string | null;
-  game_line: GameLine;
-  willpower_current: number;
-  willpower_permanent: number;
-  health_levels: string;
-  experience: number;
-  power_stat_rating?: number;
-  power_stat_name?: string;
-  abilities: any[];
-  disciplines: any[];
-  arts?: any[];
-  realms?: any[];
-  spheres?: any[];
-  gifts?: any[];
-  inventory: InventoryItem[];
-  status_effects: StatusEffect[];
-  [key: string]: any;
-}
-export interface AntagonistRow {
-  id: number;
-  name: string;
-  template: string;
-  concept: string;
-  game_line: string;
-  strength: number;
-  dexterity: number;
-  stamina: number;
-  charisma: number;
-  manipulation: number;
-  appearance: number;
-  perception: number;
-  intelligence: number;
-  wits: number;
-  willpower_current: number;
-  willpower_permanent: number;
-  health_levels: string;
-  blood_pool_current: number;
-  notes: string;
-}
-
-export interface NpcRow {
-  id: number;
-  name: string;
-  template: string;
-  concept: string;
-  game_line: string;
-  strength: number;
-  dexterity: number;
-  stamina: number;
-  charisma: number;
-  manipulation: number;
-  appearance: number;
-  perception: number;
-  intelligence: number;
-  wits: number;
-  willpower_current: number;
-  willpower_permanent: number;
-  health_levels: string;
-  blood_pool_current: number;
-  notes: string;
-}
+import type {
+ DatabaseResult,
+ Lock
+} from './types/db.types.js';
+import type {
+ CharacterAttributes,
+ CharacterData
+} from './types/character.types.js';
+import type {
+ AntagonistRow,
+ NpcRow
+} from './types/antagonist.types.js';
+import type {
+ InventoryItem
+} from './types/inventory.types.js';
+import type {
+ StatusEffect
+} from './types/status-effect.types.js';
+import type {
+ DamageObject
+} from './types/health.types.js';
+// export type GameLine = 'vampire' | 'werewolf' | 'mage' | 'changeling';
 
 // Create data directory in workspace
 const DATA_DIR = join(process.cwd(), 'data');
