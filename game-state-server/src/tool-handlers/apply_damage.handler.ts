@@ -1,5 +1,6 @@
 // game-state-server/src/tool-handlers/apply_damage.handler.ts
 import { GameDatabase } from '../db.js';
+import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
 
@@ -18,7 +19,7 @@ export async function apply_damage_handler(args: ApplyDamageArgs): Promise<Handl
     // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
     const character = await db.characters.getCharacterById(args.target_id);
     if (!character) {
-      return { content: [{ type: 'text', text: `❌ Character with ID ${args.target_id} not found.` }], isError: true };
+      return { content: makeTextContentArray([`❌ Character with ID ${args.target_id} not found.`]), isError: true };
     }
 
     // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
@@ -30,12 +31,12 @@ export async function apply_damage_handler(args: ApplyDamageArgs): Promise<Handl
     // Save updated health_levels
     await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
 
-    return { content: [{ type: 'text', text: `Damage applied (${amount} ${level}) to Character id ${args.target_id}` }] };
+    return { content: makeTextContentArray([`Damage applied (${amount} ${level}) to Character id ${args.target_id}`]) };
     // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
   } catch (error: unknown) {
     // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
     console.error("apply_damage_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error applying damage: ${errMsg}` }], isError: true };
+    return { content: makeTextContentArray([`❌ Error applying damage: ${errMsg}`]), isError: true };
   }
 }

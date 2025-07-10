@@ -1,17 +1,18 @@
 /**
  * Modular Character Sheet Formatters
  * -----------------------------------
- * Provides template-driven, game-line-specific character sheet output, supporting 
- * Vampire, Werewolf, Mage, Changeling, and a generic fallback. Formatting is 
- * functionally and thematically correct for each game. Cleanly integrates 
+ * Provides template-driven, game-line-specific character sheet output, supporting
+ * Vampire, Werewolf, Mage, Changeling, and a generic fallback. Formatting is
+ * functionally and thematically correct for each game. Cleanly integrates
  * conditions/status, derangements, and XP reporting.
  *
  * To add a new game line: Add a function here with the signature below and update
  * the formatSheetByGameLine selector below.
  *
- * API: Each formatter receives a CharacterSheetOptions object and returns 
+ * API: Each formatter receives a CharacterSheetOptions object and returns
  *      { type: 'text', text: string }
  */
+import { HealthTracker } from './health-tracker.js';
 export type CharacterSheetOptions = {
   character: any,                   // Core character object (db shape)
   extra?: Record<string, any>,      // Game-line-specific joined data (e.g., disciplines)
@@ -118,7 +119,6 @@ function formatCoreBlocks(character: any): string {
   let healthBlock = '';
   try {
     // Lazy import to avoid circular dependency (if any)
-    const { HealthTracker } = require('./health-tracker.js');
     const tracker = HealthTracker.from(character.health_levels);
     const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
     const woundPenalty = tracker.getWoundPenalty();
