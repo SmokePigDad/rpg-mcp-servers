@@ -1,6 +1,10 @@
 import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
 
 export async function apply_status_effect_handler(args: any) {
-  // This is a placeholder.
-  return { content: makeTextContentArray(["Tool 'apply_status_effect' is not yet implemented."]) };
+  const { target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value } = args;
+  const db = new GameDatabase();
+  const effectId = db.statusEffects.addStatusEffect({ target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value });
+
+  return { content: makeTextContentArray([`✅ Applied status effect "${effect_name}" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
 }

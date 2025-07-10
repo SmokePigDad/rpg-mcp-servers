@@ -1,6 +1,9 @@
 import { makeTextContentArray } from '../index.js';
+import { GameDatabase } from '../db.js';
 
 export async function add_item_handler(args: any) {
-  // This is a placeholder.
-  return { content: makeTextContentArray(["Tool 'add_item' is not yet implemented."]) };
+  const { target_type, target_id, item_name, description } = args;
+  const db = new GameDatabase();
+  // TODO: Implement add item logic to the InventoryRepository
+  return { content: makeTextContentArray([`Tool add_item is not yet fully implemented.`]) };
 }
