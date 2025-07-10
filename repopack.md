@@ -47,7 +47,6 @@ CRITICAL_FIXES_SUMMARY.md
 debug-tools-response.js
 diagnose-mcp.bat
 dice-rolling-guide.md
-dungeon-master-mode.json
 ENHANCEMENTS.md
 game-state-server/package.json
 game-state-server/src/antagonists.ts
@@ -79,6 +78,316 @@ update-summary.md
 ```
 
 # Files
+
+## File: .gitattributes
+````
+# Auto detect text files and perform LF normalization
+* text=auto
+````
+
+## File: .kilocodemodes
+````
+customModes:
+  - slug: team-orchestrator
+    name: Team Orchestrator
+    roleDefinition: "roleDefinition: A strategic workflow orchestrator who coordinates complex tasks by delegating them to appropriate specialized team members. This orchestrator understands the full capabilities of the development team including MCP server building, Open-WebUI integration, research, UI/UX design, testing, and planning. Always consults with relevant experts before making decisions and ensures proper coordination between team members."
+    customInstructions: "When receiving a task, first analyze what experts are needed from the team. Delegate specific subtasks to: mcp-server-builder for MCP server development, open-webui-expert for Open-WebUI integration, researcher for information gathering, ui-ux-expert for design decisions, tester for quality assurance, planner for project planning, and any other relevant experts. Coordinate their work and synthesize their outputs into cohesive solutions."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: mcp-server-expert-builder
+    name: MCP Server Expert Builder
+    roleDefinition: "An expert in building Model Context Protocol (MCP) servers. Specialized in creating, configuring, and maintaining MCP servers with deep knowledge of the MCP specification, server architecture, tool development, and integration patterns."
+    customInstructions: "Focus on MCP server development including: server configuration, tool implementation, resource management, transport protocols (stdio, sse, streamable-http), schema validation, and integration with various AI systems. Always consider security, performance, and maintainability when building MCP servers."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: open-webui-expert
+    name: Open-WebUI Expert
+    roleDefinition: "An expert in Open-WebUI with specialized skills in MCP integration and prompt building. Understands the Open-WebUI architecture, configuration, customization, and how to integrate MCP servers and build effective prompts for optimal user experience."
+    customInstructions: "Specialize in Open-WebUI setup, configuration, UI customization, MCP server integration, prompt engineering, user experience optimization, and troubleshooting. Always consider user workflow efficiency and interface usability when making recommendations."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+    source: project
+  - slug: expert-researcher
+    name: Expert Researcher
+    roleDefinition: "A skilled researcher who excels at gathering, analyzing, and synthesizing information from various sources. Specializes in technical documentation analysis, market research, competitor analysis, best practices investigation, and trend identification."
+    customInstructions: "Conduct thorough research on requested topics including: technical documentation analysis, market research, competitor analysis, best practices investigation, and trend identification. Provide well-structured, evidence-based reports with clear recommendations and actionable insights."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: ui-ux-expert
+    name: UI/UX Expert
+    roleDefinition: "A user interface and user experience expert specializing in design systems, usability, accessibility, and creating intuitive user experiences. Skilled in modern design principles, prototyping, and user-centered design methodologies."
+    customInstructions: "Focus on creating excellent user experiences through: interface design, usability analysis, accessibility compliance, user journey mapping, wireframing, prototyping, and design system development. Always prioritize user needs and ensure designs are accessible, intuitive, and aligned with modern design standards."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: expert-tester
+    name: Expert Tester
+    roleDefinition: "A comprehensive testing expert specializing in testing new servers, applications, and systems. Skilled in various testing methodologies including unit testing, integration testing, performance testing, security testing, and user acceptance testing."
+    customInstructions: "Develop and execute comprehensive testing strategies including: test plan creation, automated testing setup, manual testing procedures, performance benchmarking, security testing, and bug reporting. Focus on ensuring reliability, performance, and security of new servers and applications."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: expert-planner
+    name: Expert Planner
+    roleDefinition: "A strategic planning expert who designs comprehensive project plans after consulting with other experts. Specializes in project management, resource allocation, timeline planning, risk assessment, and coordinating complex multi-disciplinary projects."
+    customInstructions: "Create detailed project plans by: consulting with relevant experts, analyzing requirements, identifying dependencies, estimating timelines, allocating resources, assessing risks, and creating actionable roadmaps. Always ensure plans are realistic, well-documented, and include contingency planning."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: devops-expert
+    name: DevOps Expert
+    roleDefinition: "A DevOps specialist focused on deployment, infrastructure, CI/CD pipelines, containerization, and system reliability. Expert in cloud platforms, automation, monitoring, and ensuring smooth deployment and operation of applications and servers."
+    customInstructions: "Handle infrastructure and deployment concerns including: CI/CD pipeline setup, containerization with Docker, cloud deployment, monitoring and logging, automated testing integration, and infrastructure as code. Focus on reliability, scalability, and automation."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: security-expert
+    name: Security Expert
+    roleDefinition: "A cybersecurity expert specializing in application security, server hardening, vulnerability assessment, and security best practices. Ensures all systems and applications meet security standards and are protected against common threats."
+    customInstructions: "Focus on security aspects including: security audits, vulnerability assessments, secure coding practices, server hardening, authentication and authorization, data protection, and compliance with security standards. Always prioritize security in all recommendations and implementations."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: documentation-expert
+    name: Documentation Expert
+    roleDefinition: "A technical writing expert specializing in creating comprehensive, clear, and user-friendly documentation. Skilled in API documentation, user guides, technical specifications, and ensuring documentation is accessible and maintainable."
+    customInstructions: "Create high-quality documentation including: API documentation, user guides, installation instructions, troubleshooting guides, and technical specifications. Focus on clarity, completeness, and user-friendliness. Ensure documentation is well-structured and easy to maintain."
+    groups:
+      - read
+      - edit
+      - browser
+      - command
+      - mcp
+    source: project
+  - slug: dungeon-master
+    name: 🦇 AI Storyteller
+    roleDefinition: "You are an expert Storyteller running immersive chronicles in the World of Darkness (Storyteller System, oWoD/Chronicles of Darkness). You weave evocative narrative, manage dramatic tension, and ensure darkly atmospheric stories where mortal and supernatural fates intertwine. You excel at adaptive narration and dynamic gameplay while upholding consistent system mechanics."
+    customInstructions: "IMPORTANT: You have access to two MCP servers for World of Darkness (oWoD) game management: 1. **rpg-game-state** — For persistent character/world data: - create_character: Create new WoD characters with all core attributes (Strength, Manipulation, etc.), willpower, power stats (e.g., Blood, Gnosis, Glamour), health levels, and abilities; supports optional arrays for Disciplines, Gifts, Arts, Realms, Spheres. - get_character: Retrieve a full, human-readable character sheet including oWoD health and all secondary features - get_character_by_name: Find characters by name - list_characters: Roster all characters - update_character: Modify character stats, traits, resources - spend_willpower, spend_blood, spend_gnosis, spend_glamour, spend_arete: Spend key supernatural/mental resources - add_item / get_inventory: Manage equipment/story items - save_world_state / get_world_state: Track locations, NPCs, events - apply_damage: Damage is tracked by health level (Bruised, Hurt, etc., not hit points!) 2. **rpg-combat-engine** — For dice mechanics: - roll_wod_pool: Roll a World of Darkness dice pool (d10s): successes, botches, specialties. STORYTELLER SYSTEM FLOW: 1. Always consult current character sheets BEFORE describing actions or outcomes. 2. Use tools to manage all character resources and health (never ad-lib results or adjust stats manually; always use the appropriate tool). 3. For any dice pool action (attribute + ability, etc.), use roll_wod_pool — specify pool size, difficulty, and specialty if relevant. 4. Apply damage and wound penalties using the health levels system (never use hit points). 5. For spending limited character resources, ALWAYS use resource-spending tools (spend_willpower, spend_blood, etc.) to modify the player state. 6. Maintain persistent story, world state, and equipment using the relevant tool. NARRATIVE STYLE: - Use evocative, genre-appropriate descriptions with a focus on mood, motif, and supernatural atmosphere. - Develop distinct, memorable NPCs and factions with oWoD-appropriate motivations. - Balance story flow, horror/drama, and system mechanics. - Present player choices that matter; react to player actions using up-to-date character and world state. COMBAT AND CHALLENGES: - Use roll_wod_pool for dice pools (success-based, not d20 or HP). - Track health ONLY with health levels (e.g. Bruised, Injured, etc.). - Use apply_damage and status effect mechanics as per Storyteller System. - All supernatural or limited resource use (Willpower, Blood, etc.) requires a spend_* tool. - Describe events cinematically, but always resolve results mechanics first for fairness and outcome transparency."
+    groups:
+      - read
+      - edit
+      - mcp
+    source: project
+````
+
+## File: combat-engine-server/package.json
+````json
+{
+  "name": "rpg-combat-engine-server",
+  "version": "1.0.0",
+  "description": "MCP server for D&D-style combat mechanics",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  }
+}
+````
+
+## File: combat-engine-server/src/narrative-engine.ts
+````typescript
+// Narrative Engine - Tier 2, Phase 1 (Staged Integration)
+// Isolated in-memory tactical/scene store & MCP tool handlers (set_scene_conditions, get_tactical_advantage)
+//
+// Safe for initial rollout: no mutation of existing core logic, well-documented API shape
+
+// Range between two entities/positions
+type RangeKey = string; // e.g. "A-B" or "char123-room7"
+type RangeValue = number; // Units are abstract, e.g. meters/grids/feet
+
+interface SceneConditions {
+  environment: string; // e.g. "open field", "dense forest"
+  cover: "none" | "partial" | "full";
+  lighting: "bright" | "dim" | "dark";
+  elevation?: "flat" | "high_ground" | "low_ground";
+  weather?: string;
+  custom?: Record<string, any>;
+}
+
+interface SituationalModifierResult {
+  modifiers: number;
+  reasons: string[];
+}
+
+/**
+ * NarrativeEngine: Handles ranges, scenes, conditions, and situational modifiers.
+ * All state is in-memory and transient until the persistent layer is available.
+ */
+export class NarrativeEngine {
+  private static instance: NarrativeEngine;
+  private rangeMap: Map<RangeKey, RangeValue>;
+  private sceneConditions: SceneConditions;
+
+  private constructor() {
+    this.rangeMap = new Map();
+    this.sceneConditions = {
+      environment: "default",
+      cover: "none",
+      lighting: "bright",
+    };
+  }
+
+  public static getInstance(): NarrativeEngine {
+    if (!NarrativeEngine.instance) {
+      NarrativeEngine.instance = new NarrativeEngine();
+    }
+    return NarrativeEngine.instance;
+  }
+
+  /**
+   * Sets the tactical range between two entities/positions.
+   * Key must be deterministic (caller handles entity ID ordering if symmetric).
+   */
+  setRange(key: RangeKey, value: RangeValue): void {
+    if (typeof value !== "number" || value < 0) return;
+    this.rangeMap.set(key, value);
+  }
+
+  /**
+   * Gets the tactical range between two entities/positions.
+   * Returns undefined if range is not set.
+   */
+  getRange(key: RangeKey): RangeValue | undefined {
+    return this.rangeMap.get(key);
+  }
+
+  /**
+   * Sets the current scene conditions.
+   * Overwrites previous values, but is always safe (initial tier: in-memory only).
+   */
+  setSceneConditions(conditions: Partial<SceneConditions>): void {
+    this.sceneConditions = { ...this.sceneConditions, ...conditions };
+  }
+
+  /**
+   * Returns a snapshot of current scene conditions.
+   */
+  getSceneConditions(): SceneConditions {
+    return { ...this.sceneConditions };
+  }
+
+  /**
+   * Computes situational modifiers for an entity or group, based on scene/cover.
+   */
+  getSituationalModifiers(actor: { cover: string; isElevated?: boolean; [key: string]: any }): SituationalModifierResult {
+    const reasons: string[] = [];
+    let modifiers = 0;
+
+    // Cover-based modifier
+    if (actor.cover === "full") {
+      modifiers += 2;
+      reasons.push("Full cover (+2)");
+    } else if (actor.cover === "partial") {
+      modifiers += 1;
+      reasons.push("Partial cover (+1)");
+    }
+
+    // Elevation (if supported in current scene)
+    if (actor.isElevated && this.sceneConditions.elevation === "high_ground") {
+      modifiers += 1;
+      reasons.push("High ground (+1)");
+    }
+
+    // Lighting penalty
+    if (this.sceneConditions.lighting === "dim") {
+      modifiers -= 1;
+      reasons.push("Dim lighting (-1)");
+    } else if (this.sceneConditions.lighting === "dark") {
+      modifiers -= 2;
+      reasons.push("Darkness (-2)");
+    }
+
+    // Additional: customize here as new conditions/actors arise
+
+    return { modifiers, reasons };
+  }
+}
+
+// MCP Tool Handler Integration (for src/index.ts)
+// Exposes two public MCP tools: set_scene_conditions, get_tactical_advantage
+// Handlers should be registered in the MCP server bootstrap in src/index.ts
+
+// MCP Tool: set_scene_conditions
+// Params: { environment?: string; cover?: "none"|"partial"|"full"; lighting?: ...; ... }
+// Returns: { ok: true }
+export function handleSetSceneConditions(params: Partial<SceneConditions>): { ok: boolean } {
+  const engine = NarrativeEngine.getInstance();
+  engine.setSceneConditions(params);
+  return { ok: true };
+}
+
+// MCP Tool: get_tactical_advantage
+// Params: { actor: { cover: string; isElevated?: boolean; ... } }
+// Returns: { modifiers: number, reasons: string[] }
+export function handleGetTacticalAdvantage(params: { actor: { cover: string; isElevated?: boolean; [key: string]: any } }): SituationalModifierResult {
+  const engine = NarrativeEngine.getInstance();
+  return engine.getSituationalModifiers(params.actor);
+}
+
+
+/**
+ * MCP Tool Exposure Plan for Safe Rollout:
+ * - Register set_scene_conditions and get_tactical_advantage in the MCP tool registry
+ * - Validate input via schema (in index.ts or dispatcher)
+ * - No core combat state is mutated outside NarrativeEngine in this phase
+ * - If any error: silently fallback to "no change" behavior and log (add logging in later phases)
+ * - Engine state is in-memory/transient, can be reset without risk
+ * - Future phases: upgrade to persistence, transactionality, and tight combat integration
+ */
+
+// API signatures (TypeScript):
+// setRange(key: string, value: number): void
+// getRange(key: string): number | undefined
+// getSituationalModifiers(actor: { cover: string; isElevated?: boolean; ... }): { modifiers: number; reasons: string[]; }
+````
 
 ## File: CRITICAL_FIXES_SUMMARY.md
 ````markdown
@@ -379,6 +688,266 @@ echo Diagnostic complete. Press any key to exit.
 pause >nul
 ````
 
+## File: ENHANCEMENTS.md
+````markdown
+# 🎉 RPG MCP Servers - Human-Friendly VS Code Enhancements
+
+## 🚀 What's New
+
+This enhancement update focuses on making the RPG MCP servers **dramatically more human-friendly** in the VS Code editor environment. Every tool output has been redesigned for better readability, context, and user experience.
+
+## ✨ Combat Engine Server Enhancements
+
+### 🎲 Dice & Checks
+- **Enhanced Roll Outputs**: Beautiful formatted results with emojis, context, and difficulty assessments
+- **Contextual Feedback**: Automatic evaluation of roll quality (Exceptional, Great, Decent, etc.)
+- **Margin Analysis**: Clear indication of success/failure margins
+- **Natural 20/1 Indicators**: Special highlighting for critical successes and failures
+
+### ⚔️ Combat Analysis
+- **Line of Sight**: Rich tactical analysis with cover information and combat advice
+- **Area Effects**: Detailed creature targeting with distances and saving throw reminders
+- **Flanking Checks**: Comprehensive positioning analysis with tactical suggestions
+- **Height Advantage**: Detailed elevation analysis with combat bonuses explanation
+
+### 📋 Combat Management
+- **Enhanced Combat Log**: Structured, numbered entries with summary information
+- **Tactical Summaries**: Rich creature analysis with positioning tips and warnings
+- **Error Handling**: Clear, helpful error messages with available options listed
+
+### 🗺️ Spatial Intelligence
+- **Battlefield Descriptions**: Human-readable overviews with creature positioning
+- **ASCII Maps**: Visual battlefield representation with legend
+- **Tactical Advice**: Context-aware suggestions for optimal play
+
+## 🏰 Game State Server Enhancements
+
+### 👤 Character Management
+- **Rich Character Sheets**: Beautiful formatted ability scores and information
+- **Character Roster**: Clean, organized character lists with IDs and classes
+- **Update Feedback**: Clear confirmation of character modifications
+
+### 🎒 Inventory System
+- **Visual Inventory**: Organized item displays with equipped status and quantities
+- **Add/Remove Feedback**: Clear confirmation of inventory changes
+- **Item Categories**: Better organization and display of gear
+
+### 🌍 World State Management
+- **Detailed Save Confirmation**: Comprehensive feedback on what was saved
+- **Rich State Retrieval**: Formatted world state with timestamps and summaries
+- **Update Tracking**: Clear indication of what changed during updates
+
+### 👹 NPC Management
+- **Visual NPC Roster**: Health status indicators and type icons
+- **Group Creation**: Batch NPC creation with detailed feedback
+- **Combat Status**: Health indicators (Healthy, Wounded, Dead) with icons
+
+### ⚔️ Encounter Management
+- **Initiative Tracking**: Clear turn order with current turn highlighting
+- **Encounter Status**: Rich encounter overviews with participant details
+- **Turn Management**: Enhanced feedback for combat flow
+
+### 🎯 Quest System
+- **Quest Display**: Beautiful quest formatting with objectives and rewards
+- **Progress Tracking**: Clear status indicators and completion feedback
+- **Assignment Confirmation**: Detailed quest assignment information
+
+## 🛠️ Technical Improvements
+
+### 🔧 Error Handling
+- **Helpful Error Messages**: Clear explanations with suggested solutions
+- **Available Options**: When entities not found, show what's available
+- **Context-Aware Guidance**: Specific advice based on the error situation
+
+### 🎨 Visual Design
+- **Consistent Emoji Usage**: Visual icons for different types of information
+- **Structured Formatting**: Clear headers, sections, and hierarchical information
+- **Status Indicators**: Color-coded (via emojis) status representations
+
+### 💡 User Experience
+- **Contextual Tips**: Tactical advice and gameplay suggestions
+- **Progress Feedback**: Clear indication of what was accomplished
+- **Next Steps**: Guidance on what to do next in many situations
+
+## 📊 Before vs After Examples
+
+### Before (Raw JSON):
+```json
+{
+  "total": 15,
+  "dc": 12,
+  "success": true,
+  "rolls": [13],
+  "modifier": 2
+}
+```
+
+### After (Human-Friendly):
+```
+🛡️ **CONSTITUTION SAVING THROW**
+
+👤 **Character:** Lyra Swiftarrow
+🎲 **Rolled:** 13
+➕ **Modifier:** +2
+🏆 **TOTAL:** 15
+🎯 **DC:** 12
+📊 **RESULT:** ✅ SUCCESS! 🎉 **Solid Save!** (beat DC by 3)
+```
+
+## 🎮 Impact on Gameplay
+
+These enhancements make the MCP servers:
+- **Easier to Use**: Clear, readable outputs reduce cognitive load
+- **More Informative**: Rich context helps players make better decisions
+- **Tactically Helpful**: Built-in advice improves gameplay experience
+- **Error-Resilient**: Better error handling reduces frustration
+- **Visually Appealing**: Beautiful formatting enhances the VS Code experience
+
+## 🔄 Migration
+
+No breaking changes! All existing functionality is preserved while adding these enhancements. Simply rebuild and restart your servers to enjoy the improved experience.
+
+---
+
+**Ready to experience D&D like never before in VS Code!** 🎲⚔️✨
+````
+
+## File: game-state-server/src/db.d.ts
+````typescript
+interface EncounterParticipant {
+    id: number;
+    encounter_id: number;
+    participant_type: 'character' | 'npc';
+    participant_id: number;
+    initiative: number;
+    initiative_order?: number | null;
+    has_acted: boolean;
+    conditions?: string | null;
+    is_active: boolean;
+    name: string;
+    current_hp: number;
+    max_hp: number;
+}
+interface Quest {
+    id: number;
+    title: string;
+    description: string;
+    objectives: string;
+    rewards: string;
+    created_at: string;
+}
+interface CharacterQuest {
+    id: number;
+    character_id: number;
+    quest_id: number;
+    status: 'active' | 'completed' | 'failed';
+    progress?: string | null;
+    assigned_at: string;
+    updated_at: string;
+    title?: string;
+    description?: string;
+    objectives?: string;
+    rewards?: string;
+}
+export declare class GameDatabase {
+    private db;
+    constructor();
+    private initializeSchema;
+    createCharacter(data: {
+        name: string;
+        class: string;
+        strength?: number;
+        dexterity?: number;
+        constitution?: number;
+        intelligence?: number;
+        wisdom?: number;
+        charisma?: number;
+    }): unknown;
+    getCharacter(id: number): unknown;
+    getCharacterByName(name: string): unknown;
+    listCharacters(): unknown[];
+    updateCharacter(id: number, updates: Record<string, any>): unknown;
+    addItem(characterId: number, item: {
+        name: string;
+        type: string;
+        quantity?: number;
+        properties?: Record<string, any>;
+    }): {
+        name: string;
+        type: string;
+        quantity?: number;
+        properties?: Record<string, any>;
+        id: number | bigint;
+    };
+    getInventory(characterId: number): any[];
+    updateItem(id: number, updates: {
+        quantity?: number;
+        equipped?: boolean;
+    }): void;
+    removeItem(id: number): void;
+    saveStoryProgress(characterId: number, data: {
+        chapter: string;
+        scene: string;
+        description?: string;
+        flags?: Record<string, any>;
+    }): void;
+    getLatestStoryProgress(characterId: number): any;
+    saveWorldState(characterId: number, data: {
+        location: string;
+        npcs?: Record<string, any>;
+        events?: Record<string, any>;
+        environment?: Record<string, any>;
+    }): void;
+    getWorldState(characterId: number): any;
+    logCombat(characterId: number, sessionId: string, action: string, result?: string): void;
+    getCombatLog(characterId: number, sessionId?: string): unknown[];
+    createNPC(data: {
+        name: string;
+        template?: string;
+        type?: string;
+        customStats?: Record<string, any>;
+    }): any;
+    createNPCGroup(template: string, count: number, namePrefix?: string): any[];
+    getNPC(id: number): any;
+    listNPCs(type?: string, aliveOnly?: boolean): any[];
+    updateNPC(id: number, updates: Record<string, any>): any;
+    removeNPC(id: number): void;
+    createEncounter(data: {
+        character_id: number;
+        name: string;
+        description?: string;
+        environment?: string;
+    }): unknown;
+    getEncounter(id: number): unknown;
+    getActiveEncounter(characterId: number): unknown;
+    addEncounterParticipant(encounterId: number, type: string, participantId: number, initiative: number): void;
+    updateInitiativeOrder(encounterId: number): void;
+    getEncounterParticipants(encounterId: number): EncounterParticipant[];
+    nextTurn(encounterId: number): EncounterParticipant | null | undefined;
+    endEncounter(id: number, outcome?: string): void;
+    applyDamage(targetType: string, targetId: number, damage: number): any;
+    addQuest(data: {
+        title: string;
+        description: string;
+        objectives: Record<string, any>[] | string[];
+        rewards: Record<string, any>;
+    }): Quest | null;
+    getQuestById(id: number): Quest | null;
+    assignQuestToCharacter(characterId: number, questId: number, status?: 'active' | 'completed' | 'failed'): CharacterQuest | null;
+    getCharacterQuestById(characterQuestId: number): CharacterQuest | null;
+    getCharacterActiveQuests(characterId: number): CharacterQuest[];
+    updateCharacterQuestStatus(characterQuestId: number, status: 'active' | 'completed' | 'failed', progress?: Record<string, any> | null): CharacterQuest | null;
+    close(): void;
+}
+export {};
+//# sourceMappingURL=db.d.ts.map
+````
+
+## File: game-state-server/src/db.d.ts.map
+````
+{"version":3,"file":"db.d.ts","sourceRoot":"","sources":["db.ts"],"names":[],"mappings":"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"}
+````
+
 ## File: game-state-server/src/health-tracker.ts
 ````typescript
 // File: game-state-server/src/health-tracker.ts
@@ -610,6 +1179,11 @@ export class HealthTracker {
 }
 ````
 
+## File: game-state-server/src/monsters.d.ts.map
+````
+{"version":3,"file":"monsters.d.ts","sourceRoot":"","sources":["monsters.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,iBAAiB;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;CAyO7B,CAAC;AAGF,wBAAgB,WAAW,CAAC,QAAQ,EAAE,MAAM,GAAG,MAAM,CAcpD;AAGD,wBAAgB,kBAAkB,CAAC,KAAK,EAAE,MAAM,GAAG,MAAM,CAExD"}
+````
+
 ## File: LLM_Testing_Prompt.md
 ````markdown
 # LLM Testing Prompt for RPG MCP Servers
@@ -833,6 +1407,62 @@ try {
 } catch (error) {
   console.error('❌ Migration failed:', error.message);
 }
+````
+
+## File: rebuild.bat
+````
+@echo off
+echo Rebuilding RPG MCP Servers after fixes...
+echo.
+
+echo Building Game State Server...
+cd game-state-server
+call npm run build
+echo.
+
+echo Building Combat Engine Server...
+cd ../combat-engine-server
+call npm run build
+echo.
+
+cd ..
+echo Build complete!
+pause
+````
+
+## File: setup.bat
+````
+@echo off
+echo Setting up RPG MCP Servers...
+echo.
+
+echo Installing Game State Server dependencies...
+cd game-state-server
+call npm install
+call npm run build
+echo Game State Server ready!
+echo.
+
+echo Installing Combat Engine Server dependencies...
+cd ../combat-engine-server
+call npm install
+call npm run build
+echo Combat Engine Server ready!
+echo.
+
+cd ..
+echo.
+echo Setup complete! The servers are ready to use.
+echo.
+echo To use the AI Dungeon Master mode:
+echo 1. Open Roo Code
+echo 2. Go to Prompts tab (icon in top menu)
+echo 3. Click "Create New Mode" 
+echo 4. Import the settings from dungeon-master-mode.json
+echo.
+echo Or ask Roo to create the custom mode for you!
+echo.
+pause
 ````
 
 ## File: SYSTEM_ARCHITECTURE.md
@@ -3077,10 +3707,108 @@ These tools are available in both servers for combat management. The combat-engi
 }
 ````
 
-## File: .gitattributes
-````
-# Auto detect text files and perform LF normalization
-* text=auto
+## File: update-summary.md
+````markdown
+# RPG MCP Servers - Update Summary
+
+## 🔧 Fixed Issues
+
+### 1. **Inventory Management**
+Added missing tools to game-state server:
+- `remove_item` - Remove items from inventory by ID
+- `update_item` - Update item quantity or equipped status
+
+Now you can fully manage inventory:
+```
+# Add a sword
+add_item: { character_id: 1, item_name: "Longsword", quantity: 1 }
+
+# Equip the sword (using the item's ID from inventory)
+update_item: { item_id: 1, equipped: true }
+
+# Use a potion (reduce quantity)
+update_item: { item_id: 2, quantity: 1 }  // from 2 to 1
+
+# Remove an item completely
+remove_item: { item_id: 3 }
+```
+
+### 2. **Fixed Advantage/Disadvantage Mechanics**
+Corrected D&D 5e rules implementation:
+- **Before**: Roll 1d20+mod twice, compare totals (wrong)
+- **After**: Roll 2d20, take highest/lowest, THEN add modifier (correct)
+
+Example output now shows all rolls:
+```json
+{
+  "total": 17,          // Final result (d20 + modifier)
+  "d20": 15,           // The d20 that was used
+  "modifier": 2,       // Modifier added once
+  "allRolls": [15, 8], // Both d20s rolled
+  "advantage": true,
+  "critical": false,
+  "fumble": false
+}
+```
+
+### 3. **Added Initiative Roll**
+New tool for combat management:
+- `initiative_roll` - Roll initiative with character name and modifier
+- Returns structured data for easy sorting
+
+## 📝 Updated Tool Lists
+
+### Game State Server Tools:
+- create_character
+- get_character
+- get_character_by_name
+- list_characters
+- update_character
+- add_item
+- get_inventory
+- **remove_item** (NEW)
+- **update_item** (NEW)
+- save_world_state
+- get_world_state
+
+### Combat Engine Tools:
+- roll_dice
+- attack_roll (FIXED)
+- **initiative_roll** (NEW)
+- damage_roll
+- saving_throw
+- get_combat_log
+- clear_combat_log
+
+## 🚀 To Apply Updates
+
+1. Rebuild the servers:
+   ```bash
+   cd C:\Users\mnehm\AppData\Roaming\Roo-Code\MCP\rpg-mcp-servers
+   rebuild.bat
+   ```
+
+2. Restart Roo Code and Claude Desktop
+
+3. The updated tools will be immediately available!
+
+## ✅ Testing the Fixes
+
+### Test Inventory Management:
+```
+1. Add a healing potion (quantity: 3)
+2. Use one potion (update quantity to 2)
+3. Remove empty vial from inventory
+```
+
+### Test Combat Mechanics:
+```
+1. Roll attack with advantage
+2. Check that it shows both d20 rolls
+3. Verify only one modifier is added to the final total
+```
+
+The servers now properly support full D&D 5e mechanics!
 ````
 
 ## File: .gitignore
@@ -3197,129 +3925,6 @@ coverage/
 }
 ````
 
-## File: .kilocodemodes
-````
-customModes:
-  - slug: team-orchestrator
-    name: Team Orchestrator
-    roleDefinition: "roleDefinition: A strategic workflow orchestrator who coordinates complex tasks by delegating them to appropriate specialized team members. This orchestrator understands the full capabilities of the development team including MCP server building, Open-WebUI integration, research, UI/UX design, testing, and planning. Always consults with relevant experts before making decisions and ensures proper coordination between team members."
-    customInstructions: "When receiving a task, first analyze what experts are needed from the team. Delegate specific subtasks to: mcp-server-builder for MCP server development, open-webui-expert for Open-WebUI integration, researcher for information gathering, ui-ux-expert for design decisions, tester for quality assurance, planner for project planning, and any other relevant experts. Coordinate their work and synthesize their outputs into cohesive solutions."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: mcp-server-expert-builder
-    name: MCP Server Expert Builder
-    roleDefinition: "An expert in building Model Context Protocol (MCP) servers. Specialized in creating, configuring, and maintaining MCP servers with deep knowledge of the MCP specification, server architecture, tool development, and integration patterns."
-    customInstructions: "Focus on MCP server development including: server configuration, tool implementation, resource management, transport protocols (stdio, sse, streamable-http), schema validation, and integration with various AI systems. Always consider security, performance, and maintainability when building MCP servers."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: open-webui-expert
-    name: Open-WebUI Expert
-    roleDefinition: "An expert in Open-WebUI with specialized skills in MCP integration and prompt building. Understands the Open-WebUI architecture, configuration, customization, and how to integrate MCP servers and build effective prompts for optimal user experience."
-    customInstructions: "Specialize in Open-WebUI setup, configuration, UI customization, MCP server integration, prompt engineering, user experience optimization, and troubleshooting. Always consider user workflow efficiency and interface usability when making recommendations."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-    source: project
-  - slug: expert-researcher
-    name: Expert Researcher
-    roleDefinition: "A skilled researcher who excels at gathering, analyzing, and synthesizing information from various sources. Specializes in technical documentation analysis, market research, competitor analysis, best practices investigation, and trend identification."
-    customInstructions: "Conduct thorough research on requested topics including: technical documentation analysis, market research, competitor analysis, best practices investigation, and trend identification. Provide well-structured, evidence-based reports with clear recommendations and actionable insights."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: ui-ux-expert
-    name: UI/UX Expert
-    roleDefinition: "A user interface and user experience expert specializing in design systems, usability, accessibility, and creating intuitive user experiences. Skilled in modern design principles, prototyping, and user-centered design methodologies."
-    customInstructions: "Focus on creating excellent user experiences through: interface design, usability analysis, accessibility compliance, user journey mapping, wireframing, prototyping, and design system development. Always prioritize user needs and ensure designs are accessible, intuitive, and aligned with modern design standards."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: expert-tester
-    name: Expert Tester
-    roleDefinition: "A comprehensive testing expert specializing in testing new servers, applications, and systems. Skilled in various testing methodologies including unit testing, integration testing, performance testing, security testing, and user acceptance testing."
-    customInstructions: "Develop and execute comprehensive testing strategies including: test plan creation, automated testing setup, manual testing procedures, performance benchmarking, security testing, and bug reporting. Focus on ensuring reliability, performance, and security of new servers and applications."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: expert-planner
-    name: Expert Planner
-    roleDefinition: "A strategic planning expert who designs comprehensive project plans after consulting with other experts. Specializes in project management, resource allocation, timeline planning, risk assessment, and coordinating complex multi-disciplinary projects."
-    customInstructions: "Create detailed project plans by: consulting with relevant experts, analyzing requirements, identifying dependencies, estimating timelines, allocating resources, assessing risks, and creating actionable roadmaps. Always ensure plans are realistic, well-documented, and include contingency planning."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: devops-expert
-    name: DevOps Expert
-    roleDefinition: "A DevOps specialist focused on deployment, infrastructure, CI/CD pipelines, containerization, and system reliability. Expert in cloud platforms, automation, monitoring, and ensuring smooth deployment and operation of applications and servers."
-    customInstructions: "Handle infrastructure and deployment concerns including: CI/CD pipeline setup, containerization with Docker, cloud deployment, monitoring and logging, automated testing integration, and infrastructure as code. Focus on reliability, scalability, and automation."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: security-expert
-    name: Security Expert
-    roleDefinition: "A cybersecurity expert specializing in application security, server hardening, vulnerability assessment, and security best practices. Ensures all systems and applications meet security standards and are protected against common threats."
-    customInstructions: "Focus on security aspects including: security audits, vulnerability assessments, secure coding practices, server hardening, authentication and authorization, data protection, and compliance with security standards. Always prioritize security in all recommendations and implementations."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: documentation-expert
-    name: Documentation Expert
-    roleDefinition: "A technical writing expert specializing in creating comprehensive, clear, and user-friendly documentation. Skilled in API documentation, user guides, technical specifications, and ensuring documentation is accessible and maintainable."
-    customInstructions: "Create high-quality documentation including: API documentation, user guides, installation instructions, troubleshooting guides, and technical specifications. Focus on clarity, completeness, and user-friendliness. Ensure documentation is well-structured and easy to maintain."
-    groups:
-      - read
-      - edit
-      - browser
-      - command
-      - mcp
-    source: project
-  - slug: dungeon-master
-    name: 🦇 AI Storyteller
-    roleDefinition: "You are an expert Storyteller running immersive chronicles in the World of Darkness (Storyteller System, oWoD/Chronicles of Darkness). You weave evocative narrative, manage dramatic tension, and ensure darkly atmospheric stories where mortal and supernatural fates intertwine. You excel at adaptive narration and dynamic gameplay while upholding consistent system mechanics."
-    customInstructions: "IMPORTANT: You have access to two MCP servers for World of Darkness (oWoD) game management: 1. **rpg-game-state** — For persistent character/world data: - create_character: Create new WoD characters with all core attributes (Strength, Manipulation, etc.), willpower, power stats (e.g., Blood, Gnosis, Glamour), health levels, and abilities; supports optional arrays for Disciplines, Gifts, Arts, Realms, Spheres. - get_character: Retrieve a full, human-readable character sheet including oWoD health and all secondary features - get_character_by_name: Find characters by name - list_characters: Roster all characters - update_character: Modify character stats, traits, resources - spend_willpower, spend_blood, spend_gnosis, spend_glamour, spend_arete: Spend key supernatural/mental resources - add_item / get_inventory: Manage equipment/story items - save_world_state / get_world_state: Track locations, NPCs, events - apply_damage: Damage is tracked by health level (Bruised, Hurt, etc., not hit points!) 2. **rpg-combat-engine** — For dice mechanics: - roll_wod_pool: Roll a World of Darkness dice pool (d10s): successes, botches, specialties. STORYTELLER SYSTEM FLOW: 1. Always consult current character sheets BEFORE describing actions or outcomes. 2. Use tools to manage all character resources and health (never ad-lib results or adjust stats manually; always use the appropriate tool). 3. For any dice pool action (attribute + ability, etc.), use roll_wod_pool — specify pool size, difficulty, and specialty if relevant. 4. Apply damage and wound penalties using the health levels system (never use hit points). 5. For spending limited character resources, ALWAYS use resource-spending tools (spend_willpower, spend_blood, etc.) to modify the player state. 6. Maintain persistent story, world state, and equipment using the relevant tool. NARRATIVE STYLE: - Use evocative, genre-appropriate descriptions with a focus on mood, motif, and supernatural atmosphere. - Develop distinct, memorable NPCs and factions with oWoD-appropriate motivations. - Balance story flow, horror/drama, and system mechanics. - Present player choices that matter; react to player actions using up-to-date character and world state. COMBAT AND CHALLENGES: - Use roll_wod_pool for dice pools (success-based, not d20 or HP). - Track health ONLY with health levels (e.g. Bruised, Injured, etc.). - Use apply_damage and status effect mechanics as per Storyteller System. - All supernatural or limited resource use (Willpower, Blood, etc.) requires a spend_* tool. - Describe events cinematically, but always resolve results mechanics first for fairness and outcome transparency."
-    groups:
-      - read
-      - edit
-      - mcp
-    source: project
-````
-
 ## File: .roo/mcp.json
 ````json
 {
@@ -3415,185 +4020,30 @@ customModes:
 }
 ````
 
-## File: combat-engine-server/package.json
+## File: combat-engine-server/tsconfig.json
 ````json
 {
-  "name": "rpg-combat-engine-server",
-  "version": "1.0.0",
-  "description": "MCP server for D&D-style combat mechanics",
-  "main": "dist/index.js",
-  "type": "module",
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext", 
+    "moduleResolution": "NodeNext", 
+    "outDir": "./dist",
+    "rootDirs": [
+      "./src"
+    ],
+    "noEmitOnError": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "tsx": "^4.0.0"
-  }
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
-````
-
-## File: combat-engine-server/src/narrative-engine.ts
-````typescript
-// Narrative Engine - Tier 2, Phase 1 (Staged Integration)
-// Isolated in-memory tactical/scene store & MCP tool handlers (set_scene_conditions, get_tactical_advantage)
-//
-// Safe for initial rollout: no mutation of existing core logic, well-documented API shape
-
-// Range between two entities/positions
-type RangeKey = string; // e.g. "A-B" or "char123-room7"
-type RangeValue = number; // Units are abstract, e.g. meters/grids/feet
-
-interface SceneConditions {
-  environment: string; // e.g. "open field", "dense forest"
-  cover: "none" | "partial" | "full";
-  lighting: "bright" | "dim" | "dark";
-  elevation?: "flat" | "high_ground" | "low_ground";
-  weather?: string;
-  custom?: Record<string, any>;
-}
-
-interface SituationalModifierResult {
-  modifiers: number;
-  reasons: string[];
-}
-
-/**
- * NarrativeEngine: Handles ranges, scenes, conditions, and situational modifiers.
- * All state is in-memory and transient until the persistent layer is available.
- */
-export class NarrativeEngine {
-  private static instance: NarrativeEngine;
-  private rangeMap: Map<RangeKey, RangeValue>;
-  private sceneConditions: SceneConditions;
-
-  private constructor() {
-    this.rangeMap = new Map();
-    this.sceneConditions = {
-      environment: "default",
-      cover: "none",
-      lighting: "bright",
-    };
-  }
-
-  public static getInstance(): NarrativeEngine {
-    if (!NarrativeEngine.instance) {
-      NarrativeEngine.instance = new NarrativeEngine();
-    }
-    return NarrativeEngine.instance;
-  }
-
-  /**
-   * Sets the tactical range between two entities/positions.
-   * Key must be deterministic (caller handles entity ID ordering if symmetric).
-   */
-  setRange(key: RangeKey, value: RangeValue): void {
-    if (typeof value !== "number" || value < 0) return;
-    this.rangeMap.set(key, value);
-  }
-
-  /**
-   * Gets the tactical range between two entities/positions.
-   * Returns undefined if range is not set.
-   */
-  getRange(key: RangeKey): RangeValue | undefined {
-    return this.rangeMap.get(key);
-  }
-
-  /**
-   * Sets the current scene conditions.
-   * Overwrites previous values, but is always safe (initial tier: in-memory only).
-   */
-  setSceneConditions(conditions: Partial<SceneConditions>): void {
-    this.sceneConditions = { ...this.sceneConditions, ...conditions };
-  }
-
-  /**
-   * Returns a snapshot of current scene conditions.
-   */
-  getSceneConditions(): SceneConditions {
-    return { ...this.sceneConditions };
-  }
-
-  /**
-   * Computes situational modifiers for an entity or group, based on scene/cover.
-   */
-  getSituationalModifiers(actor: { cover: string; isElevated?: boolean; [key: string]: any }): SituationalModifierResult {
-    const reasons: string[] = [];
-    let modifiers = 0;
-
-    // Cover-based modifier
-    if (actor.cover === "full") {
-      modifiers += 2;
-      reasons.push("Full cover (+2)");
-    } else if (actor.cover === "partial") {
-      modifiers += 1;
-      reasons.push("Partial cover (+1)");
-    }
-
-    // Elevation (if supported in current scene)
-    if (actor.isElevated && this.sceneConditions.elevation === "high_ground") {
-      modifiers += 1;
-      reasons.push("High ground (+1)");
-    }
-
-    // Lighting penalty
-    if (this.sceneConditions.lighting === "dim") {
-      modifiers -= 1;
-      reasons.push("Dim lighting (-1)");
-    } else if (this.sceneConditions.lighting === "dark") {
-      modifiers -= 2;
-      reasons.push("Darkness (-2)");
-    }
-
-    // Additional: customize here as new conditions/actors arise
-
-    return { modifiers, reasons };
-  }
-}
-
-// MCP Tool Handler Integration (for src/index.ts)
-// Exposes two public MCP tools: set_scene_conditions, get_tactical_advantage
-// Handlers should be registered in the MCP server bootstrap in src/index.ts
-
-// MCP Tool: set_scene_conditions
-// Params: { environment?: string; cover?: "none"|"partial"|"full"; lighting?: ...; ... }
-// Returns: { ok: true }
-export function handleSetSceneConditions(params: Partial<SceneConditions>): { ok: boolean } {
-  const engine = NarrativeEngine.getInstance();
-  engine.setSceneConditions(params);
-  return { ok: true };
-}
-
-// MCP Tool: get_tactical_advantage
-// Params: { actor: { cover: string; isElevated?: boolean; ... } }
-// Returns: { modifiers: number, reasons: string[] }
-export function handleGetTacticalAdvantage(params: { actor: { cover: string; isElevated?: boolean; [key: string]: any } }): SituationalModifierResult {
-  const engine = NarrativeEngine.getInstance();
-  return engine.getSituationalModifiers(params.actor);
-}
-
-
-/**
- * MCP Tool Exposure Plan for Safe Rollout:
- * - Register set_scene_conditions and get_tactical_advantage in the MCP tool registry
- * - Validate input via schema (in index.ts or dispatcher)
- * - No core combat state is mutated outside NarrativeEngine in this phase
- * - If any error: silently fallback to "no change" behavior and log (add logging in later phases)
- * - Engine state is in-memory/transient, can be reset without risk
- * - Future phases: upgrade to persistence, transactionality, and tight combat integration
- */
-
-// API signatures (TypeScript):
-// setRange(key: string, value: number): void
-// getRange(key: string): number | undefined
-// getSituationalModifiers(actor: { cover: string; isElevated?: boolean; ... }): { modifiers: number; reasons: string[]; }
 ````
 
 ## File: dice-rolling-guide.md
@@ -3687,130 +4137,6 @@ Ask the MCP or AI to "spend Willpower for one automatic success" before rolling.
 ---
 
 Use these guides and automated tools for fast, accurate Storyteller System play!
-````
-
-## File: ENHANCEMENTS.md
-````markdown
-# 🎉 RPG MCP Servers - Human-Friendly VS Code Enhancements
-
-## 🚀 What's New
-
-This enhancement update focuses on making the RPG MCP servers **dramatically more human-friendly** in the VS Code editor environment. Every tool output has been redesigned for better readability, context, and user experience.
-
-## ✨ Combat Engine Server Enhancements
-
-### 🎲 Dice & Checks
-- **Enhanced Roll Outputs**: Beautiful formatted results with emojis, context, and difficulty assessments
-- **Contextual Feedback**: Automatic evaluation of roll quality (Exceptional, Great, Decent, etc.)
-- **Margin Analysis**: Clear indication of success/failure margins
-- **Natural 20/1 Indicators**: Special highlighting for critical successes and failures
-
-### ⚔️ Combat Analysis
-- **Line of Sight**: Rich tactical analysis with cover information and combat advice
-- **Area Effects**: Detailed creature targeting with distances and saving throw reminders
-- **Flanking Checks**: Comprehensive positioning analysis with tactical suggestions
-- **Height Advantage**: Detailed elevation analysis with combat bonuses explanation
-
-### 📋 Combat Management
-- **Enhanced Combat Log**: Structured, numbered entries with summary information
-- **Tactical Summaries**: Rich creature analysis with positioning tips and warnings
-- **Error Handling**: Clear, helpful error messages with available options listed
-
-### 🗺️ Spatial Intelligence
-- **Battlefield Descriptions**: Human-readable overviews with creature positioning
-- **ASCII Maps**: Visual battlefield representation with legend
-- **Tactical Advice**: Context-aware suggestions for optimal play
-
-## 🏰 Game State Server Enhancements
-
-### 👤 Character Management
-- **Rich Character Sheets**: Beautiful formatted ability scores and information
-- **Character Roster**: Clean, organized character lists with IDs and classes
-- **Update Feedback**: Clear confirmation of character modifications
-
-### 🎒 Inventory System
-- **Visual Inventory**: Organized item displays with equipped status and quantities
-- **Add/Remove Feedback**: Clear confirmation of inventory changes
-- **Item Categories**: Better organization and display of gear
-
-### 🌍 World State Management
-- **Detailed Save Confirmation**: Comprehensive feedback on what was saved
-- **Rich State Retrieval**: Formatted world state with timestamps and summaries
-- **Update Tracking**: Clear indication of what changed during updates
-
-### 👹 NPC Management
-- **Visual NPC Roster**: Health status indicators and type icons
-- **Group Creation**: Batch NPC creation with detailed feedback
-- **Combat Status**: Health indicators (Healthy, Wounded, Dead) with icons
-
-### ⚔️ Encounter Management
-- **Initiative Tracking**: Clear turn order with current turn highlighting
-- **Encounter Status**: Rich encounter overviews with participant details
-- **Turn Management**: Enhanced feedback for combat flow
-
-### 🎯 Quest System
-- **Quest Display**: Beautiful quest formatting with objectives and rewards
-- **Progress Tracking**: Clear status indicators and completion feedback
-- **Assignment Confirmation**: Detailed quest assignment information
-
-## 🛠️ Technical Improvements
-
-### 🔧 Error Handling
-- **Helpful Error Messages**: Clear explanations with suggested solutions
-- **Available Options**: When entities not found, show what's available
-- **Context-Aware Guidance**: Specific advice based on the error situation
-
-### 🎨 Visual Design
-- **Consistent Emoji Usage**: Visual icons for different types of information
-- **Structured Formatting**: Clear headers, sections, and hierarchical information
-- **Status Indicators**: Color-coded (via emojis) status representations
-
-### 💡 User Experience
-- **Contextual Tips**: Tactical advice and gameplay suggestions
-- **Progress Feedback**: Clear indication of what was accomplished
-- **Next Steps**: Guidance on what to do next in many situations
-
-## 📊 Before vs After Examples
-
-### Before (Raw JSON):
-```json
-{
-  "total": 15,
-  "dc": 12,
-  "success": true,
-  "rolls": [13],
-  "modifier": 2
-}
-```
-
-### After (Human-Friendly):
-```
-🛡️ **CONSTITUTION SAVING THROW**
-
-👤 **Character:** Lyra Swiftarrow
-🎲 **Rolled:** 13
-➕ **Modifier:** +2
-🏆 **TOTAL:** 15
-🎯 **DC:** 12
-📊 **RESULT:** ✅ SUCCESS! 🎉 **Solid Save!** (beat DC by 3)
-```
-
-## 🎮 Impact on Gameplay
-
-These enhancements make the MCP servers:
-- **Easier to Use**: Clear, readable outputs reduce cognitive load
-- **More Informative**: Rich context helps players make better decisions
-- **Tactically Helpful**: Built-in advice improves gameplay experience
-- **Error-Resilient**: Better error handling reduces frustration
-- **Visually Appealing**: Beautiful formatting enhances the VS Code experience
-
-## 🔄 Migration
-
-No breaking changes! All existing functionality is preserved while adding these enhancements. Simply rebuild and restart your servers to enjoy the improved experience.
-
----
-
-**Ready to experience D&D like never before in VS Code!** 🎲⚔️✨
 ````
 
 ## File: game-state-server/package.json
@@ -4493,147 +4819,6 @@ export function formatSheetByGameLine(opts: CharacterSheetOptions) {
  */
 ````
 
-## File: game-state-server/src/db.d.ts
-````typescript
-interface EncounterParticipant {
-    id: number;
-    encounter_id: number;
-    participant_type: 'character' | 'npc';
-    participant_id: number;
-    initiative: number;
-    initiative_order?: number | null;
-    has_acted: boolean;
-    conditions?: string | null;
-    is_active: boolean;
-    name: string;
-    current_hp: number;
-    max_hp: number;
-}
-interface Quest {
-    id: number;
-    title: string;
-    description: string;
-    objectives: string;
-    rewards: string;
-    created_at: string;
-}
-interface CharacterQuest {
-    id: number;
-    character_id: number;
-    quest_id: number;
-    status: 'active' | 'completed' | 'failed';
-    progress?: string | null;
-    assigned_at: string;
-    updated_at: string;
-    title?: string;
-    description?: string;
-    objectives?: string;
-    rewards?: string;
-}
-export declare class GameDatabase {
-    private db;
-    constructor();
-    private initializeSchema;
-    createCharacter(data: {
-        name: string;
-        class: string;
-        strength?: number;
-        dexterity?: number;
-        constitution?: number;
-        intelligence?: number;
-        wisdom?: number;
-        charisma?: number;
-    }): unknown;
-    getCharacter(id: number): unknown;
-    getCharacterByName(name: string): unknown;
-    listCharacters(): unknown[];
-    updateCharacter(id: number, updates: Record<string, any>): unknown;
-    addItem(characterId: number, item: {
-        name: string;
-        type: string;
-        quantity?: number;
-        properties?: Record<string, any>;
-    }): {
-        name: string;
-        type: string;
-        quantity?: number;
-        properties?: Record<string, any>;
-        id: number | bigint;
-    };
-    getInventory(characterId: number): any[];
-    updateItem(id: number, updates: {
-        quantity?: number;
-        equipped?: boolean;
-    }): void;
-    removeItem(id: number): void;
-    saveStoryProgress(characterId: number, data: {
-        chapter: string;
-        scene: string;
-        description?: string;
-        flags?: Record<string, any>;
-    }): void;
-    getLatestStoryProgress(characterId: number): any;
-    saveWorldState(characterId: number, data: {
-        location: string;
-        npcs?: Record<string, any>;
-        events?: Record<string, any>;
-        environment?: Record<string, any>;
-    }): void;
-    getWorldState(characterId: number): any;
-    logCombat(characterId: number, sessionId: string, action: string, result?: string): void;
-    getCombatLog(characterId: number, sessionId?: string): unknown[];
-    createNPC(data: {
-        name: string;
-        template?: string;
-        type?: string;
-        customStats?: Record<string, any>;
-    }): any;
-    createNPCGroup(template: string, count: number, namePrefix?: string): any[];
-    getNPC(id: number): any;
-    listNPCs(type?: string, aliveOnly?: boolean): any[];
-    updateNPC(id: number, updates: Record<string, any>): any;
-    removeNPC(id: number): void;
-    createEncounter(data: {
-        character_id: number;
-        name: string;
-        description?: string;
-        environment?: string;
-    }): unknown;
-    getEncounter(id: number): unknown;
-    getActiveEncounter(characterId: number): unknown;
-    addEncounterParticipant(encounterId: number, type: string, participantId: number, initiative: number): void;
-    updateInitiativeOrder(encounterId: number): void;
-    getEncounterParticipants(encounterId: number): EncounterParticipant[];
-    nextTurn(encounterId: number): EncounterParticipant | null | undefined;
-    endEncounter(id: number, outcome?: string): void;
-    applyDamage(targetType: string, targetId: number, damage: number): any;
-    addQuest(data: {
-        title: string;
-        description: string;
-        objectives: Record<string, any>[] | string[];
-        rewards: Record<string, any>;
-    }): Quest | null;
-    getQuestById(id: number): Quest | null;
-    assignQuestToCharacter(characterId: number, questId: number, status?: 'active' | 'completed' | 'failed'): CharacterQuest | null;
-    getCharacterQuestById(characterQuestId: number): CharacterQuest | null;
-    getCharacterActiveQuests(characterId: number): CharacterQuest[];
-    updateCharacterQuestStatus(characterQuestId: number, status: 'active' | 'completed' | 'failed', progress?: Record<string, any> | null): CharacterQuest | null;
-    close(): void;
-}
-export {};
-//# sourceMappingURL=db.d.ts.map
-````
-
-## File: game-state-server/src/db.d.ts.map
-````
-{"version":3,"file":"db.d.ts","sourceRoot":"","sources":["db.ts"],"names":[],"mappings":"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"}
-````
-
-## File: game-state-server/src/monsters.d.ts.map
-````
-{"version":3,"file":"monsters.d.ts","sourceRoot":"","sources":["monsters.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,iBAAiB;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;CAyO7B,CAAC;AAGF,wBAAgB,WAAW,CAAC,QAAQ,EAAE,MAAM,GAAG,MAAM,CAcpD;AAGD,wBAAgB,kBAAkB,CAAC,KAAK,EAAE,MAAM,GAAG,MAAM,CAExD"}
-````
-
 ## File: game-state-server/tsconfig.json
 ````json
 {
@@ -4749,192 +4934,6 @@ The system will output your current:
 ---
 
 Have fun exploring the World of Darkness!
-````
-
-## File: rebuild.bat
-````
-@echo off
-echo Rebuilding RPG MCP Servers after fixes...
-echo.
-
-echo Building Game State Server...
-cd game-state-server
-call npm run build
-echo.
-
-echo Building Combat Engine Server...
-cd ../combat-engine-server
-call npm run build
-echo.
-
-cd ..
-echo Build complete!
-pause
-````
-
-## File: setup.bat
-````
-@echo off
-echo Setting up RPG MCP Servers...
-echo.
-
-echo Installing Game State Server dependencies...
-cd game-state-server
-call npm install
-call npm run build
-echo Game State Server ready!
-echo.
-
-echo Installing Combat Engine Server dependencies...
-cd ../combat-engine-server
-call npm install
-call npm run build
-echo Combat Engine Server ready!
-echo.
-
-cd ..
-echo.
-echo Setup complete! The servers are ready to use.
-echo.
-echo To use the AI Dungeon Master mode:
-echo 1. Open Roo Code
-echo 2. Go to Prompts tab (icon in top menu)
-echo 3. Click "Create New Mode" 
-echo 4. Import the settings from dungeon-master-mode.json
-echo.
-echo Or ask Roo to create the custom mode for you!
-echo.
-pause
-````
-
-## File: update-summary.md
-````markdown
-# RPG MCP Servers - Update Summary
-
-## 🔧 Fixed Issues
-
-### 1. **Inventory Management**
-Added missing tools to game-state server:
-- `remove_item` - Remove items from inventory by ID
-- `update_item` - Update item quantity or equipped status
-
-Now you can fully manage inventory:
-```
-# Add a sword
-add_item: { character_id: 1, item_name: "Longsword", quantity: 1 }
-
-# Equip the sword (using the item's ID from inventory)
-update_item: { item_id: 1, equipped: true }
-
-# Use a potion (reduce quantity)
-update_item: { item_id: 2, quantity: 1 }  // from 2 to 1
-
-# Remove an item completely
-remove_item: { item_id: 3 }
-```
-
-### 2. **Fixed Advantage/Disadvantage Mechanics**
-Corrected D&D 5e rules implementation:
-- **Before**: Roll 1d20+mod twice, compare totals (wrong)
-- **After**: Roll 2d20, take highest/lowest, THEN add modifier (correct)
-
-Example output now shows all rolls:
-```json
-{
-  "total": 17,          // Final result (d20 + modifier)
-  "d20": 15,           // The d20 that was used
-  "modifier": 2,       // Modifier added once
-  "allRolls": [15, 8], // Both d20s rolled
-  "advantage": true,
-  "critical": false,
-  "fumble": false
-}
-```
-
-### 3. **Added Initiative Roll**
-New tool for combat management:
-- `initiative_roll` - Roll initiative with character name and modifier
-- Returns structured data for easy sorting
-
-## 📝 Updated Tool Lists
-
-### Game State Server Tools:
-- create_character
-- get_character
-- get_character_by_name
-- list_characters
-- update_character
-- add_item
-- get_inventory
-- **remove_item** (NEW)
-- **update_item** (NEW)
-- save_world_state
-- get_world_state
-
-### Combat Engine Tools:
-- roll_dice
-- attack_roll (FIXED)
-- **initiative_roll** (NEW)
-- damage_roll
-- saving_throw
-- get_combat_log
-- clear_combat_log
-
-## 🚀 To Apply Updates
-
-1. Rebuild the servers:
-   ```bash
-   cd C:\Users\mnehm\AppData\Roaming\Roo-Code\MCP\rpg-mcp-servers
-   rebuild.bat
-   ```
-
-2. Restart Roo Code and Claude Desktop
-
-3. The updated tools will be immediately available!
-
-## ✅ Testing the Fixes
-
-### Test Inventory Management:
-```
-1. Add a healing potion (quantity: 3)
-2. Use one potion (update quantity to 2)
-3. Remove empty vial from inventory
-```
-
-### Test Combat Mechanics:
-```
-1. Roll attack with advantage
-2. Check that it shows both d20 rolls
-3. Verify only one modifier is added to the final total
-```
-
-The servers now properly support full D&D 5e mechanics!
-````
-
-## File: combat-engine-server/tsconfig.json
-````json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext", 
-    "moduleResolution": "NodeNext", 
-    "outDir": "./dist",
-    "rootDirs": [
-      "./src"
-    ],
-    "noEmitOnError": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
 ````
 
 ## File: dungeon-master-mode.json

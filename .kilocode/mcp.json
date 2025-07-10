@@ -67,6 +67,18 @@
         "set_initiative",
         "spend_rage_for_extra_actions"
       ]
+    },
+    "simple-game-state": {
+      "name": "simple-game-state-server",
+      "command": "node",
+      "args": [
+        "dist/simple_index.js"
+      ],
+      "cwd": "E:\\Tinker\\rpg-mcp-servers\\game-state-server",
+      "enabled": true,
+      "alwaysAllow": [
+        "hello_world"
+      ]
     }
   }
 }

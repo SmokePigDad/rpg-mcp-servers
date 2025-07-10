@@ -22,23 +22,6 @@ update_item: { item_id: 2, quantity: 1 }  // from 2 to 1
 remove_item: { item_id: 3 }
 ```
 
-### 2. **Fixed Advantage/Disadvantage Mechanics**
-Corrected D&D 5e rules implementation:
-- **Before**: Roll 1d20+mod twice, compare totals (wrong)
-- **After**: Roll 2d20, take highest/lowest, THEN add modifier (correct)
-
-Example output now shows all rolls:
-```json
-{
-  "total": 17,          // Final result (d20 + modifier)
-  "d20": 15,           // The d20 that was used
-  "modifier": 2,       // Modifier added once
-  "allRolls": [15, 8], // Both d20s rolled
-  "advantage": true,
-  "critical": false,
-  "fumble": false
-}
-```
 
 ### 3. **Added Initiative Roll**
 New tool for combat management:
@@ -97,4 +80,3 @@ New tool for combat management:
 3. Verify only one modifier is added to the final total
 ```
 
-The servers now properly support full D&D 5e mechanics!

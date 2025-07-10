@@ -1,6 +1,6 @@
 # Quick Start Guide – Storyteller System (oWoD/Chronicles of Darkness)
 
-Welcome to the Model Context Protocol Storyteller System server suite! This quick-start will help you make characters, play scenes, roll pools, and use the powerful automation included—no D&D rules required.
+Welcome to the Model Context Protocol Storyteller System server suite! This quick-start will help you make characters, play scenes, roll pools, and use the powerful automation included.
 
 ---
 

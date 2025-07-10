@@ -116,5 +116,3 @@ These enhancements make the MCP servers:
 No breaking changes! All existing functionality is preserved while adding these enhancements. Simply rebuild and restart your servers to enjoy the improved experience.
 
 ---
-
-**Ready to experience D&D like never before in VS Code!** 🎲⚔️✨

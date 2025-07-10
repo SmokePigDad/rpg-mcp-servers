@@ -39,8 +39,7 @@
         "spend_xp",
         "update_antagonist",
         "update_character",
-        "update_item",
-        "create_character"
+        "update_item"
       ],
       "disabledTools": [
         "advance_turn"

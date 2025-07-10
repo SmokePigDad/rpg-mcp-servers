@@ -356,6 +356,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
 
   try {
     switch (name) {
+      // Stateless tool: Delegates to rpg-game-state for all persistent initiative operations—
+      // DOES NOT read or mutate world/scene/character state here. This handler returns only
+      // instructions for the caller to invoke the proper stateful mechanism on rpg-game-state.
       case "roll_initiative_for_scene": {
         const { scene_id, actors } = args;
         return {
@@ -373,9 +376,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
       }
       // === PHASE 2 NEW TOOLS ===
+
+      // Stateless tool: Computes Virtue check results but DOES NOT read or write character/game/world state.
+      // Only returns rolls and check summary. The caller must apply any effects/XP/state change externally.
       case 'roll_virtue_check': {
         const { character_id, virtue_name, difficulty } = args;
-        const pool_size = 3; // Placeholder; wire up to character DB
+        const allowedVirtues = ["Conscience", "Self-Control", "Courage", "Conviction", "Instinct"]; // tune as appropriate
+        if (typeof virtue_name !== "string" || !allowedVirtues.includes(virtue_name)) {
+          return {
+            content: makeTextContentArray([{ type: 'text', text: `Error: 'virtue_name' must be one of: ${allowedVirtues.join(", ")}` }]),
+            isError: true
+          };
+        }
+        if (typeof difficulty !== "number" || !Number.isInteger(difficulty) || difficulty < 2 || difficulty > 10) {
+          return {
+            content: makeTextContentArray([{ type: 'text', text: `Error: 'difficulty' must be an integer between 2 and 10.` }]),
+            isError: true
+          };
+        }
+        // The pool_size should eventually be loaded from DB, but is now a placeholder.
+        const pool_size = 3;
         const result = rollWodPool(pool_size, difficulty, false);
         return {
           content: makeTextContentArray([
@@ -389,9 +409,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           ])
         };
       }
+      // Stateless tool: Only computes attribute modifiers for physical form change.
+      // Does NOT mutate or depend on character state—caller must use the returned modifiers/instructions
+      // to update persistent character data with the appropriate stateful tool on the game-state server.
       case 'change_form': {
-        // No backend character, so hardcoded modifiers for demo
         const { character_id, target_form } = args;
+        const allowedForms = ["Homid", "Glabro", "Crinos", "Hispo", "Lupus"];
+        if (typeof target_form !== "string" || !allowedForms.includes(target_form)) {
+          return {
+            content: makeTextContentArray([
+              { type: "text", text: `Error: 'target_form' must be one of: ${allowedForms.join(", ")}` }
+            ]),
+            isError: true
+          };
+        }
         const form_mods: Record<string, any> = {
           Homid:   { str: 0, dex: 0, sta: 0, app: 0 },
           Glabro:  { str: +2, dex: 0, sta: +2, app: -1 },
@@ -399,7 +430,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           Hispo:   { str: +3, dex: +2, sta: +2, app: -3 },
           Lupus:   { str: +1, dex: +2, sta: +1, app: -2 }
         };
-        const mods = form_mods[target_form] || {};
+        const mods = form_mods[target_form];
         return {
           content: makeTextContentArray([
             `🐺 Change form: ${target_form}\nAttribute modifiers: ${JSON.stringify(mods)}`,
@@ -407,8 +438,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           ])
         };
       }
+
+      // Stateless tool: Calculates extra actions requested. DOES NOT spend Rage or mutate initiative state.
+      // The client/caller MUST invoke a stateful spend_resource and update_initiative tool elsewhere to commit.
       case 'spend_rage_for_extra_actions': {
         const { character_id, actions_to_gain } = args;
+        if (typeof actions_to_gain !== "number" || !Number.isInteger(actions_to_gain) || actions_to_gain < 1 || actions_to_gain > 5) {
+          return {
+            content: makeTextContentArray([{ type: 'text', text: "Error: 'actions_to_gain' must be an integer between 1 and 5." }]),
+            isError: true
+          };
+        }
         return {
           content: makeTextContentArray([
             `🔥 ${actions_to_gain} action(s) activated by spending Rage for character #${character_id}.`,
@@ -416,8 +456,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           ])
         };
       }
+      // Stateless tool: Mage magick effect roll.
+      // Only computes and outputs result (successes, paradox, botch info).
+      // Caller is responsible for invoking *any* stateful resource/Paradox update tool.
       case 'roll_magick_effect': {
         const { character_id, spheres, arete_roll_pool, difficulty, is_coincidental, force_result } = args;
+        if (typeof arete_roll_pool !== "number" || !Number.isInteger(arete_roll_pool) || arete_roll_pool < 0) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'arete_roll_pool' must be a non-negative integer." }]),
+            isError: true
+          };
+        }
+        if (typeof difficulty !== "number" || !Number.isInteger(difficulty) || difficulty < 2 || difficulty > 10) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'difficulty' must be an integer between 2 and 10." }]),
+            isError: true
+          };
+        }
         // Simple oWoD Arete roll; if vulgar & fails, paradox accrues
         const result = rollWodPool(arete_roll_pool, difficulty, false, force_result);
         let paradox_gain = 0;
@@ -452,8 +507,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           ])
         };
       }
+      // Stateless tool: Changeling Cantrip roll.
+      // Computes result (success, botch, banality). Does NOT mutate glamour, banality, or character state.
+      // Caller must use results to update state via other tools.
       case 'invoke_cantrip': {
         const { character_id, art_pool, realm_pool, difficulty, force_result } = args;
+        if (typeof art_pool !== "number" || !Number.isInteger(art_pool) || art_pool < 0) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'art_pool' must be a non-negative integer." }]),
+            isError: true
+          };
+        }
+        if (typeof realm_pool !== "number" || !Number.isInteger(realm_pool) || realm_pool < 0) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'realm_pool' must be a non-negative integer." }]),
+            isError: true
+          };
+        }
+        if (typeof difficulty !== "number" || !Number.isInteger(difficulty) || difficulty < 2 || difficulty > 10) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'difficulty' must be an integer between 2 and 10." }]),
+            isError: true
+          };
+        }
         const total_pool = (art_pool || 0) + (realm_pool || 0);
         const result = rollWodPool(total_pool, difficulty, false, force_result);
 
@@ -485,6 +561,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           ])
         };
       }
+      // Stateless tool: Generic WoD dice pool. Computes only; NO character/resource/world state mutation.
+      // Any spending of Willpower, resource, or logging must be invoked externally by the consumer.
       case 'roll_wod_pool': {
         const { pool_size, difficulty, has_specialty = false, character_id, actor_context, force_result, ...rest } = args;
       
@@ -493,7 +571,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           return { content: makeTextContentArray(
             ["Error: 'pool_size' must be a non-negative integer."]), isError: true };
         }
-
+      
         // For chance die rolls (pool_size = 0), difficulty is not used, so we can be more lenient
         let validatedDifficulty = difficulty;
         if (pool_size > 0) {
@@ -571,11 +649,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         // Basic result
         output += `${result.resultText}\n`;
       
-        combatState.log.push(`Roll: [${result.rolls.join(', ')}] vs diff ${narrativeDiff} -> ${successes} successes.`);
+        // Removed combatState.log (no persistent or global state should be mutated in stateless tools)
+        // combatState.log.push(`Roll: [${result.rolls.join(', ')}] vs diff ${narrativeDiff} -> ${successes} successes.`);
       
         return { content: makeTextContentArray([output, JSON.stringify({})]) };
       }
       
+      // Stateless tool: Computes both halves of a contested action, does not mutate attacker/defender
+      // records or write world state. Consumer must apply outcome elsewhere.
       case 'roll_contested_action': {
         const { attacker_pool, attacker_difficulty, attacker_specialty, defender_pool, defender_difficulty, defender_specialty } = args;
       
@@ -614,13 +695,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       }
 
       // 1. roll_soak
+      // Stateless tool: Computes result of soak roll. Never mutates health, damage, or character state.
+      // All state adjustment (damage reduction) must be handled by stateful logic in game-state-server.
       case 'roll_soak': {
         const { soak_pool, damage_type, has_fortitude = false } = args;
-        if (!['bashing', 'lethal', 'aggravated'].includes(damage_type)) {
-          throw new Error("damage_type must be 'bashing', 'lethal', or 'aggravated'");
+        const allowedTypes = ['bashing', 'lethal', 'aggravated'];
+        if (typeof damage_type !== "string" || !allowedTypes.includes(damage_type)) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: `Error: 'damage_type' must be one of: ${allowedTypes.join(", ")}` }]),
+            isError: true
+          };
         }
-        if (typeof soak_pool !== "number" || soak_pool < 0) {
-          throw new Error("soak_pool must be a non-negative integer");
+        if (typeof soak_pool !== "number" || !Number.isInteger(soak_pool) || soak_pool < 0) {
+          return {
+            content: makeTextContentArray([{ type: "text", text: "Error: 'soak_pool' must be a non-negative integer." }]),
+            isError: true
+          };
         }
         // aggravated with no fortitude: cannot soak
         if (damage_type === 'aggravated' && !has_fortitude) {
@@ -652,6 +742,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       }
 
       // --- Initiative & Turn Management Orchestration ---
+      // Stateless tool: Delegates initiative persistence to rpg-game-state; never mutates scene/initiative here.
+      // All changes must be committed by explicitly calling the tool in rpg-game-state.
       case 'set_initiative': {
         const { scene_id, entries } = args;
         return {
@@ -669,6 +761,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
       }
 
+      // Stateless tool: Delegates to rpg-game-state for authoritative initiative order.
+      // Reads no state; returns next_tool_call contract for orchestration.
       case 'get_initiative_order': {
         const { scene_id } = args;
         return {
@@ -685,6 +779,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
       }
 
+      // Stateless tool: Advance turn orchestration. No state change; returns instructions for rpg-game-state.
       case 'advance_turn': {
         const { scene_id } = args;
         return {
@@ -701,6 +796,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
       }
 
+      // Stateless tool: Orchestrates current turn lookups by deferring to rpg-game-state.
+      // Does not inspect or mutate turn/scene state itself.
       case 'get_current_turn': {
         const { scene_id } = args;
         return {
@@ -718,14 +815,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       }
 
       // --- Social Combat System ---
+      // Stateless tool: Social Combat. Rolls both sides; returns outcome plus a recommendation instruction.
+      // Never applies, mutates, or records effects—caller must dispatch all stateful changes using result.
       case 'roll_social_combat': {
         const { attacker_name, attacker_pool, target_name, target_pool, attack_type } = args;
+        const allowedAttackTypes = ["intimidation", "persuasion", "deception", "seduction"];
+        let errMsgs: string[] = [];
+        if (typeof attacker_pool !== "number" || !Number.isInteger(attacker_pool) || attacker_pool < 0) {
+          errMsgs.push("Error: 'attacker_pool' must be a non-negative integer.");
+        }
+        if (typeof target_pool !== "number" || !Number.isInteger(target_pool) || target_pool < 0) {
+          errMsgs.push("Error: 'target_pool' must be a non-negative integer.");
+        }
+        if (typeof attack_type !== "string" || !allowedAttackTypes.includes(attack_type)) {
+          errMsgs.push(`Error: 'attack_type' must be one of: ${allowedAttackTypes.join(", ")}`);
+        }
+        if (errMsgs.length > 0) {
+          return {
+            content: makeTextContentArray(errMsgs.map(msg => ({ type: "text", text: msg }))),
+            isError: true
+          };
+        }
         const attackRoll = rollWodPool(attacker_pool, 6, false);
         const defendRoll = rollWodPool(target_pool, 6, false);
         const net = attackRoll.successes - defendRoll.successes;
         let recommendation = null;
         let outcome = "";
-
+    
         if (attackRoll.isBotch) {
           outcome = `❌ ${attacker_name} botches their social gambit—this spectacular failure may have lasting consequences.`;
         } else if (defendRoll.isBotch) {
@@ -760,10 +876,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           `${attacker_name} rolls [${attackRoll.rolls.join(', ')}] (${attackRoll.successes} successes)\n` +
           `${target_name} rolls [${defendRoll.rolls.join(', ')}] (${defendRoll.successes} successes)\n\n` +
           outcome;
-
+    
         const resultObject: any = { net_successes: net, outcome };
         if (recommendation) resultObject.recommendation = recommendation;
-
+    
         return {
           content: makeTextContentArray([
             outputText,
@@ -772,16 +888,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         };
       }
       default:
+        // Stateless tool: Damage pool roll; returns only the rolled damage. Applies no harm or wound to any entity.
+        // The caller is responsible for applying result to persistent world/character via stateful tool.
         case 'roll_damage_pool': {
           const { pool_size, damage_type = 'lethal' } = args;
-          if (!['bashing', 'lethal', 'aggravated'].includes(damage_type)) {
-            throw new Error("damage_type must be 'bashing', 'lethal', or 'aggravated'");
-          }
-          if (typeof pool_size !== "number" || pool_size < 0) {
+          const allowedTypes = ['bashing', 'lethal', 'aggravated'];
+          if (typeof damage_type !== "string" || !allowedTypes.includes(damage_type)) {
             return {
-              content: makeTextContentArray([
-                "Error: 'pool_size' must be a non-negative integer."
-              ]),
+              content: makeTextContentArray([{ type: "text", text: `Error: 'damage_type' must be one of: ${allowedTypes.join(", ")}` }]),
+              isError: true
+            };
+          }
+          if (typeof pool_size !== "number" || !Number.isInteger(pool_size) || pool_size < 0) {
+            return {
+              content: makeTextContentArray([{ type: "text", text: "'pool_size' must be a non-negative integer." }]),
               isError: true
             };
           }
@@ -803,7 +923,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           } else if (successes === 1) {
             desc += "Glancing blow.";
           }
-
+      
           // Return both text broadcast and machine-usable structure
           return {
             content: makeTextContentArray([
