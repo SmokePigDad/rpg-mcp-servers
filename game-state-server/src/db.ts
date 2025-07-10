@@ -10,6 +10,7 @@ import { CharacterRepository } from './repositories/character.repository.js';
 import { AntagonistRepository } from './repositories/antagonist.repository.js';
 import { StatusEffectRepository } from './repositories/status-effect.repository.js';
 import { InventoryRepository } from './repositories/inventory.repository.js';
+import { WorldStateRepository } from './repositories/world-state.repository.js';
 
 /* Types are now imported from src/types/*.ts */
 
@@ -61,6 +62,7 @@ export class GameDatabase {
   public antagonists!: AntagonistRepository;
   public statusEffects!: StatusEffectRepository;
   public inventory!: InventoryRepository;
+  public worldState!: WorldStateRepository;
 
   constructor() {
     try {
@@ -83,6 +85,7 @@ export class GameDatabase {
       this.antagonists = new AntagonistRepository(this.db);
       this.statusEffects = new StatusEffectRepository(this.db);
       this.inventory = new InventoryRepository(this.db);
+      this.worldState = new WorldStateRepository(this.db);
 
       console.log('✅ Database connection and initialization successful');
     } catch (error: any) {
@@ -333,49 +336,11 @@ export class GameDatabase {
 
 private runMigrations() {
     // placeholder for migrations (future)
-  }
+}
+  this.db.close();
+  console.log('Database connection closed.');
+}
 
-  saveWorldState(worldState: any): boolean {
-    // TODO: Implement world state saving logic
-    console.log(`Saving world state: ${JSON.stringify(worldState)}`);
-    return true;
-  }
-
-  getWorldState(): any {
-    // TODO: Implement world state getting logic
-    console.log(`Getting world state`);
-    return {};
-  }
-
-  saveStoryProgress(storyProgress: any): boolean {
-    // TODO: Implement story progress saving logic
-    console.log(`Saving story progress: ${JSON.stringify(storyProgress)}`);
-    return true;
-  }
-
-  getInitiativeOrder(scene_id: string): any[] {
-    // TODO: Implement getting initiative order logic
-    console.log(`Getting initiative order for scene ${scene_id}`);
-    return [];
-  }
-
-  advanceTurn(scene_id: string): boolean {
-    // TODO: Implement advancing turn logic
-    console.log(`Advancing turn for scene ${scene_id}`);
-    return true;
-  }
-
-  getCurrentTurn(scene_id: string): any {
-    // TODO: Implement getting current turn logic
-    console.log(`Getting current turn for scene ${scene_id}`);
-    return {};
-  }
-
-  setInitiative(scene_id: string, entries: any[]): boolean {
-    // TODO: Implement setting initiative logic
-    console.log(`Setting initiative for scene ${scene_id} with entries ${JSON.stringify(entries)}`);
-    return true;
-  }
 
   // Other DB-specific (non-domain) methods, e.g., lock helpers, remain here.
 }

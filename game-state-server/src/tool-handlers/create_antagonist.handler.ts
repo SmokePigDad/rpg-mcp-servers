@@ -1,9 +1,8 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function create_antagonist_handler(args: any) {
+export async function create_antagonist_handler(db: GameDatabase, args: any) {
   const { template_name, custom_name } = args;
-  const db = new GameDatabase();
   const antagonist = db.antagonists.createAntagonist(template_name, custom_name);
 
   if (!antagonist) {

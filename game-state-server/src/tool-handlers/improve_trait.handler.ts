@@ -1,9 +1,8 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function improve_trait_handler(args: any) {
+export async function improve_trait_handler(db: GameDatabase, args: any) {
   const { character_id, trait_name, amount } = args;
-  const db = new GameDatabase();
   const character = db.characters.getCharacterById(character_id);
 
   if (!character) {

@@ -1,9 +1,8 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function remove_antagonist_handler(args: any) {
+export async function remove_antagonist_handler(db: GameDatabase, args: any) {
   const { antagonist_id } = args;
-  const db = new GameDatabase();
   const success = await db.antagonists.removeAntagonist(antagonist_id);
 
   if (!success) {

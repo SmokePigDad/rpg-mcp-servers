@@ -1,9 +1,8 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function award_xp_handler(args: any) {
+export async function award_xp_handler(db: GameDatabase, args: any) {
   const { character_id, amount, reason } = args;
-  const db = new GameDatabase();
   const character = db.characters.getCharacterById(character_id);
 
   if (!character) {

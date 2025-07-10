@@ -9,10 +9,10 @@ export interface GetCharacterHandlerArgs {
 }
 
 export async function get_character_handler(
+  db: GameDatabase,
   args: GetCharacterHandlerArgs
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     const character = await db.characters.getCharacterById(args.character_id);
     if (!character) {
       return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };

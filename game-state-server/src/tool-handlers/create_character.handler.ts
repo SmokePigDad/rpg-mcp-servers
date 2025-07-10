@@ -12,10 +12,10 @@ type HandlerResponse = { content: { type: string, text: string }[]; isError?: bo
  * TODO: Specify arg type if possible.
  */
 export async function create_character_handler(
+  db: GameDatabase,
   args: Record<string, unknown> // TODO: Specify correct type
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     const character = await db.characters.createCharacter(args);
     if (!character) {
       return { content: makeTextContentArray([`❌ Error creating character: Character not found after creation.`]), isError: true };

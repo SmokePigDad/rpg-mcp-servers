@@ -1,9 +1,8 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function update_antagonist_handler(args: any) {
+export async function update_antagonist_handler(db: GameDatabase, args: any) {
   const { antagonist_id, updates } = args;
-  const db = new GameDatabase();
   const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
 
   if (!antagonist) {

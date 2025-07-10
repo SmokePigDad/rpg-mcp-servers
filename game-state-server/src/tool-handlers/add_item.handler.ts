@@ -1,7 +1,7 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function add_item_handler(args: any) {
+export async function add_item_handler(db: GameDatabase, args: any) {
   const { target_type, target_id, item_name, description } = args;
   
   // Input validation
@@ -10,10 +10,11 @@ export async function add_item_handler(args: any) {
   }
 
   try {
-    const db = new GameDatabase();
-    // In a fully refactored system, this would be db.inventory.addItem(...)
-    // const newItem = db.inventory.add(character_id, item); // Assuming you add an 'add' method to InventoryRepository
-    return { content: makeTextContentArray([`Tool add_item is not yet fully implemented.`]) };
+    if (target_type !== 'character') {
+      return { content: makeTextContentArray(["❌ Tool add_item only supports target_type 'character' at this time."]), isError: true };
+    }
+    const newItem = await db.inventory.add(target_id, { name: item_name, description: description });
+    return { content: makeTextContentArray([`✅ Added item "${item_name}" (ID: ${newItem.id}) to character (ID: ${target_id}).`]) };
   } catch (error: any) {
     return { content: makeTextContentArray([`❌ Error adding item: ${error.message}`]), isError: true };
   }

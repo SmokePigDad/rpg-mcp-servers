@@ -13,10 +13,10 @@ export interface GainResourceArgs {
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
 export async function gain_resource_handler(
+  db: GameDatabase,
   args: GainResourceArgs
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     // TODO: Implement CharacterRepository.gainResource for resource-specific logic.
     // For now, patch relevant field (e.g., increasing willpower, gnosis, etc.)
     const character = await db.characters.getCharacterById(args.character_id);

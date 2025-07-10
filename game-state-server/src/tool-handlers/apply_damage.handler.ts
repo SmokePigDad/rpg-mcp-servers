@@ -12,9 +12,8 @@ export interface ApplyDamageArgs {
 
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
-export async function apply_damage_handler(args: ApplyDamageArgs): Promise<HandlerResponse> {
+export async function apply_damage_handler(db: GameDatabase, args: ApplyDamageArgs): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     // Ideally there should be an applyDamage method in CharacterRepository.
     // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
     const character = await db.characters.getCharacterById(args.target_id);

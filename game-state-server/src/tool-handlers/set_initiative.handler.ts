@@ -1,10 +1,9 @@
 import { makeTextContentArray } from '../index.js';
 import { GameDatabase } from '../db.js';
 
-export async function set_initiative_handler(args: any) {
+export async function set_initiative_handler(db: GameDatabase, args: any) {
   const { scene_id, entries } = args;
-    const db = new GameDatabase();
-  const success = db.setInitiative(scene_id, entries);
+  const success = db.worldState.setInitiative(scene_id, entries);
 
   if (!success) {
     return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}.`]), isError: true };

@@ -86,52 +86,52 @@ process.on('uncaughtException', (error) => {
 });
 
 
-const toolDispatcher: Record<string, (args: any) => Promise<any>> = {
+const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
   // Character Management
-  'create_character': create_character_handler,
-  'get_character': get_character_handler,
-  'get_character_by_name': get_character_by_name_handler,
-  'update_character': update_character_handler,
-  'list_characters': list_characters_handler,
+  'create_character': (args) => create_character_handler(db, args),
+  'get_character': (args) => get_character_handler(db, args),
+  'get_character_by_name': (args) => get_character_by_name_handler(db, args),
+  'update_character': (args) => update_character_handler(db, args),
+  'list_characters': (args) => list_characters_handler(db, args),
 
   // Antagonist Management
-  'create_antagonist': create_antagonist_handler,
-  'get_antagonist': get_antagonist_handler,
-  'update_antagonist': update_antagonist_handler,
-  'list_antagonists': list_antagonists_handler,
-  'remove_antagonist': remove_antagonist_handler,
+  'create_antagonist': (args) => create_antagonist_handler(db, args),
+  'get_antagonist': (args) => get_antagonist_handler(db, args),
+  'update_antagonist': (args) => update_antagonist_handler(db, args),
+  'list_antagonists': (args) => list_antagonists_handler(db, args),
+  'remove_antagonist': (args) => remove_antagonist_handler(db, args),
 
   // Resources & Health
-  'spend_resource': spend_resource_handler,
-  'restore_resource': restore_resource_handler,
-  'gain_resource': gain_resource_handler,
-  'apply_damage': apply_damage_handler,
+  'spend_resource': (args) => spend_resource_handler(db, args),
+  'restore_resource': (args) => restore_resource_handler(db, args),
+  'gain_resource': (args) => gain_resource_handler(db, args),
+  'apply_damage': (args) => apply_damage_handler(db, args),
 
   // XP & Progression
-  'award_xp': award_xp_handler,
-  'spend_xp': spend_xp_handler,
-  'improve_trait': improve_trait_handler,
-  'get_trait_improvement_cost': get_trait_improvement_cost_handler,
+  'award_xp': (args) => award_xp_handler(db, args),
+  'spend_xp': (args) => spend_xp_handler(db, args),
+  'improve_trait': (args) => improve_trait_handler(db, args),
+  'get_trait_improvement_cost': (args) => get_trait_improvement_cost_handler(db, args),
 
   // Status Effects
-  'apply_status_effect': apply_status_effect_handler,
-  'get_status_effects': get_status_effects_handler,
-  'remove_status_effect': remove_status_effect_handler,
+  'apply_status_effect': (args) => apply_status_effect_handler(db, args),
+  'get_status_effects': (args) => get_status_effects_handler(db, args),
+  'remove_status_effect': (args) => remove_status_effect_handler(db, args),
 
   // Inventory
-  'add_item': add_item_handler,
-  'get_inventory': get_inventory_handler,
-  'update_item': update_item_handler,
-  'remove_item': remove_item_handler,
+  'add_item': (args) => add_item_handler(db, args),
+  'get_inventory': (args) => get_inventory_handler(db, args),
+  'update_item': (args) => update_item_handler(db, args),
+  'remove_item': (args) => remove_item_handler(db, args),
 
   // World State & Initiative
-  'save_world_state': save_world_state_handler,
-  'get_world_state': get_world_state_handler,
-  'save_story_progress': save_story_progress_handler,
-  'set_initiative': set_initiative_handler,
-  'get_initiative_order': get_initiative_order_handler,
-  'advance_turn': advance_turn_handler,
-  'get_current_turn': get_current_turn_handler,
+  'save_world_state': (args) => save_world_state_handler(db, args),
+  'get_world_state': (args) => get_world_state_handler(db, args),
+  'save_story_progress': (args) => save_story_progress_handler(db, args),
+  'set_initiative': (args) => set_initiative_handler(db, args),
+  'get_initiative_order': (args) => get_initiative_order_handler(db, args),
+  'advance_turn': (args) => advance_turn_handler(db, args),
+  'get_current_turn': (args) => get_current_turn_handler(db, args),
 };
 
 // Register MCP handlers
@@ -150,7 +150,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     const handler = toolDispatcher[name];
     if (handler) {
       console.log(`Calling handler for tool: ${name} with args:`, args);
-      const result = await handler(args);
+      const result = await handler(db, args);
       console.log(`Handler for tool: ${name} completed successfully with result:`, result);
       return result;
     }

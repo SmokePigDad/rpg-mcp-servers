@@ -13,10 +13,10 @@ export interface SpendResourceArgs {
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
 export async function spend_resource_handler(
+  db: GameDatabase,
   args: SpendResourceArgs
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     // TODO: Implement CharacterRepository.spendResource for resource spending validation.
     const character = await db.characters.getCharacterById(args.character_id);
     if (!character) {

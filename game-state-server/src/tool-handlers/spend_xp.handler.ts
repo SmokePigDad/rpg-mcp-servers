@@ -30,6 +30,7 @@ export interface SpendXPArgs {
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
 export async function spend_xp_handler(
+  db: GameDatabase,
   args: SpendXPArgs
 ): Promise<HandlerResponse> {
   const { character_id, amount, reason, trait_name } = args;
@@ -59,7 +60,6 @@ export async function spend_xp_handler(
 
   // -- Fetch character & compute cost atomically --
   // Use raw db for transactions and repo (from GameDatabase class)
-  const db = new GameDatabase();
   const repo = db.characters;
   let result;
   try {

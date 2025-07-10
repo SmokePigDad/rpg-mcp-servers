@@ -11,10 +11,10 @@ export interface UpdateCharacterHandlerArgs {
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
 export async function update_character_handler(
+  db: GameDatabase,
   args: UpdateCharacterHandlerArgs
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     const character = await db.characters.updateCharacter(args.character_id, args.updates);
     if (!character) {
       return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };

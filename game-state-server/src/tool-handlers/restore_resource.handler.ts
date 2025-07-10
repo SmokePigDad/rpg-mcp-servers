@@ -13,10 +13,10 @@ export interface RestoreResourceArgs {
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
 export async function restore_resource_handler(
+  db: GameDatabase,
   args: RestoreResourceArgs
 ): Promise<HandlerResponse> {
   try {
-    const db = new GameDatabase();
     // TODO: Implement CharacterRepository.restoreResource for resource restoration semantics.
     const character = await db.characters.getCharacterById(args.character_id);
     if (!character) {
