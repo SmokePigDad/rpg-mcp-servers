@@ -1,5 +1,5 @@
 // game-state-server/src/tool-handlers/get_character.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };

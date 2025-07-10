@@ -1,4 +1,4 @@
-import type { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 // Import all your handlers here
 import { add_item_handler } from './add_item.handler.js';

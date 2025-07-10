@@ -3,7 +3,6 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { handleGetTacticalAdvantage } from './narrative-engine.js';
 
 interface CombatState {
   log: string[];
@@ -611,6 +610,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           willpowerWarning = "⚠️ CRITICAL WARNING: 'spend_willpower_for_success' is not supported in this tool. Always call 'spend_resource' to spend Willpower BEFORE rolling. No Willpower bonus will be applied!";
         }
       
+        // Narrative engine logic removed: handleGetTacticalAdvantage is unavailable.
+        // The following was disabled to fix dependency and compilation errors.
+        /*
         if (actor_context) {
           try {
             const result = handleGetTacticalAdvantage({ actor: actor_context });
@@ -623,6 +625,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             console.error("Narrative engine error:", e);
           }
         }
+        */
       
         const result = rollWodPool(narrativePool, narrativeDiff, has_specialty, force_result);
         let successes = result.successes;

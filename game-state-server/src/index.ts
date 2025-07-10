@@ -18,7 +18,9 @@ export function makeTextContentArray(contentArr: any[]): { type: 'text', text: s
 }
 import { toolDefinitions } from './tool-definitions.js';
 import { formatSheetByGameLine } from './characterSheets.js';
-import { GameDatabase } from './db.js';
+import { GameDatabase as GameDatabaseClass } from './db.js';
+import type { GameDatabase as GameDatabaseType } from './types/db.types.js';
+import { createGameDatabase } from './repositories/game-database.js';
 import type { AntagonistRow } from './types/antagonist.types.js';
 
 import { spend_xp_handler } from './tool-handlers/spend_xp.handler.js';
@@ -92,25 +94,14 @@ async function startServer() {
     const transport = new StdioServerTransport();
     
     console.log("Initializing database...");
-    let db: GameDatabase;
+    let db: GameDatabaseClass;
+    let repositories: GameDatabaseType;
     try {
-      db = new GameDatabase();
+      db = new GameDatabaseClass();
       console.log("Database initialized successfully.");
-    
-      // New repository instantiation pattern
-      const dbInstance = db.getInstance();
-      const characterRepository = new CharacterRepository(dbInstance);
-      const antagonistRepository = new AntagonistRepository(dbInstance);
-      const inventoryRepository = new InventoryRepository(dbInstance);
-      const statusEffectRepository = new StatusEffectRepository(dbInstance);
-    
-      // Pass all repositories together for handler access
-      var repositories = {
-        characterRepository,
-        antagonistRepository,
-        inventoryRepository,
-        statusEffectRepository,
-      };
+
+      // Use canonical aggregated GameDatabase interface for handlers
+      repositories = createGameDatabase(db.getInstance());
     } catch (err: any) {
       console.error("Error initializing database:", err.message);
       process.exit(1);

@@ -1,5 +1,5 @@
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_initiative_order_handler(db: GameDatabase, args: any) {
   // Input validation

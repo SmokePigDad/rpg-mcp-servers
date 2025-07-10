@@ -1,5 +1,5 @@
 // game-state-server/src/tool-handlers/apply_damage.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';

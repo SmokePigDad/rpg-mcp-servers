@@ -1,6 +1,6 @@
 import { makeTextContentArray } from '../index.js';
 import { CharacterRepository } from '../repositories/character.repository.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 // -- XP cost logic: oWoD standard: (current rating + 1) × multiplier (usually 5-7)
 function getTraitXPCost(traitName: string, currentVal: number): number {

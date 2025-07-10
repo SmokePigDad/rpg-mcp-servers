@@ -1,5 +1,10 @@
 import { makeTextContentArray } from '../index.js';
-export async function apply_status_effect_handler({ statusEffectRepository }, args: any) {
+import type { GameDatabase } from '../types/db.types.js';
+
+export async function apply_status_effect_handler(
+  db: GameDatabase,
+  args: any
+) {
   // Input validation
   if (
     !args ||
@@ -17,7 +22,15 @@ export async function apply_status_effect_handler({ statusEffectRepository }, ar
   }
   const { target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value } = args;
 
-  const effectId = statusEffectRepository.addStatusEffect({ target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value });
+  const effectId = db.statusEffects.addStatusEffect({
+    target_type,
+    target_id,
+    effect_name,
+    description,
+    mechanical_effect,
+    duration_type,
+    duration_value,
+  });
 
   return { content: makeTextContentArray([`✅ Applied status effect \"${effect_name}\" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
 }

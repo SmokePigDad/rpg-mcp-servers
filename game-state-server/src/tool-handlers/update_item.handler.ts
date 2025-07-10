@@ -1,5 +1,5 @@
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function update_item_handler(db: GameDatabase, args: any) {
   const { target_type, target_id, item_id, updates } = args;
