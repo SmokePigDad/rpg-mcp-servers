@@ -1,9 +1,9 @@
-import Database from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 
 export class WorldStateRepository {
-  private db: Database.Database;
+  private db: Database;
 
-  constructor(db: Database.Database) {
+  constructor(db: Database) {
     this.db = db;
   }
 

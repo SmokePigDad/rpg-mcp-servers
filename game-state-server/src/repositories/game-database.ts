@@ -16,7 +16,7 @@
  *   // gameDb.characters, gameDb.worldState, etc.
  */
 
-import type Database from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 
 import { CharacterRepository } from './character.repository.js';
 import { AntagonistRepository } from './antagonist.repository.js';
@@ -31,7 +31,7 @@ import type { GameDatabase } from '../types/db.types.js';
  * @param db An open better-sqlite3 Database instance
  * @returns {GameDatabase} Aggregated repository interface for handler use
  */
-export function createGameDatabase(db: Database.Database): GameDatabase {
+export function createGameDatabase(db: Database): GameDatabase {
   return {
     characters: new CharacterRepository(db),
     antagonists: new AntagonistRepository(db),

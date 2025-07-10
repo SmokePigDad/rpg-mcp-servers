@@ -1,10 +1,10 @@
-import Database from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 import type { AntagonistRow } from '../types/antagonist.types.js';
 import { ANTAGONIST_TEMPLATES } from '../antagonists.js';
 
 export class AntagonistRepository {
-  private db: Database.Database;
-constructor(db: Database.Database) {
+  private db: Database;
+constructor(db: Database) {
     this.db = db;
   }
 

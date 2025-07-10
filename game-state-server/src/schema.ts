@@ -1,13 +1,14 @@
 // File: game-state-server/src/schema.ts
 // Schema initialization module for the game database
 
-import type Database from 'better-sqlite3';
+import Database from 'better-sqlite3';
+import type { Database as DatabaseType } from 'better-sqlite3';
 
 /**
  * Initializes all database tables and constraints
  * @param db An open better-sqlite3 Database instance
  */
-export function initializeSchema(db: Database.Database): void {
+export function initializeSchema(db: DatabaseType): void {
   // Core characters table
   db.exec(`
     CREATE TABLE IF NOT EXISTS characters (
@@ -304,8 +305,7 @@ export function initializeSchema(db: Database.Database): void {
  * @param dbPath Path to the SQLite database file
  * @returns Configured Database instance
  */
-export function createDatabase(dbPath: string): Database.Database {
-  const Database = require('better-sqlite3');
+export function createDatabase(dbPath: string): DatabaseType {
   const db = new Database(dbPath);
   
   // Configure database settings

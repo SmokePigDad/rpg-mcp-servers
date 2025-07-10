@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import type { Database } from 'better-sqlite3';
 import type { CharacterData } from '../types/character.types.js';
 
 interface Ability {
@@ -14,8 +14,8 @@ interface SupernaturalPower {
 }
 
 export class CharacterRepository {
-  private db: Database.Database;
-constructor(db: Database.Database) {
+  private db: Database;
+constructor(db: Database) {
     this.db = db;
   }
 
