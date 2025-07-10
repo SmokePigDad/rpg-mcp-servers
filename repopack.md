@@ -42,7 +42,6 @@ The content is organized as follows:
 combat-engine-server/package.json
 combat-engine-server/src/index.ts
 combat-engine-server/tsconfig.json
-dice-rolling-guide.md
 game-state-server/config.json
 game-state-server/package.json
 game-state-server/src/antagonists.ts
@@ -52,6 +51,7 @@ game-state-server/src/health-tracker.ts
 game-state-server/src/index.ts
 game-state-server/src/repositories/antagonist.repository.ts
 game-state-server/src/repositories/character.repository.ts
+game-state-server/src/repositories/game-database.ts
 game-state-server/src/repositories/index.ts
 game-state-server/src/repositories/inventory.repository.ts
 game-state-server/src/repositories/status-effect.repository.ts
@@ -99,7 +99,6 @@ game-state-server/src/types/inventory.types.ts
 game-state-server/src/types/status-effect.types.ts
 game-state-server/tsconfig.json
 quick-start-guide.md
-README.md
 rebuild.bat
 setup.bat
 SYSTEM_ARCHITECTURE.md
@@ -274,108 +273,58 @@ customModes:
 }
 ````
 
+## File: game-state-server/src/repositories/game-database.ts
+````typescript
+// game-state-server/src/repositories/game-database.ts
+
+/**
+ * Module: GameDatabase composition/facade
+ * 
+ * This module provides a single function to aggregate core domain repositories under the canonical names
+ * used in all database handler code (`characters`, `antagonists`, `inventory`, `statusEffects`, `worldState`).
+ * It is intended as the main gateway for all game state persistence and retrieval operations,
+ * facilitating unified domain access for tool handlers.
+ * 
+ * Usage:
+ *   import Database from 'better-sqlite3';
+ *   import { createGameDatabase } from './game-database.js';
+ *   const db = new Database('data.sqlite');
+ *   const gameDb = createGameDatabase(db);
+ *   // gameDb.characters, gameDb.worldState, etc.
+ */
+
+import type Database from 'better-sqlite3';
+
+import { CharacterRepository } from './character.repository.js';
+import { AntagonistRepository } from './antagonist.repository.js';
+import { InventoryRepository } from './inventory.repository.js';
+import { StatusEffectRepository } from './status-effect.repository.js';
+import { WorldStateRepository } from './world-state.repository.js';
+
+import type { GameDatabase } from '../types/db.types.js';
+
+/**
+ * Aggregates all primary repositories under canonical db property names.
+ * @param db An open better-sqlite3 Database instance
+ * @returns {GameDatabase} Aggregated repository interface for handler use
+ */
+export function createGameDatabase(db: Database.Database): GameDatabase {
+  return {
+    characters: new CharacterRepository(db),
+    antagonists: new AntagonistRepository(db),
+    inventory: new InventoryRepository(db),
+    statusEffects: new StatusEffectRepository(db),
+    worldState: new WorldStateRepository(db),
+  };
+}
+````
+
 ## File: game-state-server/src/repositories/index.ts
 ````typescript
 export * from './antagonist.repository.js';
 export * from './character.repository.js';
 export * from './inventory.repository.js';
 export * from './status-effect.repository.js';
-````
-
-## File: game-state-server/src/tool-handlers/index.ts
-````typescript
-import type { GameDatabase } from '../db.js';
-
-// Import all your handlers here
-import { add_item_handler } from './add_item.handler.js';
-import { advance_turn_handler } from './advance_turn.handler.js';
-import { apply_damage_handler } from './apply_damage.handler.js';
-import { apply_status_effect_handler } from './apply_status_effect.handler.js';
-import { award_xp_handler } from './award_xp.handler.js';
-import { create_antagonist_handler } from './create_antagonist.handler.js';
-import { create_character_handler } from './create_character.handler.js';
-import { gain_resource_handler } from './gain_resource.handler.js';
-import { get_antagonist_handler } from './get_antagonist.handler.js';
-import { get_character_by_name_handler } from './get_character_by_name.handler.js';
-import { get_character_handler } from './get_character.handler.js';
-import { get_current_turn_handler } from './get_current_turn.handler.js';
-import { get_initiative_order_handler } from './get_initiative_order.handler.js';
-import { get_inventory_handler } from './get_inventory.handler.js';
-import { get_status_effects_handler } from './get_status_effects.handler.js';
-import { get_trait_improvement_cost_handler } from './get_trait_improvement_cost.handler.js';
-import { get_world_state_handler } from './get_world_state.handler.js';
-import { improve_trait_handler } from './improve_trait.handler.js';
-import { list_antagonists_handler } from './list_antagonists.handler.js';
-import { list_characters_handler } from './list_characters.handler.js';
-import { remove_antagonist_handler } from './remove_antagonist.handler.js';
-import { remove_item_handler } from './remove_item.handler.js';
-import { remove_status_effect_handler } from './remove_status_effect.handler.js';
-import { restore_resource_handler } from './restore_resource.handler.js';
-import { save_story_progress_handler } from './save_story_progress.handler.js';
-import { save_world_state_handler } from './save_world_state.handler.js';
-import { set_initiative_handler } from './set_initiative.handler.js';
-import { spend_resource_handler } from './spend_resource.handler.js';
-import { spend_xp_handler } from './spend_xp.handler.js';
-import { update_antagonist_handler } from './update_antagonist.handler.js';
-import { update_character_handler } from './update_character.handler.js';
-import { update_item_handler } from './update_item.handler.js';
-
-// Create a single map of all tool handlers
-export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
-  'add_item': add_item_handler,
-  'advance_turn': advance_turn_handler,
-  'apply_damage': apply_damage_handler,
-  'apply_status_effect': apply_status_effect_handler,
-  'award_xp': award_xp_handler,
-  'create_antagonist': create_antagonist_handler,
-  'create_character': create_character_handler,
-  'gain_resource': gain_resource_handler,
-  'get_antagonist': get_antagonist_handler,
-  'get_character_by_name': get_character_by_name_handler,
-  'get_character': get_character_handler,
-  'get_current_turn': get_current_turn_handler,
-  'get_initiative_order': get_initiative_order_handler,
-  'get_inventory': get_inventory_handler,
-  'get_status_effects': get_status_effects_handler,
-  'get_trait_improvement_cost': get_trait_improvement_cost_handler,
-  'get_world_state': get_world_state_handler,
-  'improve_trait': improve_trait_handler,
-  'list_antagonists': list_antagonists_handler,
-  'list_characters': list_characters_handler,
-  'remove_antagonist': remove_antagonist_handler,
-  'remove_item': remove_item_handler,
-  'remove_status_effect': remove_status_effect_handler,
-  'restore_resource': restore_resource_handler,
-  'save_story_progress': save_story_progress_handler,
-  'save_world_state': save_world_state_handler,
-  'set_initiative': set_initiative_handler,
-  'spend_resource': spend_resource_handler,
-  'spend_xp': spend_xp_handler,
-  'update_antagonist': update_antagonist_handler,
-  'update_character': update_character_handler,
-  'update_item': update_item_handler,
-};
-````
-
-## File: game-state-server/src/types/db.types.ts
-````typescript
-export interface DatabaseResult {
-  lastInsertRowid: number | bigint;
-  changes: number;
-}
-
-export interface QueryResult<T> {
-  [key: string]: T | undefined;
-}
-
-export interface Lock {
-  timestamp: number;
-  operation: string;
-}
-
-export interface DbResult<T> {
-  success: boolean;
-}
 ````
 
 ## File: game-state-server/src/types/health.types.ts
@@ -1390,99 +1339,6 @@ coverage/
 }
 ````
 
-## File: dice-rolling-guide.md
-````markdown
-# Dice Rolling Guide – Storyteller System (oWoD/Chronicles)
-
-Everything in the Storyteller System (World of Darkness/Chronicles) revolves around rolling pools of 10-sided dice—not d20s!
-
----
-
-## 1. Understanding Dice Pools
-
-To attempt an action, combine one Attribute (e.g., Dexterity) with one Ability (e.g., Firearms, Stealth, Empathy):
-- Dice Pool = Attribute rating + Ability rating (e.g., Dexterity 3 + Stealth 2 = 5d10 rolled)
-- Sometimes, powers or equipment add extra dice.
-
----
-
-## 2. How Dice Rolling Works
-
-- Standard target number (difficulty) is 6 (sometimes higher/lower for easier/harder tasks).
-- Every die that rolls a 6 or higher counts as a success.
-- A 1 (one) cancels out one success (botch = all 1s and no successes).
-- If you have a Specialty and roll a 10, that die counts as two successes.
-
----
-
-## 3. Types of Rolls
-
-- **Action/Task:** Attribute + Ability (e.g., Wits + Alertness)
-- **Opposed/Contested:** Each side rolls their pool; whoever has more net successes wins.
-- **Damage:** After a successful attack, roll a separate damage pool (e.g., Strength + weapon).
-- **Initiative:** Roll one die, add relevant stats (usually Dexterity + Wits).
-
----
-
-## 4. Using Automation Tools
-
-### a) Roll a Pool
-```json
-{
-  "tool": "roll_wod_pool",
-  "pool_size": 7,
-  "difficulty": 6
-}
-```
-
-### b) Roll Damage
-```json
-{
-  "tool": "roll_damage_pool",
-  "pool_size": 3,
-  "damage_type": "lethal"
-}
-```
-
-### c) Contest Actions
-```json
-{
-  "tool": "roll_contested_action",
-  "attacker_pool": 5,
-  "attacker_difficulty": 6,
-  "attacker_specialty": false,
-  "defender_pool": 6,
-  "defender_difficulty": 6,
-  "defender_specialty": true
-}
-```
-
-### d) Spend Willpower for Automatic Success
-
-Ask the MCP or AI to "spend Willpower for one automatic success" before rolling.
-
----
-
-## 5. Example Prompts
-
-- "Marcus makes a Charisma + Subterfuge roll (diff 7) to lie convincingly."
-- "Roll Dexterity + Firearms for my attack."
-- "How much damage do I deal? (Strength + Knife)"
-- "Let me spend Willpower for my Stealth roll."
-- "Contest my Perception + Empathy vs. the NPC's Manipulation + Subterfuge."
-
----
-
-## 6. Tips & Special Rules
-
-- If your pool drops to 0 dice, you may still roll 1 die, but only a 10 counts as success (and a 1 is a botch).
-- The AI engine handles specialties, damage types, and edge cases—just describe your intent!
-
----
-
-Use these guides and automated tools for fast, accurate Storyteller System play!
-````
-
 ## File: game-state-server/package.json
 ````json
 {
@@ -1875,339 +1731,79 @@ export const ANTAGONIST_TEMPLATES: AntagonistTemplates = {
 };
 ````
 
-## File: game-state-server/src/health-tracker.ts
+## File: game-state-server/src/tool-handlers/index.ts
 ````typescript
-// File: game-state-server/src/health-tracker.ts
+import type { GameDatabase } from '../types/db.types.js';
 
-/**
- * HealthTracker handles World of Darkness health-level tracking,
- * including damage application, wound penalties, serialization,
- * and robust fallback for malformed/corrupt health state objects.
- */
-type DamageType = 'bashing' | 'lethal' | 'aggravated';
-import { HealthLevel, DamageObject } from './types/health.types.js';
+// Import all your handlers here
+import { add_item_handler } from './add_item.handler.js';
+import { advance_turn_handler } from './advance_turn.handler.js';
+import { apply_damage_handler } from './apply_damage.handler.js';
+import { apply_status_effect_handler } from './apply_status_effect.handler.js';
+import { award_xp_handler } from './award_xp.handler.js';
+import { create_antagonist_handler } from './create_antagonist.handler.js';
+import { create_character_handler } from './create_character.handler.js';
+import { gain_resource_handler } from './gain_resource.handler.js';
+import { get_antagonist_handler } from './get_antagonist.handler.js';
+import { get_character_by_name_handler } from './get_character_by_name.handler.js';
+import { get_character_handler } from './get_character.handler.js';
+import { get_current_turn_handler } from './get_current_turn.handler.js';
+import { get_initiative_order_handler } from './get_initiative_order.handler.js';
+import { get_inventory_handler } from './get_inventory.handler.js';
+import { get_status_effects_handler } from './get_status_effects.handler.js';
+import { get_trait_improvement_cost_handler } from './get_trait_improvement_cost.handler.js';
+import { get_world_state_handler } from './get_world_state.handler.js';
+import { improve_trait_handler } from './improve_trait.handler.js';
+import { list_antagonists_handler } from './list_antagonists.handler.js';
+import { list_characters_handler } from './list_characters.handler.js';
+import { remove_antagonist_handler } from './remove_antagonist.handler.js';
+import { remove_item_handler } from './remove_item.handler.js';
+import { remove_status_effect_handler } from './remove_status_effect.handler.js';
+import { restore_resource_handler } from './restore_resource.handler.js';
+import { save_story_progress_handler } from './save_story_progress.handler.js';
+import { save_world_state_handler } from './save_world_state.handler.js';
+import { set_initiative_handler } from './set_initiative.handler.js';
+import { spend_resource_handler } from './spend_resource.handler.js';
+import { spend_xp_handler } from './spend_xp.handler.js';
+import { update_antagonist_handler } from './update_antagonist.handler.js';
+import { update_character_handler } from './update_character.handler.js';
+import { update_item_handler } from './update_item.handler.js';
 
-const HEALTH_LEVELS: HealthLevel[] = [
-  'bruised',
-  'hurt',
-  'injured',
-  'wounded',
-  'mauled',
-  'crippled',
-  'incapacitated'
-];
-
-const PENALTIES: Record<HealthLevel, number> = {
-  bruised: 0,
-  hurt: -1,
-  injured: -1,
-  wounded: -2,
-  mauled: -2,
-  crippled: -5,
-  incapacitated: 0
+// Create a single map of all tool handlers
+export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
+  'add_item': add_item_handler,
+  'advance_turn': advance_turn_handler,
+  'apply_damage': apply_damage_handler,
+  'apply_status_effect': apply_status_effect_handler,
+  'award_xp': award_xp_handler,
+  'create_antagonist': create_antagonist_handler,
+  'create_character': create_character_handler,
+  'gain_resource': gain_resource_handler,
+  'get_antagonist': get_antagonist_handler,
+  'get_character_by_name': get_character_by_name_handler,
+  'get_character': get_character_handler,
+  'get_current_turn': get_current_turn_handler,
+  'get_initiative_order': get_initiative_order_handler,
+  'get_inventory': get_inventory_handler,
+  'get_status_effects': get_status_effects_handler,
+  'get_trait_improvement_cost': get_trait_improvement_cost_handler,
+  'get_world_state': get_world_state_handler,
+  'improve_trait': improve_trait_handler,
+  'list_antagonists': list_antagonists_handler,
+  'list_characters': list_characters_handler,
+  'remove_antagonist': remove_antagonist_handler,
+  'remove_item': remove_item_handler,
+  'remove_status_effect': remove_status_effect_handler,
+  'restore_resource': restore_resource_handler,
+  'save_story_progress': save_story_progress_handler,
+  'save_world_state': save_world_state_handler,
+  'set_initiative': set_initiative_handler,
+  'spend_resource': spend_resource_handler,
+  'spend_xp': spend_xp_handler,
+  'update_antagonist': update_antagonist_handler,
+  'update_character': update_character_handler,
+  'update_item': update_item_handler,
 };
-
-const DAMAGE_SYMBOL: Record<DamageType, string> = {
-  bashing: '/',
-  lethal: 'X',
-  aggravated: '*'
-};
-
-
-export class HealthTracker {
-  private boxes: ('' | '/' | 'X' | '*')[] = Array(7).fill('');
-  /**
-   * Initializes with a JSON or record describing the current health boxes.
-   * Accepts both V20 object and count formats. Handles corrupted state robustly.
-   */
-  constructor(public health: any = undefined) {
-    this.deserializeBoxArray(health);
-  }
-
-  private fallbackFullHealth() {
-    this.boxes = Array(7).fill('');
-  }
-
-  /**
-   * Accepts legacy/modern JSON, string, or nothing; parses to 7-boxes.
-   */
-  private deserializeBoxArray(source: any) {
-    let healthObj: Record<string, any>;
-    try {
-      if (typeof source === 'string') {
-        healthObj = JSON.parse(source ?? '{}');
-      } else if (typeof source === 'object' && source) {
-        healthObj = source;
-      } else {
-        throw new Error();
-      }
-      if (typeof healthObj !== 'object' || healthObj === null) throw new Error();
-    } catch (e) {
-      healthObj = HEALTH_LEVELS.reduce((acc, lvl) => {
-        acc[lvl] = {};
-        return acc;
-      }, {} as any);
-    }
-    // preferred fill-in per box: support V20 {b:1,l:0,a:0} or just number (count of filled damage)
-    const out: ('' | '/' | 'X' | '*')[] = [];
-    for (const lvl of HEALTH_LEVELS) {
-      let boxVal = healthObj[lvl];
-      if (typeof boxVal === 'object' && boxVal !== null) {
-        // V20 style: {b:1,l:0,a:0}
-        if (boxVal.a > 0) out.push('*');
-        else if (boxVal.l > 0) out.push('X');
-        else if (boxVal.b > 0) out.push('/');
-        else out.push('');
-      } else if (typeof boxVal === 'number') {
-        // Simple number: count of filled boxes, no type
-        out.push(boxVal > 0 ? '/' : '');
-      } else {
-        out.push('');
-      }
-    }
-    // If corrupt, fallback
-    if (out.length !== HEALTH_LEVELS.length || out.some(x => typeof x !== 'string' || x.length > 1)) {
-      this.fallbackFullHealth();
-    } else {
-      this.boxes = out;
-    }
-  }
-
-  /**
-   * Returns simple JSON health object (V20 style, e.g. {bruised: {b:1}, ...})
-   */
-  public toJSON(): Record<HealthLevel, any> {
-    const out: Record<HealthLevel, any> = {} as any;
-    for (let i = 0; i < HEALTH_LEVELS.length; ++i) {
-      const symbol = this.boxes[i];
-      if (symbol === '*') out[HEALTH_LEVELS[i]] = { a: 1 };
-      else if (symbol === 'X') out[HEALTH_LEVELS[i]] = { l: 1 };
-      else if (symbol === '/') out[HEALTH_LEVELS[i]] = { b: 1 };
-      else out[HEALTH_LEVELS[i]] = {};
-    }
-    return out;
-  }
-
-  /**
-   * Returns printable visual status: e.g. "/|*|/|X|...|"
-   */
-  public getBoxArray(): ('' | '/' | 'X' | '*')[] {
-    return [...this.boxes];
-  }
-
-  /** Returns wound penalty for current state according to most severe filled box. */
-  public getWoundPenalty(): number {
-    for (let i = this.boxes.length - 1; i >= 0; --i) {
-      if (this.boxes[i] !== '') {
-        return PENALTIES[HEALTH_LEVELS[i]];
-      }
-    }
-    return 0;
-  }
-
-  /** Returns true if the character is incapacitated (incapacitated health level is filled). */
-  public isIncapacitated(): boolean {
-    return this.boxes[6] !== ''; // incapacitated is the 7th (index 6) health level
-  }
-
-  /** Returns the current health status as a descriptive string. */
-  public getHealthStatus(): string {
-    if (this.isIncapacitated()) {
-      return 'Incapacitated';
-    }
-
-    for (let i = this.boxes.length - 1; i >= 0; --i) {
-      if (this.boxes[i] !== '') {
-        return HEALTH_LEVELS[i].charAt(0).toUpperCase() + HEALTH_LEVELS[i].slice(1);
-      }
-    }
-    return 'Healthy';
-  }
-
-  /** Applies any combination of bashing, lethal, aggravated (any falsy is 0). Returns {changed: bool}. */
-  public applyDamage(dmg: DamageObject): boolean {
-    let orig = this.getBoxArray().join('');
-    // Application order: aggravated > lethal > bashing
-    const applyType = (count: number, symbol: '/' | 'X' | '*') => {
-      for (let i = 0; i < (count || 0); ++i) {
-        // aggravated: first '', then upgrade '/' or 'X' to '*'
-        // lethal: first '', then upgrade '/' to 'X'
-        // bashing: first '', only
-        let idx = -1;
-        if (symbol === '*') {
-          idx = this.boxes.findIndex(x => x === '' || x === '/' || x === 'X');
-        } else if (symbol === 'X') {
-          idx = this.boxes.findIndex(x => x === '' || x === '/');
-        } else if (symbol === '/') {
-          idx = this.boxes.findIndex(x => x === '');
-        }
-        if (idx !== -1) {
-          // Upgrading existing
-          if (
-            this.boxes[idx] === '' ||
-            (symbol === 'X' && this.boxes[idx] === '/') ||
-            (symbol === '*' && (this.boxes[idx] === '/' || this.boxes[idx] === 'X'))
-          ) {
-            this.boxes[idx] = symbol;
-          }
-        }
-      }
-    };
-
-    applyType(dmg.aggravated || 0, '*');
-    applyType(dmg.lethal || 0, 'X');
-    applyType(dmg.bashing || 0, '/');
-
-    // overflow: if >7, last become aggravated
-    let over = this.boxes.filter(c => c === '*' || c === 'X' || c === '/').length - 7;
-    if (over > 0) {
-      for (let i = this.boxes.length - 1; i >= 0 && over > 0; --i) {
-        if (this.boxes[i] !== '*') {
-          this.boxes[i] = '*';
-          over--;
-        }
-      }
-    }
-    return this.getBoxArray().join('') !== orig;
-  }
-
-  /**
-   * Serializes to JSON-string.
-   */
-  public serialize(): string {
-    return JSON.stringify(this.toJSON());
-  }
-
-  /**
-   * Static: build from DB (object or JSON-string) and always get a valid instance.
-   */
-  static from(source: any): HealthTracker {
-    return new HealthTracker(source);
-  }
-
-  /**
-   * Static: returns a fully healthy instance.
-   */
-  static healthy(): HealthTracker {
-    return new HealthTracker();
-  }
-}
-````
-
-## File: game-state-server/src/repositories/world-state.repository.ts
-````typescript
-import Database from 'better-sqlite3';
-
-export class WorldStateRepository {
-  private db: Database.Database;
-
-  constructor(db: Database.Database) {
-    this.db = db;
-  }
-
-  saveWorldState(state: { location?: string; notes?: string; data?: any }): void {
-    const dataStr = state.data ? JSON.stringify(state.data) : null;
-    this.db.prepare(`
-      INSERT INTO world_state (id, location, notes, data, last_updated)
-      VALUES (1, @location, @notes, @data, CURRENT_TIMESTAMP)
-      ON CONFLICT(id) DO UPDATE SET
-        location = excluded.location,
-        notes = excluded.notes,
-        data = excluded.data,
-        last_updated = excluded.last_updated;
-    `).run({ location: state.location, notes: state.notes, data: dataStr });
-  }
-
-  getWorldState(): { location: string; notes: string; data: any } | undefined {
-    const worldState = this.db.prepare('SELECT location, notes, data FROM world_state WHERE id = 1').get() as { location: string; notes: string; data: string } | undefined;
-    if (worldState) {
-      try {
-        worldState.data = typeof worldState.data === 'string' ? JSON.parse(worldState.data) : worldState.data;
-      } catch (err) {
-        console.error("Error parsing world state data:", err);
-        worldState.data = null as any;
-      }
-    }
-    return worldState;
-  }
-
-  saveStoryProgress(characterId: number, storyProgress: any): void {
-    const progressStr = JSON.stringify(storyProgress);
-    this.db.prepare(`
-      INSERT INTO story_progress (character_id, progress_data, last_updated)
-      VALUES (@character_id, @progress_data, CURRENT_TIMESTAMP)
-      ON CONFLICT(character_id) DO UPDATE SET
-        progress_data = excluded.progress_data,
-        last_updated = excluded.last_updated;
-    `).run({ character_id: characterId, progress_data: progressStr });
-  }
-
-  getInitiativeOrder(scene_id: string): any[] {
-    const stmt = this.db.prepare(`SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC`);
-    return stmt.all(scene_id);
-  }
-
-  advanceTurn(scene_id: string): void {
-    // Get the current turn order
-    const currentTurn = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
-    if (!currentTurn) {
-      // If there's no current turn, start at turn 1
-      this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(scene_id);
-      return;
-    }
-
-    interface CurrentTurn {
-      current_turn: number;
-      current_round: number;
-    }
-
-    const currentTurnData: CurrentTurn | null = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id) as CurrentTurn || null;
-
-    const current_turn = currentTurnData ? currentTurnData.current_turn : 0;
-    const current_round = currentTurnData ? currentTurnData.current_round : 0;
-
-    // Get the highest turn order
-    const highestTurn = (this.db.prepare(`SELECT MAX(turn_order) AS max_turn FROM initiative_order WHERE scene_id = ?`).get(scene_id) as any)?.max_turn as number || 0;
-
-    let newTurn = current_turn + 1;
-    let newRound = current_round;
-
-    if (newTurn > highestTurn) {
-      newTurn = 1;
-      newRound++;
-    }
-
-    // Update the current turn
-    this.db.prepare(`UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?`).run(newTurn, newRound, scene_id);
-  }
-
-  getCurrentTurn(scene_id: string): any {
-    const turnData = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
-    return turnData || { current_turn: 0, current_round: 0 };
-  }
-
-  setInitiative(sceneId: string, entries: any[]): void {
-    // Start a transaction
-    const transaction = this.db.transaction(() => {
-      // Delete existing initiative order for the scene
-      this.db.prepare(`DELETE FROM initiative_order WHERE scene_id = ?`).run(sceneId);
-
-      // Insert new initiative order entries
-      const insert = this.db.prepare(`INSERT INTO initiative_order (scene_id, actor_name, initiative_score, turn_order, character_id, npc_id) VALUES (@scene_id, @actor_name, @initiative_score, @turn_order, @character_id, @npc_id)`);
-      for (const entry of entries) {
-        insert.run({ scene_id: sceneId, ...entry });
-      }
-
-      // If current_turn doesn't exist, create it
-      if (!this.db.prepare(`SELECT 1 FROM current_turn WHERE scene_id = ?`).get(sceneId)) {
-        this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(sceneId);
-      }
-    });
-
-    // Execute the transaction
-    transaction();
-  }
-}
 ````
 
 ## File: game-state-server/src/types/antagonist.types.ts
@@ -2354,6 +1950,46 @@ export type CharacterSheetOptions = {
   extra?: Record<string, number>,      // Game-line-specific joined data (e.g., disciplines)
   derangements?: Derangement[],             // Array of derangement objects
 };
+````
+
+## File: game-state-server/src/types/db.types.ts
+````typescript
+export interface DatabaseResult {
+  lastInsertRowid: number | bigint;
+  changes: number;
+}
+
+export interface QueryResult<T> {
+  [key: string]: T | undefined;
+}
+
+export interface Lock {
+  timestamp: number;
+  operation: string;
+}
+
+export interface DbResult<T> {
+  success: boolean;
+}
+
+import type { CharacterRepository } from '../repositories/character.repository.js';
+import type { AntagonistRepository } from '../repositories/antagonist.repository.js';
+import type { InventoryRepository } from '../repositories/inventory.repository.js';
+import type { StatusEffectRepository } from '../repositories/status-effect.repository.js';
+import type { WorldStateRepository } from '../repositories/world-state.repository.js';
+
+/**
+ * Aggregates all primary repository access under typical domain property names.
+ * Properties match the names most widely used in tool handlers: `characters`, `antagonists`, `inventory`, `statusEffects`, `worldState`.
+ * This interface is intended for use as the main in-memory database/domain gateway object.
+ */
+export interface GameDatabase {
+  characters: CharacterRepository;
+  antagonists: AntagonistRepository;
+  inventory: InventoryRepository;
+  statusEffects: StatusEffectRepository;
+  worldState: WorldStateRepository;
+}
 ````
 
 ## File: game-state-server/src/types/inventory.types.ts
@@ -2564,6 +2200,224 @@ export interface StatusEffect {
         "invoke_cantrip"
       ]
     }
+  }
+}
+````
+
+## File: game-state-server/src/health-tracker.ts
+````typescript
+// File: game-state-server/src/health-tracker.ts
+
+/**
+ * HealthTracker handles World of Darkness health-level tracking,
+ * including damage application, wound penalties, serialization,
+ * and robust fallback for malformed/corrupt health state objects.
+ */
+import type { HealthLevel, DamageObject, DamageType } from './types/health.types.js';
+
+const HEALTH_LEVELS: HealthLevel[] = [
+  'bruised',
+  'hurt',
+  'injured',
+  'wounded',
+  'mauled',
+  'crippled',
+  'incapacitated'
+];
+
+const PENALTIES: Record<HealthLevel, number> = {
+  bruised: 0,
+  hurt: -1,
+  injured: -1,
+  wounded: -2,
+  mauled: -2,
+  crippled: -5,
+  incapacitated: 0
+};
+
+const DAMAGE_SYMBOL: Record<DamageType, string> = {
+  bashing: '/',
+  lethal: 'X',
+  aggravated: '*'
+};
+
+
+export class HealthTracker {
+  private boxes: ('' | '/' | 'X' | '*')[] = Array(7).fill('');
+  /**
+   * Initializes with a JSON or record describing the current health boxes.
+   * Accepts both V20 object and count formats. Handles corrupted state robustly.
+   */
+  constructor(public health: any = undefined) {
+    this.deserializeBoxArray(health);
+  }
+
+  private fallbackFullHealth() {
+    this.boxes = Array(7).fill('');
+  }
+
+  /**
+   * Accepts legacy/modern JSON, string, or nothing; parses to 7-boxes.
+   */
+  private deserializeBoxArray(source: any) {
+    let healthObj: Record<string, any>;
+    try {
+      if (typeof source === 'string') {
+        healthObj = JSON.parse(source ?? '{}');
+      } else if (typeof source === 'object' && source) {
+        healthObj = source;
+      } else {
+        throw new Error();
+      }
+      if (typeof healthObj !== 'object' || healthObj === null) throw new Error();
+    } catch (e) {
+      healthObj = HEALTH_LEVELS.reduce((acc, lvl) => {
+        acc[lvl] = {};
+        return acc;
+      }, {} as any);
+    }
+    // preferred fill-in per box: support V20 {b:1,l:0,a:0} or just number (count of filled damage)
+    const out: ('' | '/' | 'X' | '*')[] = [];
+    for (const lvl of HEALTH_LEVELS) {
+      let boxVal = healthObj[lvl];
+      if (typeof boxVal === 'object' && boxVal !== null) {
+        // V20 style: {b:1,l:0,a:0}
+        if (boxVal.a > 0) out.push('*');
+        else if (boxVal.l > 0) out.push('X');
+        else if (boxVal.b > 0) out.push('/');
+        else out.push('');
+      } else if (typeof boxVal === 'number') {
+        // Simple number: count of filled boxes, no type
+        out.push(boxVal > 0 ? '/' : '');
+      } else {
+        out.push('');
+      }
+    }
+    // If corrupt, fallback
+    if (out.length !== HEALTH_LEVELS.length || out.some(x => typeof x !== 'string' || x.length > 1)) {
+      this.fallbackFullHealth();
+    } else {
+      this.boxes = out;
+    }
+  }
+
+  /**
+   * Returns simple JSON health object (V20 style, e.g. {bruised: {b:1}, ...})
+   */
+  public toJSON(): Record<HealthLevel, any> {
+    const out: Record<HealthLevel, any> = {} as any;
+    for (let i = 0; i < HEALTH_LEVELS.length; ++i) {
+      const symbol = this.boxes[i];
+      if (symbol === '*') out[HEALTH_LEVELS[i]] = { a: 1 };
+      else if (symbol === 'X') out[HEALTH_LEVELS[i]] = { l: 1 };
+      else if (symbol === '/') out[HEALTH_LEVELS[i]] = { b: 1 };
+      else out[HEALTH_LEVELS[i]] = {};
+    }
+    return out;
+  }
+
+  /**
+   * Returns printable visual status: e.g. "/|*|/|X|...|"
+   */
+  public getBoxArray(): ('' | '/' | 'X' | '*')[] {
+    return [...this.boxes];
+  }
+
+  /** Returns wound penalty for current state according to most severe filled box. */
+  public getWoundPenalty(): number {
+    for (let i = this.boxes.length - 1; i >= 0; --i) {
+      if (this.boxes[i] !== '') {
+        return PENALTIES[HEALTH_LEVELS[i]];
+      }
+    }
+    return 0;
+  }
+
+  /** Returns true if the character is incapacitated (incapacitated health level is filled). */
+  public isIncapacitated(): boolean {
+    return this.boxes[6] !== ''; // incapacitated is the 7th (index 6) health level
+  }
+
+  /** Returns the current health status as a descriptive string. */
+  public getHealthStatus(): string {
+    if (this.isIncapacitated()) {
+      return 'Incapacitated';
+    }
+
+    for (let i = this.boxes.length - 1; i >= 0; --i) {
+      if (this.boxes[i] !== '') {
+        return HEALTH_LEVELS[i].charAt(0).toUpperCase() + HEALTH_LEVELS[i].slice(1);
+      }
+    }
+    return 'Healthy';
+  }
+
+  /** Applies any combination of bashing, lethal, aggravated (any falsy is 0). Returns {changed: bool}. */
+  public applyDamage(dmg: DamageObject): boolean {
+    let orig = this.getBoxArray().join('');
+    // Application order: aggravated > lethal > bashing
+    const applyType = (count: number, symbol: '/' | 'X' | '*') => {
+      for (let i = 0; i < (count || 0); ++i) {
+        // aggravated: first '', then upgrade '/' or 'X' to '*'
+        // lethal: first '', then upgrade '/' to 'X'
+        // bashing: first '', only
+        let idx = -1;
+        if (symbol === '*') {
+          idx = this.boxes.findIndex(x => x === '' || x === '/' || x === 'X');
+        } else if (symbol === 'X') {
+          idx = this.boxes.findIndex(x => x === '' || x === '/');
+        } else if (symbol === '/') {
+          idx = this.boxes.findIndex(x => x === '');
+        }
+        if (idx !== -1) {
+          // Upgrading existing
+          if (
+            this.boxes[idx] === '' ||
+            (symbol === 'X' && this.boxes[idx] === '/') ||
+            (symbol === '*' && (this.boxes[idx] === '/' || this.boxes[idx] === 'X'))
+          ) {
+            this.boxes[idx] = symbol;
+          }
+        }
+      }
+    };
+
+    applyType(dmg.aggravated || 0, '*');
+    applyType(dmg.lethal || 0, 'X');
+    applyType(dmg.bashing || 0, '/');
+
+    // overflow: if >7, last become aggravated
+    let over = this.boxes.filter(c => c === '*' || c === 'X' || c === '/').length - 7;
+    if (over > 0) {
+      for (let i = this.boxes.length - 1; i >= 0 && over > 0; --i) {
+        if (this.boxes[i] !== '*') {
+          this.boxes[i] = '*';
+          over--;
+        }
+      }
+    }
+    return this.getBoxArray().join('') !== orig;
+  }
+
+  /**
+   * Serializes to JSON-string.
+   */
+  public serialize(): string {
+    return JSON.stringify(this.toJSON());
+  }
+
+  /**
+   * Static: build from DB (object or JSON-string) and always get a valid instance.
+   */
+  static from(source: any): HealthTracker {
+    return new HealthTracker(source);
+  }
+
+  /**
+   * Static: returns a fully healthy instance.
+   */
+  static healthy(): HealthTracker {
+    return new HealthTracker();
   }
 }
 ````
@@ -2953,6 +2807,138 @@ constructor(db: Database.Database) {
 }
 ````
 
+## File: game-state-server/src/repositories/world-state.repository.ts
+````typescript
+import Database from 'better-sqlite3';
+
+export class WorldStateRepository {
+  private db: Database.Database;
+
+  constructor(db: Database.Database) {
+    this.db = db;
+  }
+
+  saveWorldState(state: { location?: string; notes?: string; data?: any }): void {
+    const dataStr = state.data ? JSON.stringify(state.data) : null;
+    this.db.prepare(`
+      INSERT INTO world_state (id, location, notes, data, last_updated)
+      VALUES (1, @location, @notes, @data, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        location = excluded.location,
+        notes = excluded.notes,
+        data = excluded.data,
+        last_updated = excluded.last_updated;
+    `).run({ location: state.location, notes: state.notes, data: dataStr });
+  }
+
+  getWorldState(): { location: string; notes: string; data: any } | undefined {
+    const worldState = this.db.prepare('SELECT location, notes, data FROM world_state WHERE id = 1').get() as { location: string; notes: string; data: string } | undefined;
+    if (worldState) {
+      try {
+        worldState.data = typeof worldState.data === 'string' ? JSON.parse(worldState.data) : worldState.data;
+      } catch (err) {
+        console.error("Error parsing world state data:", err);
+        worldState.data = null as any;
+      }
+    }
+    return worldState;
+  }
+
+  saveStoryProgress(characterId: number, storyProgress: any): void {
+    const progressStr = JSON.stringify(storyProgress);
+    this.db.prepare(`
+      INSERT INTO story_progress (character_id, progress_data, last_updated)
+      VALUES (@character_id, @progress_data, CURRENT_TIMESTAMP)
+      ON CONFLICT(character_id) DO UPDATE SET
+        progress_data = excluded.progress_data,
+        last_updated = excluded.last_updated;
+    `).run({ character_id: characterId, progress_data: progressStr });
+  }
+
+  getInitiativeOrder(scene_id: string): any[] {
+    const stmt = this.db.prepare(`SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC`);
+    return stmt.all(scene_id);
+  }
+
+  /**
+   * Advance the turn order for a scene.
+   * Returns an object indicating success, message, next actor, new round, and new turn order.
+   */
+  advanceTurn(
+    scene_id: string
+  ): { success: boolean; message?: string; next_actor?: any; new_round?: number; new_turn_order?: number } {
+    // Get the current turn and round from current_turn table
+    const scene = this.db
+      .prepare('SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?')
+      .get(scene_id) as { current_turn: number; current_round: number } | undefined;
+
+    if (!scene) {
+      return { success: false, message: "Scene not found. Use setInitiative to start." };
+    }
+
+    // Get the full initiative order, ordered by turn_order ascending (one-based)
+    const order = this.db
+      .prepare('SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC')
+      .all(scene_id);
+
+    if (order.length === 0) {
+      return { success: false, message: "Initiative order is empty for this scene." };
+    }
+
+    // Calculate next turn (one-based)
+    let nextTurnOrder = scene.current_turn + 1;
+    let nextRound = scene.current_round;
+
+    if (nextTurnOrder > order.length) {
+      nextTurnOrder = 1;
+      nextRound++;
+    }
+
+    // Update the current_turn table with new turn/round
+    this.db
+      .prepare('UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?')
+      .run(nextTurnOrder, nextRound, scene_id);
+
+    // Fetch next actor (turn_order is one-based, as is index+1)
+    const nextActor = order[nextTurnOrder - 1];
+
+    return {
+      success: true,
+      next_actor: nextActor,
+      new_round: nextRound,
+      new_turn_order: nextTurnOrder,
+    };
+  }
+
+  getCurrentTurn(scene_id: string): any {
+    const turnData = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
+    return turnData || { current_turn: 0, current_round: 0 };
+  }
+
+  setInitiative(sceneId: string, entries: any[]): void {
+    // Start a transaction
+    const transaction = this.db.transaction(() => {
+      // Delete existing initiative order for the scene
+      this.db.prepare(`DELETE FROM initiative_order WHERE scene_id = ?`).run(sceneId);
+
+      // Insert new initiative order entries
+      const insert = this.db.prepare(`INSERT INTO initiative_order (scene_id, actor_name, initiative_score, turn_order, character_id, npc_id) VALUES (@scene_id, @actor_name, @initiative_score, @turn_order, @character_id, @npc_id)`);
+      for (const entry of entries) {
+        insert.run({ scene_id: sceneId, ...entry });
+      }
+
+      // If current_turn doesn't exist, create it
+      if (!this.db.prepare(`SELECT 1 FROM current_turn WHERE scene_id = ?`).get(sceneId)) {
+        this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(sceneId);
+      }
+    });
+
+    // Execute the transaction
+    transaction();
+  }
+}
+````
+
 ## File: game-state-server/src/tool-definitions.ts
 ````typescript
 /**
@@ -3037,51 +3023,6 @@ export const toolDefinitions = {
     }
   }
 };
-````
-
-## File: game-state-server/src/tool-handlers/list_antagonists.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function list_antagonists_handler(db: GameDatabase, args: any) {
-  const antagonists = db.antagonists.listAntagonists();
-
-  const antagonistList = antagonists.map(antagonist => `${antagonist.name} (ID: ${antagonist.id})`).join('\n');
-
-  return { content: makeTextContentArray([antagonistList || "No antagonists found."]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/list_characters.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function list_characters_handler(db: GameDatabase, args: any) {
-  const characters = db.characters.listCharacters();
-
-  const characterList = characters.map(character => `${character.name} (ID: ${character.id})`).join('\n');
-
-  return { content: makeTextContentArray([characterList || "No characters found."]) };
-}
-````
-
-## File: game-state-server/src/tool-handlers/update_antagonist.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function update_antagonist_handler(db: GameDatabase, args: any) {
-  const { antagonist_id, updates } = args;
-  const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
-
-  if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
-  }
-
-  return { content: makeTextContentArray([`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`]) };
-}
 ````
 
 ## File: game-state-server/tsconfig.json
@@ -3733,10 +3674,41 @@ constructor(db: Database.Database) {
 }
 ````
 
+## File: game-state-server/src/tool-handlers/list_characters.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import type { GameDatabase } from '../types/db.types.js';
+
+export async function list_characters_handler(db: GameDatabase, args: any) {
+  const characters = db.characters.listCharacters();
+
+  const characterList = characters.map(character => `${character.name} (ID: ${character.id})`).join('\n');
+
+  return { content: makeTextContentArray([characterList || "No characters found."]) };
+}
+````
+
+## File: game-state-server/src/tool-handlers/update_antagonist.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import type { GameDatabase } from '../types/db.types.js';
+
+export async function update_antagonist_handler(db: GameDatabase, args: any) {
+  const { antagonist_id, updates } = args;
+  const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
+
+  if (!antagonist) {
+    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`]) };
+}
+````
+
 ## File: game-state-server/src/tool-handlers/create_antagonist.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function create_antagonist_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -3765,7 +3737,7 @@ export async function create_antagonist_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/get_antagonist.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_antagonist_handler(db: GameDatabase, args: any) {
   // Validate input
@@ -3793,10 +3765,27 @@ export async function get_antagonist_handler(db: GameDatabase, args: any) {
 }
 ````
 
+## File: game-state-server/src/tool-handlers/list_antagonists.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import type { GameDatabase } from '../types/db.types.js';
+
+export async function list_antagonists_handler(
+  db: GameDatabase,
+  args: any
+) {
+  const antagonists = db.antagonists.listAntagonists();
+
+  const antagonistList = antagonists.map(antagonist => `${antagonist.name} (ID: ${antagonist.id})`).join('\n');
+
+  return { content: makeTextContentArray([antagonistList || "No antagonists found."]) };
+}
+````
+
 ## File: game-state-server/src/tool-handlers/remove_antagonist.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function remove_antagonist_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -3823,7 +3812,7 @@ export async function remove_antagonist_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/spend_resource.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/spend_resource.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
@@ -3868,7 +3857,7 @@ export async function spend_resource_handler(
 ````typescript
 import { makeTextContentArray } from '../index.js';
 import { CharacterRepository } from '../repositories/character.repository.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 // -- XP cost logic: oWoD standard: (current rating + 1) × multiplier (usually 5-7)
 function getTraitXPCost(traitName: string, currentVal: number): number {
@@ -3975,7 +3964,7 @@ export async function spend_xp_handler(
 ## File: game-state-server/src/tool-handlers/update_character.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/update_character.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 import type { CharacterData } from '../types/character.types.js';
 
@@ -4008,7 +3997,7 @@ export async function update_character_handler(
 ## File: game-state-server/src/tool-handlers/apply_damage.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/apply_damage.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
@@ -4059,39 +4048,10 @@ export async function apply_damage_handler(db: GameDatabase, args: ApplyDamageAr
 }
 ````
 
-## File: game-state-server/src/tool-handlers/apply_status_effect.handler.ts
-````typescript
-import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
-
-export async function apply_status_effect_handler(db: GameDatabase, args: any) {
-  // Input validation
-  if (
-    !args ||
-    typeof args.target_type !== 'string' ||
-    (args.target_type !== 'character' && args.target_type !== 'npc') ||
-    !Object.prototype.hasOwnProperty.call(args, 'target_id') ||
-    typeof args.target_id !== 'number' ||
-    Number.isNaN(args.target_id) ||
-    typeof args.effect_name !== 'string' ||
-    args.effect_name.trim().length === 0
-  ) {
-    return { content: makeTextContentArray([
-      "❌ Invalid or missing arguments. 'target_type' must be 'character' or 'npc', 'target_id' must be a valid number, 'effect_name' must be a non-empty string."
-    ]), isError: true };
-  }
-  const { target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value } = args;
-
-  const effectId = db.statusEffects.addStatusEffect({ target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value });
-
-  return { content: makeTextContentArray([`✅ Applied status effect \"${effect_name}\" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
-}
-````
-
 ## File: game-state-server/src/tool-handlers/award_xp.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function award_xp_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4125,7 +4085,7 @@ export async function award_xp_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/create_character.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/create_character.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
@@ -4172,7 +4132,7 @@ export async function create_character_handler(
 ## File: game-state-server/src/tool-handlers/gain_resource.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/gain_resource.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
@@ -4226,7 +4186,7 @@ export async function gain_resource_handler(
 ## File: game-state-server/src/tool-handlers/get_character_by_name.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/get_character_by_name.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
@@ -4270,7 +4230,7 @@ export async function get_character_by_name_handler(
 ## File: game-state-server/src/tool-handlers/get_character.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/get_character.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
@@ -4314,7 +4274,7 @@ export async function get_character_handler(
 ## File: game-state-server/src/tool-handlers/get_status_effects.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_status_effects_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4345,7 +4305,7 @@ export async function get_status_effects_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/get_world_state.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_world_state_handler(db: GameDatabase, args: any) {
   const worldState = db.worldState.getWorldState();
@@ -4356,7 +4316,7 @@ export async function get_world_state_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/remove_item.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function remove_item_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4383,7 +4343,7 @@ export async function remove_item_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/remove_status_effect.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function remove_status_effect_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4410,7 +4370,7 @@ export async function remove_status_effect_handler(db: GameDatabase, args: any) 
 ## File: game-state-server/src/tool-handlers/restore_resource.handler.ts
 ````typescript
 // game-state-server/src/tool-handlers/restore_resource.handler.ts
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
 
 import type { CharacterData } from '../types/character.types.js';
@@ -4473,7 +4433,7 @@ export async function restore_resource_handler(
 ## File: game-state-server/src/tool-handlers/update_item.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function update_item_handler(db: GameDatabase, args: any) {
   const { target_type, target_id, item_id, updates } = args;
@@ -4490,7 +4450,7 @@ export async function update_item_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/add_item.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function add_item_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4522,7 +4482,7 @@ export async function add_item_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/advance_turn.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function advance_turn_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4542,10 +4502,50 @@ export async function advance_turn_handler(db: GameDatabase, args: any) {
 }
 ````
 
+## File: game-state-server/src/tool-handlers/apply_status_effect.handler.ts
+````typescript
+import { makeTextContentArray } from '../index.js';
+import type { GameDatabase } from '../types/db.types.js';
+
+export async function apply_status_effect_handler(
+  db: GameDatabase,
+  args: any
+) {
+  // Input validation
+  if (
+    !args ||
+    typeof args.target_type !== 'string' ||
+    (args.target_type !== 'character' && args.target_type !== 'npc') ||
+    !Object.prototype.hasOwnProperty.call(args, 'target_id') ||
+    typeof args.target_id !== 'number' ||
+    Number.isNaN(args.target_id) ||
+    typeof args.effect_name !== 'string' ||
+    args.effect_name.trim().length === 0
+  ) {
+    return { content: makeTextContentArray([
+      "❌ Invalid or missing arguments. 'target_type' must be 'character' or 'npc', 'target_id' must be a valid number, 'effect_name' must be a non-empty string."
+    ]), isError: true };
+  }
+  const { target_type, target_id, effect_name, description, mechanical_effect, duration_type, duration_value } = args;
+
+  const effectId = db.statusEffects.addStatusEffect({
+    target_type,
+    target_id,
+    effect_name,
+    description,
+    mechanical_effect,
+    duration_type,
+    duration_value,
+  });
+
+  return { content: makeTextContentArray([`✅ Applied status effect \"${effect_name}\" (ID: ${effectId}) to ${target_type} with ID ${target_id}.`]) };
+}
+````
+
 ## File: game-state-server/src/tool-handlers/get_current_turn.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_current_turn_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4570,7 +4570,7 @@ export async function get_current_turn_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/get_initiative_order.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_initiative_order_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4595,7 +4595,7 @@ export async function get_initiative_order_handler(db: GameDatabase, args: any) 
 ## File: game-state-server/src/tool-handlers/get_inventory.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_inventory_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4628,7 +4628,7 @@ export async function get_inventory_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/get_trait_improvement_cost.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_trait_improvement_cost_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4676,7 +4676,7 @@ export async function get_trait_improvement_cost_handler(db: GameDatabase, args:
 ## File: game-state-server/src/tool-handlers/improve_trait.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function improve_trait_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4714,7 +4714,7 @@ export async function improve_trait_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/save_story_progress.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function save_story_progress_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4747,7 +4747,7 @@ export async function save_story_progress_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/save_world_state.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function save_world_state_handler(db: GameDatabase, args: any) {
   // Input validation
@@ -4777,7 +4777,7 @@ export async function save_world_state_handler(db: GameDatabase, args: any) {
 ## File: game-state-server/src/tool-handlers/set_initiative.handler.ts
 ````typescript
 import { makeTextContentArray } from '../index.js';
-import { GameDatabase } from '../db.js';
+import type { GameDatabase } from '../types/db.types.js';
 
 export async function set_initiative_handler(db: GameDatabase, args: any) {
   const { scene_id, entries } = args;
@@ -4792,112 +4792,6 @@ export async function set_initiative_handler(db: GameDatabase, args: any) {
 }
 ````
 
-## File: README.md
-````markdown
-# 🦇 MCP Servers – Old World of Darkness (Storyteller System) Automation Suite
-
-**Advanced Model Context Protocol (MCP) servers for AI-powered Storyteller System play.** Automate, adjudicate, and manage classic ("oWoD") World of Darkness games: Vampire: the Masquerade, Werewolf: the Apocalypse, Mage: the Ascension, Changeling: the Dreaming, and more.
-
----
-
-## 🎲 What is This?
-
-This suite empowers digital play, AI storytelling, and character management for classic World of Darkness settings—integrating rules knowledge, dice pools, resource tracking, combat, and persistent world state. Features include:
-
-- Automated character (PC/NPC) creation and full stat management
-- Persistent chronicles: health, willpower, Virtues, supernatural traits
-- Status effect and antagonist management
-- Extended support for all major oWoD "splats" (Vampire, Werewolf, Mage, Changeling)
-- Tactical features: initiative, status effects, and narrative-driven scene tools
-- API exposes tools as callable endpoints for AI DM/storyteller, custom UIs, or game integration
-
----
-
-## 🔥 Latest Major Updates
-
-- **ASCII Battlefield Visualization**: Render spatial combat/narrative scenes using gridded ASCII maps for any Storyteller line.
-- **Shared 3rd Edition Dice Pool System**: Handles dice pool rolls, Virtue checks, contested actions, soak, and resource spends.
-- **Full health/resource engine**: Supports Bruised–Mauled track, willpower, blood/Gnosis/Glamour/Quintessence.
-- **Modular Splat Features**: Each game line exposes traits, resources, and mechanics (Frenzy, Magick, Rage, etc.).
-
----
-
-## 🗂️ Project Architecture
-
-- **game-state-server/**: Handles persistent character sheets, inventory, antagonists, world states, status effects.
-- **combat-engine-server/**: All dice pool and contest mechanics: Virtue checks, magick, cantrips, initiative, social/physical/combat actions.
-
-Servers communicate via protocol/API; see [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) for full model.
-
----
-
-## 📚 Developer Documentation
-
-- [TOOLS.md](./TOOLS.md): **Schemas and input/output formats** for all tools and endpoints—crucial for scripting, automation, or integration.
-- [SYSTEM_ARCHITECTURE.md](./SYSTEM_ARCHITECTURE.md): Design and schema docs.
-- [quick-start-guide.md](./quick-start-guide.md): End-user and Storyteller-facing usage reference.
-
----
-
-## ⚙️ Key Features
-
-### 🧛 Complete Character & Chronicle Management
-- Supports all oWoD traits: Attributes, Abilities, Virtues, Backgrounds
-- Automated creation of Vampire, Werewolf, Mage, Changeling, and generic mortals
-- Full inventory, XP, story/quest persistence, and antagonist tools
-
-### 🗡️ Advanced Storyteller System Dice Engine
-- Dice pool rolling (d10), specialties, and botch/success automation
-- Virtue checks, Frenzy, Rötschreck, Rage, Magick, Cantrips
-- Initiative, social, physical, mental, and supernatural contests
-- Health track and status effect management
-
-### 🗺️ Narrative & Scene Control
-- ASCII battle/narrative maps for grid-based or positional play
-- Story progress tracking by chapter and scene
-- Resource expenditure, recovery, and event logging
-
----
-
-## 🛠️ Prerequisites
-
-**Roo Code Installation Required:**
-- Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline)
-- Or via CLI: `code --install-extension RooVeterinaryInc.roo-cline`
-- Configure AI provider (OpenAI, Anthropic, etc.)
-- Visit [Roo Code docs](https://docs.roocode.com) for setup details
-
----
-
-## 🚀 Quick Setup
-
-### 1. **Install & Build Servers**
-```bash
-# Game State Server
-cd game-state-server
-npm install && npm run build
-
-# Combat Engine Server  
-cd ../combat-engine-server
-npm install && npm run build
-```
-
-### 2. **Configure Environment** (Optional)
-Create `.env` files in each server directory as needed for DB or integration customization.
-
----
-
-## 🧩 See Also
-
-- [`TOOLS.md`](TOOLS.md): Tool and API reference for all MCP endpoints (parameter details and schema samples)
-- [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md): Technical architecture/design and database documentation
-- [`quick-start-guide.md`](quick-start-guide.md): Practical usage and actual gameplay flow
-
----
-
-_This project is unaffiliated with White Wolf/Paradox Interactive. For use with the original World of Darkness (Storyteller System) games only._
-````
-
 ## File: combat-engine-server/src/index.ts
 ````typescript
 // File: combat-engine-server/src/index.ts
@@ -4905,7 +4799,6 @@ _This project is unaffiliated with White Wolf/Paradox Interactive. For use with 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { handleGetTacticalAdvantage } from './narrative-engine.js';
 
 interface CombatState {
   log: string[];
@@ -5467,7 +5360,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       // Any spending of Willpower, resource, or logging must be invoked externally by the consumer.
       case 'roll_wod_pool': {
         const { pool_size, difficulty, has_specialty = false, character_id, actor_context, force_result, ...rest } = args;
-      
+
+        // [EXTRA-ADDED: Hardened validation per requirements]
+        if (typeof pool_size !== "number" || !Number.isInteger(pool_size) || pool_size < 0) {
+          return {
+            content: makeTextContentArray(["Error: 'pool_size' must be a non-negative integer."]),
+            isError: true
+          };
+        }
+        if (pool_size > 0 && (typeof difficulty !== "number" || !Number.isInteger(difficulty) || difficulty < 2 || difficulty > 10)) {
+          return {
+            content: makeTextContentArray(["Error: 'difficulty' must be an integer between 2 and 10."]),
+            isError: true
+          };
+        }
+       
         // --- Input Validation ---
         if (typeof pool_size !== "number" || pool_size < 0 || !Number.isFinite(pool_size) || !Number.isInteger(pool_size)) {
           return { content: makeTextContentArray(
@@ -5499,6 +5406,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
           willpowerWarning = "⚠️ CRITICAL WARNING: 'spend_willpower_for_success' is not supported in this tool. Always call 'spend_resource' to spend Willpower BEFORE rolling. No Willpower bonus will be applied!";
         }
       
+        // Narrative engine logic removed: handleGetTacticalAdvantage is unavailable.
+        // The following was disabled to fix dependency and compilation errors.
+        /*
         if (actor_context) {
           try {
             const result = handleGetTacticalAdvantage({ actor: actor_context });
@@ -5511,6 +5421,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
             console.error("Narrative engine error:", e);
           }
         }
+        */
       
         const result = rollWodPool(narrativePool, narrativeDiff, has_specialty, force_result);
         let successes = result.successes;
@@ -5859,39 +5770,6 @@ console.error('oWoD RPG Combat Engine MCP Server v2.0 running on stdio');
 import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { ANTAGONIST_TEMPLATES } from './antagonists.js';
-import { HealthTracker } from './health-tracker.js';
-
-import { CharacterRepository } from './repositories/character.repository.js';
-import { AntagonistRepository } from './repositories/antagonist.repository.js';
-import { StatusEffectRepository } from './repositories/status-effect.repository.js';
-import { InventoryRepository } from './repositories/inventory.repository.js';
-import { WorldStateRepository } from './repositories/world-state.repository.js';
-
-/* Types are now imported from src/types/*.ts */
-
-import type {
- DatabaseResult,
- Lock
-} from './types/db.types.js';
-import type {
- CharacterAttributes,
- CharacterData
-} from './types/character.types.js';
-import type {
- AntagonistRow,
- NpcRow
-} from './types/antagonist.types.js';
-import type {
- InventoryItem
-} from './types/inventory.types.js';
-import type {
- StatusEffect
-} from './types/status-effect.types.js';
-import type {
- DamageObject
-} from './types/health.types.js';
-// export type GameLine = 'vampire' | 'werewolf' | 'mage' | 'changeling';
 
 // Create data directory in workspace
 const DATA_DIR = join(process.cwd(), 'data');
@@ -5900,59 +5778,26 @@ if (!existsSync(DATA_DIR)) {
 }
 const DB_PATH = join(DATA_DIR, 'game-state.db');
 
-interface DbResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
 export class GameDatabase {
-  private db!: Database.Database;
-  private resourceLocks: Map<string, Lock> = new Map();
-  private characterLocks: Map<number, Lock> = new Map();
-  private readonly LOCK_TIMEOUT_MS = 5000; // 5 second timeout for resource locks
-  private readonly CHARACTER_LOCK_TIMEOUT_MS = 3000; // 3 second timeout for character operations
-
-  // Repositories
-  public characters!: CharacterRepository;
-  public antagonists!: AntagonistRepository;
-  public statusEffects!: StatusEffectRepository;
-  public inventory!: InventoryRepository;
-  public worldState!: WorldStateRepository;
+  private db: Database.Database;
 
   constructor() {
     try {
       this.db = new Database(DB_PATH);
-      // Configure database settings
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('synchronous = NORMAL');
       this.db.pragma('wal_autocheckpoint = 1000');
       this.db.pragma('wal_checkpoint(TRUNCATE)');
       this.db.pragma('foreign_keys = ON');
-      
-      // Verify database connection
       this.db.prepare('SELECT 1').get();
-      
-      // Initialize schema
       this.initializeSchema();
-
-      // Initialize repositories
-      this.characters = new CharacterRepository(this.db);
-      this.antagonists = new AntagonistRepository(this.db);
-      this.statusEffects = new StatusEffectRepository(this.db);
-      this.inventory = new InventoryRepository(this.db);
-      this.worldState = new WorldStateRepository(this.db);
-
-      console.log('✅ Database connection and initialization successful');
     } catch (error: any) {
-      console.error('❌ Database initialization failed:', error);
-      console.error('❌ Database initialization failed:', error.message);
       throw new Error(`Failed to initialize database: ${error.message}`);
     }
   }
 
   private initializeSchema() {
-      this.db.exec(`
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS characters (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -6072,12 +5917,12 @@ export class GameDatabase {
     `);
   }
 
-private runMigrations() {
-    // placeholder for migrations (future)
-}
+  public getInstance(): Database.Database {
+    return this.db;
+  }
+
   public close() {
     this.db.close();
-    console.log('Database connection closed.');
   }
 }
 ````
@@ -6102,11 +5947,22 @@ export function makeTextContentArray(contentArr: any[]): { type: 'text', text: s
     return { type: 'text', text: JSON.stringify(entry, null, 2) };
   });
 }
+import { toolDefinitions } from './tool-definitions.js';
 import { formatSheetByGameLine } from './characterSheets.js';
-import { GameDatabase } from './db.js';
+import { GameDatabase as GameDatabaseClass } from './db.js';
+import type { GameDatabase as GameDatabaseType } from './types/db.types.js';
+import { createGameDatabase } from './repositories/game-database.js';
 import type { AntagonistRow } from './types/antagonist.types.js';
 
 import { spend_xp_handler } from './tool-handlers/spend_xp.handler.js';
+
+// Import repositories for the new data access pattern
+import {
+  CharacterRepository,
+  AntagonistRepository,
+  InventoryRepository,
+  StatusEffectRepository,
+} from './repositories/index.js';
 import { create_character_handler } from './tool-handlers/create_character.handler.js';
 import { get_character_handler } from './tool-handlers/get_character.handler.js';
 import { get_character_by_name_handler } from './tool-handlers/get_character_by_name.handler.js';
@@ -6146,7 +6002,6 @@ import { advance_turn_handler } from './tool-handlers/advance_turn.handler.js';
 import { get_current_turn_handler } from './tool-handlers/get_current_turn.handler.js';
 
 // Centralized toolDefinitions import
-import { toolDefinitions } from './tool-definitions.js';
 
 import { toolDispatcher } from './tool-handlers/index.js';
 
@@ -6154,14 +6009,30 @@ async function startServer() {
   try {
     console.log("Initializing server...");
 
-    const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: {} } });
+    // 1. Load tool definitions first
+    const allTools = Object.values(toolDefinitions);
+
+    // 2. Pass the tools directly into the constructor
+    const server = new Server(
+      { name: 'rpg-game-state-server', version: '2.1.0' },
+      {
+        capabilities: {
+          // Create the tools map that the SDK expects
+          tools: Object.fromEntries(allTools.map(tool => [tool.name, tool]))
+        }
+      }
+    );
     const transport = new StdioServerTransport();
     
     console.log("Initializing database...");
-    let db: GameDatabase;
+    let db: GameDatabaseClass;
+    let repositories: GameDatabaseType;
     try {
-      db = new GameDatabase();
+      db = new GameDatabaseClass();
       console.log("Database initialized successfully.");
+
+      // Use canonical aggregated GameDatabase interface for handlers
+      repositories = createGameDatabase(db.getInstance());
     } catch (err: any) {
       console.error("Error initializing database:", err.message);
       process.exit(1);
@@ -6176,7 +6047,7 @@ async function startServer() {
         const handler = toolDispatcher[name];
         if (handler) {
             try {
-                return await handler(db, args);
+                return await handler(repositories, args);
             } catch (error: any) {
                 console.error(`Error in tool '${name}':`, error);
                 return { content: makeTextContentArray([`❌ Error in tool '${name}': ${error.message}`]), isError: true };

@@ -1,6 +1,8 @@
 // game-state-server/src/tool-handlers/get_character.handler.ts
 import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
+import { CharacterService } from '../services/character.service.js';
+import { formatSheetByGameLine } from '../characterSheets.js';
 
 type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
 
@@ -25,16 +27,16 @@ export async function get_character_handler(
       isError: true
     };
   }
+  
+  // The service abstracts away the repository details
+  const characterService = new CharacterService(db.characters);
+
   try {
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
-    }
-    return { content: makeTextContentArray([JSON.stringify(character, null, 2)]) };
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("get_character_handler error:", error);
-    return { content: makeTextContentArray([`❌ Error getting character: ${errMsg}`]), isError: true };
+    const character = await characterService.getCharacter(args.character_id);
+    // The formatting logic can be moved into a dedicated formatter function
+    const sheet = formatSheetByGameLine({ character }); // Assuming you have this function
+    return { content: [sheet] };
+  } catch (error: any) {
+    return { content: makeTextContentArray([`❌ ${error.message}`]), isError: true };
   }
 }

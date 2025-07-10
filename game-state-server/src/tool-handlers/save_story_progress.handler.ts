@@ -2,28 +2,21 @@ import { makeTextContentArray } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function save_story_progress_handler(db: GameDatabase, args: any) {
-  // Input validation
-  if (
-    !args ||
-    !Object.prototype.hasOwnProperty.call(args, 'story_progress') ||
-    !Object.prototype.hasOwnProperty.call(args, 'character_id')
-  ) {
+  // Add robust input validation
+  if (!args || args.chapter == null || args.scene == null || args.summary == null) {
     return {
-      content: makeTextContentArray([
-        "❌ Invalid or missing arguments: both 'character_id' and 'story_progress' are required."
-      ]),
+      content: makeTextContentArray(["❌ Invalid input. 'chapter', 'scene', and 'summary' are required."]),
       isError: true
     };
   }
-  const { character_id, story_progress } = args;
+  
+  const { character_id, chapter, scene, summary } = args; // character_id is also needed
 
   try {
-    db.worldState.saveStoryProgress(character_id, story_progress);
-    return { content: makeTextContentArray([`✅ Story progress saved successfully.`]) };
+    // The repository method expects character_id and a progress object
+    db.worldState.saveStoryProgress(character_id, { chapter, scene, summary });
+    return { content: makeTextContentArray([`📖 Story progress for Chapter ${chapter} saved.`]) };
   } catch (error: any) {
-    return {
-      content: makeTextContentArray([`❌ Could not save story progress: ${error.message || error}`]),
-      isError: true
-    };
+    return { content: makeTextContentArray([`❌ Could not save story progress: ${error.message}`]), isError: true };
   }
 }

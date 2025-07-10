@@ -18,9 +18,11 @@ export function makeTextContentArray(contentArr: any[]): { type: 'text', text: s
 }
 import { toolDefinitions } from './tool-definitions.js';
 import { formatSheetByGameLine } from './characterSheets.js';
-import { GameDatabase as GameDatabaseClass } from './db.js';
+import { createDatabase, initializeSchema } from './schema.js';
 import type { GameDatabase as GameDatabaseType } from './types/db.types.js';
 import { createGameDatabase } from './repositories/game-database.js';
+import { existsSync, mkdirSync } from 'fs';
+import { join } from 'path';
 import type { AntagonistRow } from './types/antagonist.types.js';
 
 import { spend_xp_handler } from './tool-handlers/spend_xp.handler.js';
@@ -94,14 +96,25 @@ async function startServer() {
     const transport = new StdioServerTransport();
     
     console.log("Initializing database...");
-    let db: GameDatabaseClass;
     let repositories: GameDatabaseType;
     try {
-      db = new GameDatabaseClass();
+      // Create data directory if it doesn't exist
+      const DATA_DIR = join(process.cwd(), 'data');
+      if (!existsSync(DATA_DIR)) {
+        mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const DB_PATH = join(DATA_DIR, 'game-state.db');
+      
+      // Create and configure database
+      const db = createDatabase(DB_PATH);
+      
+      // Initialize schema
+      initializeSchema(db);
+      
       console.log("Database initialized successfully.");
 
       // Use canonical aggregated GameDatabase interface for handlers
-      repositories = createGameDatabase(db.getInstance());
+      repositories = createGameDatabase(db);
     } catch (err: any) {
       console.error("Error initializing database:", err.message);
       process.exit(1);

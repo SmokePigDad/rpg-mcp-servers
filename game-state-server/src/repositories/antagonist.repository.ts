@@ -60,19 +60,19 @@ constructor(db: Database.Database) {
         template: data.template,
         concept: data.concept || null,
         game_line: data.game_line,
-        strength: data.strength || 1,
-        dexterity: data.dexterity || 1,
-        stamina: data.stamina || 1,
-        charisma: data.charisma || 1,
-        manipulation: data.manipulation || 1,
-        appearance: data.appearance || 1,
-        perception: data.perception || 1,
-        intelligence: data.intelligence || 1,
-        wits: data.wits || 1,
-        willpower_current: data.willpower_current || 1,
-        willpower_permanent: data.willpower_permanent || 1,
+        strength: data.attributes?.strength || 1,
+        dexterity: data.attributes?.dexterity || 1,
+        stamina: data.attributes?.stamina || 1,
+        charisma: data.attributes?.charisma || 1,
+        manipulation: data.attributes?.manipulation || 1,
+        appearance: data.attributes?.appearance || 1,
+        perception: data.attributes?.perception || 1,
+        intelligence: data.attributes?.intelligence || 1,
+        wits: data.attributes?.wits || 1,
+        willpower_current: data.willpower || 1,
+        willpower_permanent: data.willpower || 1,
         health_levels: JSON.stringify(data.health_levels ?? {}),
-        notes: data.notes || null
+        notes: data.description || null
       });
       npcId = result.lastInsertRowid as number;
       // 2. Modular splat trait tables
@@ -84,11 +84,11 @@ constructor(db: Database.Database) {
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            data.clan ?? null,
-            data.generation ?? null,
-            data.blood_pool_current ?? null,
-            data.blood_pool_max ?? null,
-            data.humanity ?? null
+            data.supernatural?.clan ?? null,
+            data.supernatural?.generation ?? null,
+            data.supernatural?.blood_pool_current ?? null,
+            data.supernatural?.blood_pool_max ?? null,
+            data.supernatural?.humanity ?? null
           );
           break;
         case 'werewolf':
@@ -98,16 +98,16 @@ constructor(db: Database.Database) {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            data.breed ?? null,
-            data.auspice ?? null,
-            data.tribe ?? null,
-            data.gnosis_current ?? null,
-            data.gnosis_permanent ?? null,
-            data.rage_current ?? null,
-            data.rage_permanent ?? null,
-            data.renown_glory ?? null,
-            data.renown_honor ?? null,
-            data.renown_wisdom ?? null
+            data.supernatural?.breed ?? null,
+            data.supernatural?.auspice ?? null,
+            data.supernatural?.tribe ?? null,
+            data.supernatural?.gnosis_current ?? null,
+            data.supernatural?.gnosis_permanent ?? null,
+            data.supernatural?.rage_current ?? null,
+            data.supernatural?.rage_permanent ?? null,
+            data.supernatural?.renown_glory ?? null,
+            data.supernatural?.renown_honor ?? null,
+            data.supernatural?.renown_wisdom ?? null
           );
           break;
         case 'mage':
@@ -117,10 +117,10 @@ constructor(db: Database.Database) {
             VALUES (?, ?, ?, ?, ?)
           `).run(
             npcId,
-            data.tradition_convention ?? null,
-            data.arete ?? null,
-            data.quintessence ?? null,
-            data.paradox ?? null
+            data.supernatural?.tradition_convention ?? null,
+            data.supernatural?.arete ?? null,
+            data.supernatural?.quintessence ?? null,
+            data.supernatural?.paradox ?? null
           );
           break;
         case 'changeling':
@@ -130,11 +130,11 @@ constructor(db: Database.Database) {
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            data.kith ?? null,
-            data.seeming ?? null,
-            data.glamour_current ?? null,
-            data.glamour_permanent ?? null,
-            data.banality_permanent ?? null
+            data.supernatural?.kith ?? null,
+            data.supernatural?.seeming ?? null,
+            data.supernatural?.glamour_current ?? null,
+            data.supernatural?.glamour_permanent ?? null,
+            data.supernatural?.banality_permanent ?? null
           );
           break;
       }

@@ -1,6 +1,18 @@
 import Database from 'better-sqlite3';
 import type { CharacterData } from '../types/character.types.js';
 
+interface Ability {
+  name: string;
+  type: string;
+  rating: number;
+  specialty?: string;
+}
+
+interface SupernaturalPower {
+  name: string;
+  rating: number;
+}
+
 export class CharacterRepository {
   private db: Database.Database;
 constructor(db: Database.Database) {
@@ -13,8 +25,91 @@ constructor(db: Database.Database) {
   }
 
   getCharacterById(id: number): CharacterData | null {
-    const row = this.db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
-    return row ? (row as CharacterData) : null;
+    const character = this.db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
+    if (!character) {
+      return null;
+    }
+
+    // Convert the basic row to CharacterData and enhance with game-line-specific data
+    const enrichedCharacter = character as CharacterData;
+    
+    // Initialize required arrays
+    enrichedCharacter.abilities = [];
+    enrichedCharacter.disciplines = [];
+    enrichedCharacter.inventory = [];
+    enrichedCharacter.status_effects = [];
+
+    // Fetch abilities for all game lines
+    const abilities = this.db.prepare(
+      'SELECT ability_name as name, ability_type as type, rating, specialty FROM character_abilities WHERE character_id = ?'
+    ).all(id);
+    enrichedCharacter.abilities = abilities as Ability[];
+
+    // Fetch game-line-specific traits based on game_line
+    switch (enrichedCharacter.game_line) {
+      case 'vampire':
+        const vampireTraits = this.db.prepare(
+          'SELECT clan, generation, blood_pool_current, blood_pool_max, humanity FROM character_vampire_traits WHERE character_id = ?'
+        ).get(id);
+        if (vampireTraits) {
+          Object.assign(enrichedCharacter, vampireTraits);
+        }
+        
+        const disciplines = this.db.prepare(
+          'SELECT discipline_name as name, rating FROM character_disciplines WHERE character_id = ?'
+        ).all(id);
+        enrichedCharacter.disciplines = disciplines as SupernaturalPower[];
+        break;
+
+      case 'werewolf':
+        const werewolfTraits = this.db.prepare(
+          'SELECT breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom FROM character_werewolf_traits WHERE character_id = ?'
+        ).get(id);
+        if (werewolfTraits) {
+          Object.assign(enrichedCharacter, werewolfTraits);
+        }
+        
+        const gifts = this.db.prepare(
+          'SELECT gift_name as name, rank as rating FROM character_gifts WHERE character_id = ?'
+        ).all(id);
+        enrichedCharacter.gifts = gifts as SupernaturalPower[];
+        break;
+
+      case 'mage':
+        const mageTraits = this.db.prepare(
+          'SELECT tradition_convention, arete, quintessence, paradox FROM character_mage_traits WHERE character_id = ?'
+        ).get(id);
+        if (mageTraits) {
+          Object.assign(enrichedCharacter, mageTraits);
+        }
+        
+        const spheres = this.db.prepare(
+          'SELECT sphere_name as name, rating FROM character_spheres WHERE character_id = ?'
+        ).all(id);
+        enrichedCharacter.spheres = spheres as SupernaturalPower[];
+        break;
+
+      case 'changeling':
+        const changelingTraits = this.db.prepare(
+          'SELECT kith, seeming, glamour_current, glamour_permanent, banality_permanent FROM character_changeling_traits WHERE character_id = ?'
+        ).get(id);
+        if (changelingTraits) {
+          Object.assign(enrichedCharacter, changelingTraits);
+        }
+        
+        const arts = this.db.prepare(
+          'SELECT art_name as name, rating FROM character_arts WHERE character_id = ?'
+        ).all(id);
+        enrichedCharacter.arts = arts as SupernaturalPower[];
+        
+        const realms = this.db.prepare(
+          'SELECT realm_name as name, rating FROM character_realms WHERE character_id = ?'
+        ).all(id);
+        enrichedCharacter.realms = realms as SupernaturalPower[];
+        break;
+    }
+
+    return enrichedCharacter;
   }
 
   public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
