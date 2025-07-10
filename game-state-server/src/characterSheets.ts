@@ -57,6 +57,78 @@ function formatStatusBlocks({
 }
 /** Fallback: All WoD lines share these core blocks */
 function formatCoreBlocks(character: any): string {
+  // Helper: lookup ability rating by case-insensitive name
+  function getAbilityRating(abilities: any[], name: string): number {
+    if (!Array.isArray(abilities)) return 0;
+    const found = abilities.find(
+      ab => typeof ab.ability_name === "string" && ab.ability_name.toLowerCase() === name.toLowerCase()
+    );
+    return found ? Number(found.rating) || 0 : 0;
+  }
+  // COMMON DICE POOLS for Vampire
+  function formatCommonDicePools(character: any): string {
+    const abilities = character.abilities || [];
+    // For Vampire/oWoD, most frequent pools:
+    const pools = [
+      {
+        label: "Perception + Alertness",
+        total:
+          Number(character.perception || 0) +
+          getAbilityRating(abilities, "Alertness"),
+      },
+      {
+        label: "Dexterity + Brawl",
+        total:
+          Number(character.dexterity || 0) +
+          getAbilityRating(abilities, "Brawl"),
+      },
+      {
+        label: "Manipulation + Subterfuge",
+        total:
+          Number(character.manipulation || 0) +
+          getAbilityRating(abilities, "Subterfuge"),
+      },
+      // Add more as needed (optional):
+      {
+        label: "Wits + Intimidation",
+        total:
+          Number(character.wits || 0) +
+          getAbilityRating(abilities, "Intimidation"),
+      },
+      {
+        label: "Dexterity + Firearms",
+        total:
+          Number(character.dexterity || 0) +
+          getAbilityRating(abilities, "Firearms"),
+      },
+    ];
+    // Only show pools where at least one component is nonzero or ability is present
+    const filtered = pools.filter(
+      p => p.total > 0
+    );
+    if (filtered.length === 0) return "";
+    let block = "🎲 Most-Used Dice Pools:\n";
+    block += filtered
+      .map((p) => `  - ${p.label}: ${p.total}`)
+      .join("\n");
+    return block + "\n─────────────────────────────────────────────\n";
+  }
+
+  // HEALTH using HealthTracker for graphic block
+  let healthBlock = '';
+  try {
+    // Lazy import to avoid circular dependency (if any)
+    const { HealthTracker } = require('./health-tracker.js');
+    const tracker = HealthTracker.from(character.health_levels);
+    const healthBoxes = tracker.getBoxArray(); // Array of "", "/", "X", "*", or custom symbols per wound
+    const woundPenalty = tracker.getWoundPenalty();
+    healthBlock = '❤️ Health Levels:\n';
+    healthBlock += `  [${healthBoxes.map((b: string) => b ? b : ' ').join('][')}] (Penalty: ${woundPenalty})\n`;
+  } catch (e) {
+    // fallback (should never trigger)
+    healthBlock = '';
+  }
+
   return [
     `👤 Name: ${character.name}`,
     character.concept ? `🧠 Concept: ${character.concept}` : '',
@@ -73,6 +145,8 @@ function formatCoreBlocks(character: any): string {
         ).join('\n')
       : '  (none recorded)',
     '',
+    formatCommonDicePools(character),
+    healthBlock,
     '────────────── CORE TRAITS ──────────────',
     `🔵 Willpower: ${character.willpower_current}/${character.willpower_permanent}`,
     character.power_stat_name && character.power_stat_rating !== undefined
@@ -89,12 +163,7 @@ export function formatVampireSheet(opts: CharacterSheetOptions) {
   out += formatStatusBlocks(opts);
 
   // Health
-  out += '\n❤️ Health Levels:\n';
-  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
-  const levels = character.health_levels || {};
-  healthOrder.forEach(lvl => {
-    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
-  });
+  // (health block now included in formatCoreBlocks)
 
   // Disciplines, Blood Pool, Humanity
   if (extra.disciplines?.length) {
@@ -116,12 +185,7 @@ export function formatWerewolfSheet(opts: CharacterSheetOptions) {
   out += formatStatusBlocks(opts);
 
   // Health
-  out += '\n❤️ Health Levels:\n';
-  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
-  const levels = character.health_levels || {};
-  healthOrder.forEach(lvl => {
-    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
-  });
+  // (health block now included in formatCoreBlocks)
 
   // Gifts, Rage, Gnosis, Renown
   if (extra.gifts?.length) {
@@ -143,12 +207,7 @@ export function formatMageSheet(opts: CharacterSheetOptions) {
   out += formatStatusBlocks(opts);
 
   // Health
-  out += '\n❤️ Health Levels:\n';
-  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
-  const levels = character.health_levels || {};
-  healthOrder.forEach(lvl => {
-    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
-  });
+  // (health block now included in formatCoreBlocks)
 
   // Spheres, Arete, Quintessence, Paradox
   if (extra.spheres?.length) {
@@ -170,12 +229,7 @@ export function formatChangelingSheet(opts: CharacterSheetOptions) {
   out += formatStatusBlocks(opts);
 
   // Health
-  out += '\n❤️ Health Levels:\n';
-  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
-  const levels = character.health_levels || {};
-  healthOrder.forEach(lvl => {
-    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
-  });
+  // (health block now included in formatCoreBlocks)
 
   if (extra.arts?.length) {
     out += "\n✨ Arts:\n";
@@ -202,12 +256,7 @@ export function formatGenericWoDSheet(opts: CharacterSheetOptions) {
   out += formatStatusBlocks(opts);
 
   // Health
-  out += '\n❤️ Health Levels:\n';
-  const healthOrder = ["bruised","hurt","injured","wounded","mauled","crippled","incapacitated"];
-  const levels = character.health_levels || {};
-  healthOrder.forEach(lvl => {
-    out += `  ${lvl.charAt(0).toUpperCase() + lvl.slice(1)}: ${(levels[lvl] || 0) > 0 ? 'X' : '_'}\n`;
-  });
+  // (health block now included in formatCoreBlocks)
 
   // Power stat if present
   if (character.power_stat_name && character.power_stat_rating !== undefined) {

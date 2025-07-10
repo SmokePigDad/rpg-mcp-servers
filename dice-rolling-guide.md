@@ -1,114 +1,89 @@
-# Dice Rolling Guide for RPG MCP Servers
+# Dice Rolling Guide – Storyteller System (oWoD/Chronicles)
 
-## Basic Dice Notation
+Everything in the Storyteller System (World of Darkness/Chronicles) revolves around rolling pools of 10-sided dice—not d20s!
 
-### Standard Rolls
-- `1d20` - Roll one 20-sided die
-- `3d6` - Roll three 6-sided dice and sum them
-- `1d20+5` - Roll 1d20 and add 5
-- `2d8-2` - Roll 2d8 and subtract 2
+---
 
-### Advantage/Disadvantage Notation
-- `2d20kh1` - Roll 2d20, keep highest 1 (advantage)
-- `2d20kl1` - Roll 2d20, keep lowest 1 (disadvantage)
-- `2d20kh1+5` - Roll with advantage, add 5
-- `2d20kl1+3` - Roll with disadvantage, add 3
+## 1. Understanding Dice Pools
 
-## Available Tools
+To attempt an action, combine one Attribute (e.g., Dexterity) with one Ability (e.g., Firearms, Stealth, Empathy):
+- Dice Pool = Attribute rating + Ability rating (e.g., Dexterity 3 + Stealth 2 = 5d10 rolled)
+- Sometimes, powers or equipment add extra dice.
 
-### 1. `roll_dice` - Generic dice rolling
-Use for any dice roll with full notation support:
+---
+
+## 2. How Dice Rolling Works
+
+- Standard target number (difficulty) is 6 (sometimes higher/lower for easier/harder tasks).
+- Every die that rolls a 6 or higher counts as a success.
+- A 1 (one) cancels out one success (botch = all 1s and no successes).
+- If you have a Specialty and roll a 10, that die counts as two successes.
+
+---
+
+## 3. Types of Rolls
+
+- **Action/Task:** Attribute + Ability (e.g., Wits + Alertness)
+- **Opposed/Contested:** Each side rolls their pool; whoever has more net successes wins.
+- **Damage:** After a successful attack, roll a separate damage pool (e.g., Strength + weapon).
+- **Initiative:** Roll one die, add relevant stats (usually Dexterity + Wits).
+
+---
+
+## 4. Using Automation Tools
+
+### a) Roll a Pool
 ```json
 {
-  "notation": "2d20kh1+5",
-  "reason": "Perception check with advantage"
+  "tool": "roll_wod_pool",
+  "pool_size": 7,
+  "difficulty": 6
 }
 ```
 
-### 2. `roll_check` - Ability/Skill checks
-Simplified tool for ability checks:
+### b) Roll Damage
 ```json
 {
-  "character": "Thorin",
-  "ability": "Perception",
-  "modifier": 5,
-  "advantage": true,
-  "dc": 15  // optional
+  "tool": "roll_damage_pool",
+  "pool_size": 3,
+  "damage_type": "lethal"
 }
 ```
 
-### 3. `attack_roll` - Combat attacks
-Specifically for attack rolls:
+### c) Contest Actions
 ```json
 {
-  "attacker": "Thorin",
-  "target": "Goblin",
-  "modifier": 7,
-  "advantage": false,
-  "disadvantage": false
+  "tool": "roll_contested_action",
+  "attacker_pool": 5,
+  "attacker_difficulty": 6,
+  "attacker_specialty": false,
+  "defender_pool": 6,
+  "defender_difficulty": 6,
+  "defender_specialty": true
 }
 ```
 
-### 4. `saving_throw` - Saving throws
-For saves against effects:
-```json
-{
-  "character": "Thorin",
-  "ability": "Constitution",
-  "dc": 13,
-  "modifier": 5
-}
-```
+### d) Spend Willpower for Automatic Success
 
-## Examples
+Ask the MCP or AI to "spend Willpower for one automatic success" before rolling.
 
-### Rolling with Advantage (Two Ways)
+---
 
-**Method 1: Using dice notation**
-```
-roll_dice with notation "2d20kh1+5" for "Stealth check with advantage"
-```
-Output shows all rolls: `rolled [15, 8], kept [15]+5 = 20`
+## 5. Example Prompts
 
-**Method 2: Using roll_check**
-```
-roll_check for character "Elara", ability "Stealth", modifier 5, advantage true
-```
-Output clearly shows the advantage was applied
+- "Marcus makes a Charisma + Subterfuge roll (diff 7) to lie convincingly."
+- "Roll Dexterity + Firearms for my attack."
+- "How much damage do I deal? (Strength + Knife)"
+- "Let me spend Willpower for my Stealth roll."
+- "Contest my Perception + Empathy vs. the NPC's Manipulation + Subterfuge."
 
-### Complex Rolls
+---
 
-**Fireball damage (many dice)**
-```
-roll_dice with notation "8d6" for "Fireball damage"
-```
+## 6. Tips & Special Rules
 
-**Great Weapon Fighting (keep specific dice)**
-```
-roll_dice with notation "2d6kh1" for "Greatsword damage, rerolling low die"
-```
+- If your pool drops to 0 dice, you may still roll 1 die, but only a 10 counts as success (and a 1 is a botch).
+- The AI engine handles specialties, damage types, and edge cases—just describe your intent!
 
-## Tips
+---
 
-1. **For ability checks**: Use `roll_check` - it's cleaner and tracks success/failure
-2. **For damage**: Use `roll_dice` with appropriate notation
-3. **For attacks**: Use `attack_roll` - it handles crits/fumbles properly
-4. **For complex rolls**: The notation system supports any combination
-
-## Common D&D 5e Rolls
-
-- **Ability Check**: `1d20 + ability modifier`
-- **Attack Roll**: `1d20 + proficiency + ability modifier`
-- **Damage Roll**: Varies by weapon (e.g., `1d8+3` for longsword)
-- **Saving Throw**: `1d20 + ability modifier (+ proficiency if proficient)`
-- **Initiative**: `1d20 + Dexterity modifier`
-- **Death Save**: `1d20` (10+ succeeds)
-
-## Advantage/Disadvantage Rules
-
-- **Advantage**: Roll 2d20, use the higher
-- **Disadvantage**: Roll 2d20, use the lower
-- **Multiple sources**: Having multiple sources of advantage/disadvantage doesn't stack
-- **Cancellation**: One source of advantage and one of disadvantage cancel out
-
-The system now properly handles all these cases!
+Use these guides and automated tools for fast, accurate Storyteller System play!

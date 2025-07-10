@@ -8,6 +8,7 @@ build/
 # Database files
 *.db
 *.sqlite
+data/
 
 # Logs
 *.log
