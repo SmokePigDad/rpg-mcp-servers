@@ -4,7 +4,7 @@ import { ANTAGONIST_TEMPLATES } from '../antagonists.js';
 
 export class AntagonistRepository {
   private db: Database.Database;
-  constructor(db: Database.Database) {
+constructor(db: Database.Database) {
     this.db = db;
   }
 

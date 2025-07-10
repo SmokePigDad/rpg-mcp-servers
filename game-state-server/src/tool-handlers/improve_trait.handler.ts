@@ -10,6 +10,10 @@ export async function improve_trait_handler(args: any) {
     return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
   }
 
+  if (!character.hasOwnProperty(trait_name)) {
+    return { content: makeTextContentArray([`❌ Character does not have trait ${trait_name}.`]), isError: true };
+  }
+
   const newTraitValue = (character[trait_name] || 0) + amount;
   db.characters.updateCharacter(character_id, { [trait_name]: newTraitValue });
 

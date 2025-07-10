@@ -3,7 +3,7 @@ import type { CharacterData } from '../types/character.types.js';
 
 export class CharacterRepository {
   private db: Database.Database;
-  constructor(db: Database.Database) {
+constructor(db: Database.Database) {
     this.db = db;
   }
 

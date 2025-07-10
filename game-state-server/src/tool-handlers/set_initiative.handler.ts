@@ -4,6 +4,11 @@ import { GameDatabase } from '../db.js';
 export async function set_initiative_handler(args: any) {
   const { scene_id, entries } = args;
     const db = new GameDatabase();
-  // TODO: Implement setting initiative logic
-  return { content: makeTextContentArray([`Tool set_initiative is not yet fully implemented.`]) };
+  const success = db.setInitiative(scene_id, entries);
+
+  if (!success) {
+    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}.`]), isError: true };
+  }
+
+  return { content: makeTextContentArray([`✅ Set initiative for scene ${scene_id}.`]) };
 }

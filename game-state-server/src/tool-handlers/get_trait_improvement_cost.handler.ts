@@ -10,7 +10,21 @@ export async function get_trait_improvement_cost_handler(args: any) {
     return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
   }
 
-  // TODO: Implement XP cost logic based on game line and current trait value.
-  const cost = 5; // Placeholder cost
+  let cost = 5; // Default cost
+  switch (character.game_line) {
+    case 'vampire':
+      cost = 7;
+      break;
+    case 'werewolf':
+      cost = 8;
+      break;
+    case 'mage':
+      cost = 9;
+      break;
+    case 'changeling':
+      cost = 6;
+      break;
+  }
+
   return { content: makeTextContentArray([`The cost to improve ${trait_name} is ${cost} XP.`]) };
 }

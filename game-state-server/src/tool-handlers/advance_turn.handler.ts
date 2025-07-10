@@ -4,6 +4,6 @@ import { GameDatabase } from '../db.js';
 export async function advance_turn_handler(args: any) {
   const { scene_id } = args;
     const db = new GameDatabase();
-  // TODO: Implement advancing turn logic
-  return { content: makeTextContentArray([`Tool advance_turn is not yet fully implemented.`]) };
+  const success = db.advanceTurn(scene_id);
+  return { content: makeTextContentArray([`✅ Advanced turn for scene ${scene_id}.`]) };
 }

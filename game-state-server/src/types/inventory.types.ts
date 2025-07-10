@@ -5,7 +5,7 @@ export interface InventoryItem {
   item_type: string;
   quantity: number;
   description?: string;
-  properties?: any;
+  properties?: Record<string, any>;
   equipped: boolean;
   condition: string;
   last_modified: string;

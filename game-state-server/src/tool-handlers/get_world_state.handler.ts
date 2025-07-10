@@ -3,6 +3,6 @@ import { GameDatabase } from '../db.js';
 
 export async function get_world_state_handler(args: any) {
     const db = new GameDatabase();
-  // TODO: Implement world state getting logic
-  return { content: makeTextContentArray([`Tool get_world_state is not yet fully implemented.`]) };
+  const worldState = db.getWorldState();
+  return { content: makeTextContentArray([JSON.stringify(worldState, null, 2)]) };
 }

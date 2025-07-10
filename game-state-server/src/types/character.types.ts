@@ -26,15 +26,32 @@ export interface CharacterData extends CharacterAttributes {
   experience: number;
   power_stat_rating?: number;
   power_stat_name?: string;
-  abilities: any[];
-  disciplines: any[];
-  arts?: any[];
-  realms?: any[];
-  spheres?: any[];
-  gifts?: any[];
+  abilities: Ability[];
+  disciplines: SupernaturalPower[];
+  arts?: SupernaturalPower[];
+  realms?: SupernaturalPower[];
+  spheres?: SupernaturalPower[];
+  gifts?: SupernaturalPower[];
   inventory: InventoryItem[];
   status_effects: StatusEffect[];
   [key: string]: any;
+}
+
+interface Ability {
+  name: string;
+  type: string;
+  rating: number;
+  specialty?: string;
+}
+
+interface SupernaturalPower {
+  name: string;
+  rating: number;
+}
+
+interface Derangement {
+  name: string;
+  description: string;
 }
 
 // The following types will be imported from their own files after all types are moved:
@@ -42,7 +59,7 @@ export interface CharacterData extends CharacterAttributes {
 // - StatusEffect (from status-effect.types.ts)
 
 export type CharacterSheetOptions = {
-  character: any,                   // Core character object (db shape)
-  extra?: Record<string, any>,      // Game-line-specific joined data (e.g., disciplines)
-  derangements?: any[],             // Array of derangement objects
+  character: CharacterData,                   // Core character object (db shape)
+  extra?: Record<string, number>,      // Game-line-specific joined data (e.g., disciplines)
+  derangements?: Derangement[],             // Array of derangement objects
 };

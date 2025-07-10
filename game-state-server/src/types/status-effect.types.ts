@@ -4,7 +4,7 @@ export interface StatusEffect {
   npc_id?: number;
   effect_name: string;
   description?: string;
-  mechanical_effect?: any;
+  mechanical_effect?: Record<string, any>;
   duration_type: string;
   duration_value?: number;
 }

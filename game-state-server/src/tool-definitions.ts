@@ -35,7 +35,27 @@ export const toolDefinitions = {
   remove_status_effect: {},
 
   // Inventory
-  add_item: {},
+  add_item: {
+        "character_id": {
+          "type": "number",
+          "description": "The ID of the character to add the item to"
+        },
+        "item": {
+          "type": "object",
+          "description": "The item to add to the inventory",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the item"
+            },
+            "description": {
+              "type": "string",
+              "description": "The description of the item"
+            }
+          },
+          "required": ["name"]
+        }
+      },
   get_inventory: {},
   update_item: {},
   remove_item: {},

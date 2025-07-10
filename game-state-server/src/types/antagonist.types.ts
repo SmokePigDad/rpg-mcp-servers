@@ -66,7 +66,7 @@ export interface AntagonistSheet {
   }>;
   willpower: number;
   health_levels: Record<string, number>;
-  supernatural?: Record<string, any>;
+  supernatural?: Record<string, number>;
   description?: string;
 }
 

@@ -743,75 +743,78 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       // --- Initiative & Turn Management Orchestration ---
       // Stateless tool: Delegates initiative persistence to rpg-game-state; never mutates scene/initiative here.
       // All changes must be committed by explicitly calling the tool in rpg-game-state.
-      case 'set_initiative': {
-        const { scene_id, entries } = args;
-        return {
-          content: makeTextContentArray([
-            `🗂 Set initiative for Scene ${scene_id}.`,
-            {
-              description: "This API call delegates initiative persistence to rpg-game-state. Please call set_initiative there.",
-              next_tool_call: {
-                server: 'rpg-game-state',
-                tool_name: 'set_initiative',
-                arguments: { scene_id, entries }
-              }
+    case 'set_initiative': {
+      const { scene_id, entries } = args;
+      return {
+        content: makeTextContentArray([
+          `🗂 Delegating set_initiative to rpg-game-state for Scene ${scene_id}.`,
+          {
+            description: "This API call delegates initiative persistence to rpg-game-state. Please call set_initiative there.",
+            next_tool_call: {
+              server: 'rpg-game-state',
+              tool_name: 'set_initiative',
+              arguments: { scene_id, entries }
             }
-          ])
-        };
-      }
+          }
+        ])
+      };
+    }
 
-      // Stateless tool: Delegates to rpg-game-state for authoritative initiative order.
-      // Reads no state; returns next_tool_call contract for orchestration.
-      case 'get_initiative_order': {
-        const { scene_id } = args;
-        return {
-          content: makeTextContentArray([
-            {
-              description: "Delegating to rpg-game-state. Please call get_initiative_order there.",
-              next_tool_call: {
-                server: 'rpg-game-state',
-                tool_name: 'get_initiative_order',
-                arguments: { scene_id }
-              }
+    // Stateless tool: Delegates to rpg-game-state for authoritative initiative order.
+    // Reads no state; returns next_tool_call contract for orchestration.
+    case 'get_initiative_order': {
+      const { scene_id } = args;
+      return {
+        content: makeTextContentArray([
+          `🔍 Delegating get_initiative_order to rpg-game-state for Scene ${scene_id}.`,
+          {
+            description: "Delegating to rpg-game-state. Please call get_initiative_order there.",
+            next_tool_call: {
+              server: 'rpg-game-state',
+              tool_name: 'get_initiative_order',
+              arguments: { scene_id }
             }
-          ])
-        };
-      }
+          }
+        ])
+      };
+    }
 
-      // Stateless tool: Advance turn orchestration. No state change; returns instructions for rpg-game-state.
-      case 'advance_turn': {
-        const { scene_id } = args;
-        return {
-          content: makeTextContentArray([
-            {
-              description: "Delegating to rpg-game-state. Please call advance_turn there.",
-              next_tool_call: {
-                server: 'rpg-game-state',
-                tool_name: 'advance_turn',
-                arguments: { scene_id }
-              }
+    // Stateless tool: Advance turn orchestration. No state change; returns instructions for rpg-game-state.
+    case 'advance_turn': {
+      const { scene_id } = args;
+      return {
+        content: makeTextContentArray([
+          `➡️ Delegating advance_turn to rpg-game-state for Scene ${scene_id}.`,
+          {
+            description: "Delegating to rpg-game-state. Please call advance_turn there.",
+            next_tool_call: {
+              server: 'rpg-game-state',
+              tool_name: 'advance_turn',
+              arguments: { scene_id }
             }
-          ])
-        };
-      }
+          }
+        ])
+      };
+    }
 
-      // Stateless tool: Orchestrates current turn lookups by deferring to rpg-game-state.
-      // Does not inspect or mutate turn/scene state itself.
-      case 'get_current_turn': {
-        const { scene_id } = args;
-        return {
-          content: makeTextContentArray([
-            {
-              description: "Delegating to rpg-game-state. Please call get_current_turn there.",
-              next_tool_call: {
-                server: 'rpg-game-state',
-                tool_name: 'get_current_turn',
-                arguments: { scene_id }
-              }
+    // Stateless tool: Orchestrates current turn lookups by deferring to rpg-game-state.
+    // Does not inspect or mutate turn/scene state itself.
+    case 'get_current_turn': {
+      const { scene_id } = args;
+      return {
+        content: makeTextContentArray([
+          `🕰️ Delegating get_current_turn to rpg-game-state for Scene ${scene_id}.`,
+          {
+            description: "Delegating to rpg-game-state. Please call get_current_turn there.",
+            next_tool_call: {
+              server: 'rpg-game-state',
+              tool_name: 'get_current_turn',
+              arguments: { scene_id }
             }
-          ])
-        };
-      }
+          }
+        ])
+      };
+    }
 
       // --- Social Combat System ---
       // Stateless tool: Social Combat. Rolls both sides; returns outcome plus a recommendation instruction.
