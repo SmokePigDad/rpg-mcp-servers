@@ -3,6 +3,17 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+
+// Utility: Serialize any array of strings/objects as { type: 'text', text: string }[] for MCP compliance
+export function makeTextContentArray(contentArr: any[]): { type: 'text', text: string }[] {
+  return contentArr.map(entry => {
+    if (typeof entry === "string") {
+      return { type: 'text', text: entry };
+    }
+    // For any other objects/values, serialize as prettified JSON
+    return { type: 'text', text: JSON.stringify(entry, null, 2) };
+  });
+}
 import { formatSheetByGameLine } from './characterSheets.js';
 import { GameDatabase } from './db.js';
 import type { AntagonistRow } from './types/antagonist.types.js';
@@ -37,6 +48,14 @@ import { remove_status_effect_handler } from './tool-handlers/remove_status_effe
 import { add_item_handler } from './tool-handlers/add_item.handler.js';
 import { get_inventory_handler } from './tool-handlers/get_inventory.handler.js';
 import { update_item_handler } from './tool-handlers/update_item.handler.js';
+import { remove_item_handler } from './tool-handlers/remove_item.handler.js';
+import { save_world_state_handler } from './tool-handlers/save_world_state.handler.js';
+import { get_world_state_handler } from './tool-handlers/get_world_state.handler.js';
+import { save_story_progress_handler } from './tool-handlers/save_story_progress.handler.js';
+import { set_initiative_handler } from './tool-handlers/set_initiative.handler.js';
+import { get_initiative_order_handler } from './tool-handlers/get_initiative_order.handler.js';
+import { advance_turn_handler } from './tool-handlers/advance_turn.handler.js';
+import { get_current_turn_handler } from './tool-handlers/get_current_turn.handler.js';
 
 console.log("Initializing server...");
 
@@ -66,10 +85,6 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
 
-// Utility: Serialize any array of strings/objects as { type: 'text', text: string }[] for MCP compliance
-export function makeTextContentArray(contentArr: any[]): { type: 'text', text: string }[] {
-  return contentArr.map(entry => ({ type: 'text', text: JSON.stringify(entry, null, 2) }));
-}
 
 const toolDispatcher: Record<string, (args: any) => Promise<any>> = {
   // Character Management
@@ -107,17 +122,16 @@ const toolDispatcher: Record<string, (args: any) => Promise<any>> = {
   'add_item': add_item_handler,
   'get_inventory': get_inventory_handler,
   'update_item': update_item_handler,
-  // 'remove_item': remove_item_handler, // TODO: Wire handler after implementation
+  'remove_item': remove_item_handler,
 
   // World State & Initiative
-  // These handlers must be imported and wired similarly; add import and handler as implemented
-  // 'save_world_state': save_world_state_handler,
-  // 'get_world_state': get_world_state_handler,
-  // 'save_story_progress': save_story_progress_handler,
-  // 'set_initiative': set_initiative_handler,
-  // 'get_initiative_order': get_initiative_order_handler,
-  // 'advance_turn': advance_turn_handler,
-  // 'get_current_turn': get_current_turn_handler,
+  'save_world_state': save_world_state_handler,
+  'get_world_state': get_world_state_handler,
+  'save_story_progress': save_story_progress_handler,
+  'set_initiative': set_initiative_handler,
+  'get_initiative_order': get_initiative_order_handler,
+  'advance_turn': advance_turn_handler,
+  'get_current_turn': get_current_turn_handler,
 };
 
 // Register MCP handlers

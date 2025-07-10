@@ -93,13 +93,246 @@ export class GameDatabase {
   }
 
   private initializeSchema() {
-    // ...schema code unchanged...
-    // (Preserve all previous schema logic here)
+      this.db.exec(`
+      CREATE TABLE IF NOT EXISTS characters (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        concept TEXT,
+        game_line TEXT NOT NULL,
+        strength INTEGER NOT NULL DEFAULT 1,
+        dexterity INTEGER NOT NULL DEFAULT 1,
+        stamina INTEGER NOT NULL DEFAULT 1,
+        charisma INTEGER NOT NULL DEFAULT 1,
+        manipulation INTEGER NOT NULL DEFAULT 1,
+        appearance INTEGER NOT NULL DEFAULT 1,
+        perception INTEGER NOT NULL DEFAULT 1,
+        intelligence INTEGER NOT NULL DEFAULT 1,
+        wits INTEGER NOT NULL DEFAULT 1,
+        willpower_current INTEGER NOT NULL DEFAULT 5,
+        willpower_permanent INTEGER NOT NULL DEFAULT 5,
+        health_levels TEXT,
+        experience INTEGER NOT NULL DEFAULT 0
+      )
+    `);
+    // Game-line specific tables
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_vampire_traits (
+        character_id INTEGER NOT NULL,
+        clan TEXT,
+        generation INTEGER,
+        blood_pool_current INTEGER,
+        blood_pool_max INTEGER,
+        humanity INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_werewolf_traits (
+        character_id INTEGER NOT NULL,
+        breed TEXT,
+        auspice TEXT,
+        tribe TEXT,
+        gnosis_current INTEGER,
+        gnosis_permanent INTEGER,
+        rage_current INTEGER,
+        rage_permanent INTEGER,
+        renown_glory INTEGER,
+        renown_honor INTEGER,
+        renown_wisdom INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_mage_traits (
+        character_id INTEGER NOT NULL,
+        tradition_convention TEXT,
+        arete INTEGER,
+        quintessence INTEGER,
+        paradox INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_changeling_traits (
+        character_id INTEGER NOT NULL,
+        kith TEXT,
+        seeming TEXT,
+        glamour_current INTEGER,
+        glamour_permanent INTEGER,
+        banality_permanent INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS status_effects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        character_id INTEGER,
+        npc_id INTEGER,
+        effect_name TEXT NOT NULL,
+        description TEXT,
+        mechanical_effect TEXT,
+        duration_type TEXT,
+        duration_value INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id),
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_abilities (
+        character_id INTEGER NOT NULL,
+        ability_name TEXT NOT NULL,
+        ability_type TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        specialty TEXT,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_disciplines (
+        character_id INTEGER NOT NULL,
+        discipline_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_arts (
+        character_id INTEGER NOT NULL,
+        art_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_realms (
+        character_id INTEGER NOT NULL,
+        realm_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npcs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template TEXT,
+        name TEXT NOT NULL,
+        concept TEXT,
+        game_line TEXT NOT NULL,
+        strength INTEGER NOT NULL DEFAULT 1,
+        dexterity INTEGER NOT NULL DEFAULT 1,
+        stamina INTEGER NOT NULL DEFAULT 1,
+        charisma INTEGER NOT NULL DEFAULT 1,
+        manipulation INTEGER NOT NULL DEFAULT 1,
+        appearance INTEGER NOT NULL DEFAULT 1,
+        perception INTEGER NOT NULL DEFAULT 1,
+        intelligence INTEGER NOT NULL DEFAULT 1,
+        wits INTEGER NOT NULL DEFAULT 1,
+        willpower_current INTEGER NOT NULL DEFAULT 5,
+        willpower_permanent INTEGER NOT NULL DEFAULT 5,
+        health_levels TEXT,
+        notes TEXT
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npc_vampire_traits (
+        npc_id INTEGER NOT NULL,
+        clan TEXT,
+        generation INTEGER,
+        blood_pool_current INTEGER,
+        blood_pool_max INTEGER,
+        humanity INTEGER,
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npc_werewolf_traits (
+        npc_id INTEGER NOT NULL,
+        breed TEXT,
+        auspice TEXT,
+        tribe TEXT,
+        gnosis_current INTEGER,
+        gnosis_permanent INTEGER,
+        rage_current INTEGER,
+        rage_permanent INTEGER,
+        renown_glory INTEGER,
+        renown_honor INTEGER,
+        renown_wisdom INTEGER,
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npc_mage_traits (
+        npc_id INTEGER NOT NULL,
+        tradition_convention TEXT,
+        arete INTEGER,
+        quintessence INTEGER,
+        paradox INTEGER,
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS npc_changeling_traits (
+        npc_id INTEGER NOT NULL,
+        kith TEXT,
+        seeming TEXT,
+        glamour_current INTEGER,
+        glamour_permanent INTEGER,
+        banality_permanent INTEGER,
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS status_effects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        character_id INTEGER,
+        npc_id INTEGER,
+        effect_name TEXT NOT NULL,
+        description TEXT,
+        mechanical_effect TEXT,
+        duration_type TEXT,
+        duration_value INTEGER,
+        FOREIGN KEY (character_id) REFERENCES characters(id),
+        FOREIGN KEY (npc_id) REFERENCES npcs(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_abilities (
+        character_id INTEGER NOT NULL,
+        ability_name TEXT NOT NULL,
+        ability_type TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        specialty TEXT,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_disciplines (
+        character_id INTEGER NOT NULL,
+        discipline_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_arts (
+        character_id INTEGER NOT NULL,
+        art_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS character_realms (
+        character_id INTEGER NOT NULL,
+        realm_name TEXT NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (character_id) REFERENCES characters(id)
+      )
+    `);
   }
 
   private runMigrations() {
-    // ...migrations code unchanged...
-    // (Preserve all previous migrations logic here)
+    // placeholder for migrations (future)
   }
 
   // Other DB-specific (non-domain) methods, e.g., lock helpers, remain here.

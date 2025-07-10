@@ -1,4 +1,6 @@
-import { makeTextContentArray } from "../index.js";
+import { makeTextContentArray } from '../index.js';
+
 export async function save_world_state_handler(args: any) {
-  return { content: makeTextContentArray(["Not implemented (save_world_state_handler)"]) };
+  // This is a placeholder.
+  return { content: makeTextContentArray(["Tool 'save_world_state' is not yet implemented."]) };
 }

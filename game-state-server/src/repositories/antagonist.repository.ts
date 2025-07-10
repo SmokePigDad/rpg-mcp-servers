@@ -8,7 +8,19 @@ export class AntagonistRepository {
     this.db = db;
   }
 
-  createAntagonist(template_name: string, custom_name?: string) {
+  getAntagonistByName(name: string): AntagonistRow | null {
+    const stmt = this.db.prepare('SELECT * FROM npcs WHERE name = ?');
+    const row = stmt.get(name) as AntagonistRow;
+    return row ? row : null;
+  }
+
+  getAntagonistById(id: number): AntagonistRow | null {
+    const stmt = this.db.prepare('SELECT * FROM npcs WHERE id = ?');
+    const row = stmt.get(id) as AntagonistRow;
+    return row ? row : null;
+  }
+  
+  createAntagonist(template_name: string, custom_name?: string): AntagonistRow | null {
     const template = (ANTAGONIST_TEMPLATES as any)[template_name];
     if (!template) return null;
     // Fill missing health_levels from default if template omits it
@@ -64,7 +76,7 @@ export class AntagonistRepository {
       });
       npcId = result.lastInsertRowid as number;
       // 2. Modular splat trait tables
-      switch (template.game_line) {
+      switch (data.game_line) {
         case 'vampire':
           this.db.prepare(`
             INSERT INTO npc_vampire_traits
@@ -72,11 +84,11 @@ export class AntagonistRepository {
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            template.clan ?? null,
-            template.generation ?? null,
-            template.blood_pool_current ?? null,
-            template.blood_pool_max ?? null,
-            template.humanity ?? null
+            data.clan ?? null,
+            data.generation ?? null,
+            data.blood_pool_current ?? null,
+            data.blood_pool_max ?? null,
+            data.humanity ?? null
           );
           break;
         case 'werewolf':
@@ -86,16 +98,16 @@ export class AntagonistRepository {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            template.breed ?? null,
-            template.auspice ?? null,
-            template.tribe ?? null,
-            template.gnosis_current ?? null,
-            template.gnosis_permanent ?? null,
-            template.rage_current ?? null,
-            template.rage_permanent ?? null,
-            template.renown_glory ?? null,
-            template.renown_honor ?? null,
-            template.renown_wisdom ?? null
+            data.breed ?? null,
+            data.auspice ?? null,
+            data.tribe ?? null,
+            data.gnosis_current ?? null,
+            data.gnosis_permanent ?? null,
+            data.rage_current ?? null,
+            data.rage_permanent ?? null,
+            data.renown_glory ?? null,
+            data.renown_honor ?? null,
+            data.renown_wisdom ?? null
           );
           break;
         case 'mage':
@@ -105,10 +117,10 @@ export class AntagonistRepository {
             VALUES (?, ?, ?, ?, ?)
           `).run(
             npcId,
-            template.tradition_convention ?? null,
-            template.arete ?? null,
-            template.quintessence ?? null,
-            template.paradox ?? null
+            data.tradition_convention ?? null,
+            data.arete ?? null,
+            data.quintessence ?? null,
+            data.paradox ?? null
           );
           break;
         case 'changeling':
@@ -118,17 +130,17 @@ export class AntagonistRepository {
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(
             npcId,
-            template.kith ?? null,
-            template.seeming ?? null,
-            template.glamour_current ?? null,
-            template.glamour_permanent ?? null,
-            template.banality_permanent ?? null
+            data.kith ?? null,
+            data.seeming ?? null,
+            data.glamour_current ?? null,
+            data.glamour_permanent ?? null,
+            data.banality_permanent ?? null
           );
           break;
       }
 
       // 3. Relational data (abilities, disciplines, gifts, spheres, arts, realms)
-      if (template.abilities) {
+      if (data.abilities) {
         const abilities = template.abilities;
         const abilityStmt = this.db.prepare(`INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty) VALUES (?, ?, ?, ?, NULL)`);
         if (abilities.talents) {
@@ -157,8 +169,8 @@ export class AntagonistRepository {
       }
       if (template.supernatural?.gifts) {
         const giftStmt = this.db.prepare(`INSERT INTO character_gifts (character_id, gift_name, rank) VALUES (?, ?, ?)`);
-        for (const [name, rank] of Object.entries(template.supernatural.gifts)) {
-          giftStmt.run(npcId, name, rank);
+        for (const [name, rating] of Object.entries(template.supernatural.gifts)) {
+          giftStmt.run(npcId, name, rating);
         }
       }
       if (template.supernatural?.spheres) {
@@ -184,13 +196,33 @@ export class AntagonistRepository {
     return this.getAntagonistById(npcId!);
   }
 
-  getAntagonistByName(name: string): AntagonistRow | null {
-    const row = this.db.prepare('SELECT * FROM npcs WHERE name = ?').get(name);
-    return row ? (row as AntagonistRow) : null;
+  updateAntagonist(id: number, updates: Partial<AntagonistRow>): AntagonistRow | null {
+    if (!updates || Object.keys(updates).length === 0) {
+      return this.getAntagonistById(id);
+    }
+
+    const allowedFields = Object.keys(updates).filter(key => key !== "id");
+    if (allowedFields.length === 0) {
+      return this.getAntagonistById(id);
+    }
+
+    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
+    const values = allowedFields.map(field => (updates as any)[field]);
+
+    const stmt = this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`);
+    stmt.run(...values, id);
+
+    return this.getAntagonistById(id);
   }
 
-  getAntagonistById(id: number): AntagonistRow | null {
-    const row = this.db.prepare('SELECT * FROM npcs WHERE id = ?').get(id);
-    return row ? (row as AntagonistRow) : null;
+  listAntagonists(): AntagonistRow[] {
+    const rows = this.db.prepare('SELECT * FROM npcs').all();
+    return rows as AntagonistRow[];
+  }
+
+   removeAntagonist(id: number): boolean {
+    const stmt = this.db.prepare(`DELETE FROM npcs WHERE id = ?`);
+    const res = stmt.run(id);
+    return res.changes > 0;
   }
 }

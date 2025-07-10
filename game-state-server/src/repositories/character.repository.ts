@@ -7,6 +7,35 @@ export class CharacterRepository {
     this.db = db;
   }
 
+  getCharacterByName(name: string): CharacterData | null {
+    const row = this.db.prepare('SELECT * FROM characters WHERE name = ?').get(name);
+    return row ? (row as CharacterData) : null;
+  }
+
+  getCharacterById(id: number): CharacterData | null {
+    const row = this.db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
+    return row ? (row as CharacterData) : null;
+  }
+
+  public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
+    if (!updates || Object.keys(updates).length === 0) {
+      return this.getCharacterById(id);
+    }
+    const allowedFields = Object.keys(updates).filter(key => key !== "id");
+    if (allowedFields.length === 0) {
+      return this.getCharacterById(id);
+    }
+    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
+    const values = allowedFields.map(field => (updates as any)[field]);
+    const stmt = this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`);
+    stmt.run(...values, id);
+    return this.getCharacterById(id);
+  }
+    listCharacters(): CharacterData[] {
+    const rows = this.db.prepare('SELECT * FROM characters').all();
+    return rows as CharacterData[];
+  }
+
   createCharacter(data: any) {
     if (!['vampire', 'werewolf', 'mage', 'changeling'].includes(data.game_line)) {
       throw new Error(`Invalid game_line: ${data.game_line}. Must be one of: vampire, werewolf, mage, changeling`);
@@ -155,34 +184,4 @@ export class CharacterRepository {
 
     return this.getCharacterById(charId!);
   }
-
-  getCharacterByName(name: string): CharacterData | null {
-    const row = this.db.prepare('SELECT * FROM characters WHERE name = ?').get(name);
-    return row ? (row as CharacterData) : null;
-  }
-
-  getCharacterById(id: number): CharacterData | null {
-    const row = this.db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
-    return row ? (row as CharacterData) : null;
-  }
-
-  public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
-    if (!updates || Object.keys(updates).length === 0) {
-      return this.getCharacterById(id);
-    }
-    const allowedFields = Object.keys(updates).filter(key => key !== "id");
-    if (allowedFields.length === 0) {
-      return this.getCharacterById(id);
-    }
-    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
-    const values = allowedFields.map(field => (updates as any)[field]);
-    const stmt = this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`);
-    stmt.run(...values, id);
-    return this.getCharacterById(id);
-  }
-    listCharacters(): CharacterData[] {
-    const rows = this.db.prepare('SELECT * FROM characters').all();
-    return rows as CharacterData[];
-  }
 }
-

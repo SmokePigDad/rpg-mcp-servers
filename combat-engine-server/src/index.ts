@@ -651,10 +651,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       
         // Removed combatState.log (no persistent or global state should be mutated in stateless tools)
         // combatState.log.push(`Roll: [${result.rolls.join(', ')}] vs diff ${narrativeDiff} -> ${successes} successes.`);
-      
+        
         return { content: makeTextContentArray([output, JSON.stringify({})]) };
       }
-      
       // Stateless tool: Computes both halves of a contested action, does not mutate attacker/defender
       // records or write world state. Consumer must apply outcome elsewhere.
       case 'roll_contested_action': {

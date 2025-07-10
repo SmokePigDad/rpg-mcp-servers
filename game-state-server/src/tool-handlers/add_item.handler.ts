@@ -1,4 +1,6 @@
-import { makeTextContentArray } from "../index.js";
+import { makeTextContentArray } from '../index.js';
+
 export async function add_item_handler(args: any) {
-  return { content: makeTextContentArray(["Not implemented (add_item_handler)"]) };
+  // This is a placeholder.
+  return { content: makeTextContentArray(["Tool 'add_item' is not yet implemented."]) };
 }

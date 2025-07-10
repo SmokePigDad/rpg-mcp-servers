@@ -52,7 +52,7 @@ export async function spend_xp_handler(
   }
   if (errorMsgs.length > 0) {
     return {
-      content: makeTextContentArray(errorMsgs.map(text => ({ type: "text", text }))),
+      content: makeTextContentArray(errorMsgs),
       isError: true
     };
   }
@@ -92,9 +92,7 @@ export async function spend_xp_handler(
     // Fetch updated
     const updated = repo.getCharacterById(character_id);
     result = {
-      content: makeTextContentArray([
-        `Trait '${trait_name}' improved from ${currVal} to ${currVal + 1}. XP spent: ${xpCost}. XP remaining: ${updated?.experience ?? 0}`
-      ])
+      content: makeTextContentArray([`Trait '${trait_name}' improved from ${currVal} to ${currVal + 1}. XP spent: ${xpCost}. XP remaining: ${updated?.experience ?? 0}`])
     };
   } catch (err: any) {
     return {

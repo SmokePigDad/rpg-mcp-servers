@@ -1,4 +1,6 @@
-import { makeTextContentArray } from "../index.js";
+import { makeTextContentArray } from '../index.js';
+
 export async function get_trait_improvement_cost_handler(args: any) {
-  return { content: makeTextContentArray(["Not implemented (get_trait_improvement_cost_handler)"]) };
+  // This is a placeholder.
+  return { content: makeTextContentArray(["Tool 'get_trait_improvement_cost' is not yet implemented."]) };
 }

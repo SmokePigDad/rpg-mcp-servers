@@ -17,8 +17,8 @@ export class StatusEffectRepository {
     const col = target_type === "character"
       ? "character_id"
       : target_type === "npc"
-      ? "npc_id"
-      : null;
+        ? "npc_id"
+        : null;
     if (!col) return [];
     return this.db.prepare(
       `SELECT * FROM status_effects WHERE ${col} = ?`
