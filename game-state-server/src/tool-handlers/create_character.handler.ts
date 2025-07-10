@@ -1,7 +1,18 @@
 // game-state-server/src/tool-handlers/create_character.handler.ts
 import { GameDatabase } from '../db.js';
 
-export async function create_character_handler(args: any): Promise<any> {
+import type { CharacterData } from '../types/character.types.js';
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+/**
+ * Creates a new character from the provided arg fields.
+ * args: Opaque; expected to match CharacterData fields.
+ * TODO: Specify arg type if possible.
+ */
+export async function create_character_handler(
+  args: Record<string, unknown> // TODO: Specify correct type
+): Promise<HandlerResponse> {
   try {
     const db = new GameDatabase();
     const character = await db.characters.createCharacter(args);
@@ -9,8 +20,10 @@ export async function create_character_handler(args: any): Promise<any> {
       return { content: [{ type: 'text', text: `❌ Error creating character: Character not found after creation.` }], isError: true };
     }
     return { content: [{ type: 'text', text: `Character "${character.name}" created with ID ${character.id}` }] };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
     console.error("create_character_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error creating character: ${error.message}` }], isError: true };
+    return { content: [{ type: 'text', text: `❌ Error creating character: ${errMsg}` }], isError: true };
   }
 }

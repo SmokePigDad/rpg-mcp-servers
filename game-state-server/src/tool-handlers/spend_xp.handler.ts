@@ -18,7 +18,20 @@ function getTraitXPCost(traitName: string, currentVal: number): number {
   return (currentVal + 1) * multiplier;
 }
 
-export async function spend_xp_handler(args: any) {
+import type { CharacterData } from '../types/character.types.js';
+
+export interface SpendXPArgs {
+  character_id: number;
+  amount: number;
+  reason?: string;
+  trait_name: string;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function spend_xp_handler(
+  args: SpendXPArgs
+): Promise<HandlerResponse> {
   const { character_id, amount, reason, trait_name } = args;
 
   // --- Input Validation: Numeric & Enum ---
@@ -81,8 +94,7 @@ export async function spend_xp_handler(args: any) {
     result = {
       content: makeTextContentArray([
         `Trait '${trait_name}' improved from ${currVal} to ${currVal + 1}. XP spent: ${xpCost}. XP remaining: ${updated?.experience ?? 0}`
-      ]),
-      character: updated
+      ])
     };
   } catch (err: any) {
     return {

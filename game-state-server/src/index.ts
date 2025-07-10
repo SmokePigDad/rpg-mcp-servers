@@ -156,8 +156,14 @@ const transport = new StdioServerTransport();
 const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: toolDefinitions } });
 
 console.log("Initializing database...");
-const db = new GameDatabase();
-console.log("Database initialized.");
+let db: GameDatabase;
+try {
+  db = new GameDatabase();
+  console.log("Database initialized successfully.");
+} catch (err) {
+  console.error("Error initializing database:", err);
+  process.exit(1);
+}
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);

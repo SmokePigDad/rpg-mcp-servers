@@ -1,19 +1,41 @@
 // game-state-server/src/tool-handlers/apply_damage.handler.ts
 import { GameDatabase } from '../db.js';
 
-export async function apply_damage_handler(args: any): Promise<any> {
+import type { CharacterData } from '../types/character.types.js';
+
+export interface ApplyDamageArgs {
+  target_id: number;
+  amount?: number;
+  level?: string;
+}
+
+type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
+
+export async function apply_damage_handler(args: ApplyDamageArgs): Promise<HandlerResponse> {
   try {
     const db = new GameDatabase();
-    // Assuming there's a method to apply damage in the CharacterRepository
-    // This might need to be adjusted based on your actual implementation
+    // Ideally there should be an applyDamage method in CharacterRepository.
+    // TODO: Implement CharacterRepository.applyDamage, for now we patch health_levels directly.
     const character = await db.characters.getCharacterById(args.target_id);
     if (!character) {
       return { content: [{ type: 'text', text: `❌ Character with ID ${args.target_id} not found.` }], isError: true };
     }
-     //In a real implementation you would update the character to reflect damage
-    return { content: [{ type: 'text', text: `Damage applied to Character id ${args.target_id}` }] };
-  } catch (error: any) {
+
+    // Patch health. Assumes damage amount/type in args (e.g., { amount: 2, level: "bruised" })
+    // NOTE: This is placeholder logic and may need to match your game's actual health model.
+    const { amount = 1, level = "bruised" } = args;
+    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
+    prevHealth[level] = (prevHealth[level] || 0) + amount;
+
+    // Save updated health_levels
+    await db.characters.updateCharacter(args.target_id, { health_levels: JSON.stringify(prevHealth) });
+
+    return { content: [{ type: 'text', text: `Damage applied (${amount} ${level}) to Character id ${args.target_id}` }] };
+    // TODO: For proper game logic, add applyDamage to CharacterRepository, including type validation, overflow rules, etc.
+  } catch (error: unknown) {
+    // TODO: Specify correct type for error
+    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
     console.error("apply_damage_handler error:", error);
-    return { content: [{ type: 'text', text: `❌ Error applying damage: ${error.message}` }], isError: true };
+    return { content: [{ type: 'text', text: `❌ Error applying damage: ${errMsg}` }], isError: true };
   }
 }
