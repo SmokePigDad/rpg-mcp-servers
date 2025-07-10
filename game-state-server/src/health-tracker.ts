@@ -5,8 +5,7 @@
  * including damage application, wound penalties, serialization,
  * and robust fallback for malformed/corrupt health state objects.
  */
-type DamageType = 'bashing' | 'lethal' | 'aggravated';
-import { HealthLevel, DamageObject } from './types/health.types.js';
+import type { HealthLevel, DamageObject, DamageType } from './types/health.types.js';
 
 const HEALTH_LEVELS: HealthLevel[] = [
   'bruised',

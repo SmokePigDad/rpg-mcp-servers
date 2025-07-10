@@ -16,11 +16,20 @@ export function makeTextContentArray(contentArr: any[]): { type: 'text', text: s
     return { type: 'text', text: JSON.stringify(entry, null, 2) };
   });
 }
+import { toolDefinitions } from './tool-definitions.js';
 import { formatSheetByGameLine } from './characterSheets.js';
 import { GameDatabase } from './db.js';
 import type { AntagonistRow } from './types/antagonist.types.js';
 
 import { spend_xp_handler } from './tool-handlers/spend_xp.handler.js';
+
+// Import repositories for the new data access pattern
+import {
+  CharacterRepository,
+  AntagonistRepository,
+  InventoryRepository,
+  StatusEffectRepository,
+} from './repositories/index.js';
 import { create_character_handler } from './tool-handlers/create_character.handler.js';
 import { get_character_handler } from './tool-handlers/get_character.handler.js';
 import { get_character_by_name_handler } from './tool-handlers/get_character_by_name.handler.js';
@@ -60,7 +69,6 @@ import { advance_turn_handler } from './tool-handlers/advance_turn.handler.js';
 import { get_current_turn_handler } from './tool-handlers/get_current_turn.handler.js';
 
 // Centralized toolDefinitions import
-import { toolDefinitions } from './tool-definitions.js';
 
 import { toolDispatcher } from './tool-handlers/index.js';
 
@@ -68,7 +76,19 @@ async function startServer() {
   try {
     console.log("Initializing server...");
 
-    const server = new Server({ name: 'rpg-game-state-server', version: '2.1.0' }, { capabilities: { tools: {} } });
+    // 1. Load tool definitions first
+    const allTools = Object.values(toolDefinitions);
+
+    // 2. Pass the tools directly into the constructor
+    const server = new Server(
+      { name: 'rpg-game-state-server', version: '2.1.0' },
+      {
+        capabilities: {
+          // Create the tools map that the SDK expects
+          tools: Object.fromEntries(allTools.map(tool => [tool.name, tool]))
+        }
+      }
+    );
     const transport = new StdioServerTransport();
     
     console.log("Initializing database...");
@@ -76,6 +96,21 @@ async function startServer() {
     try {
       db = new GameDatabase();
       console.log("Database initialized successfully.");
+    
+      // New repository instantiation pattern
+      const dbInstance = db.getInstance();
+      const characterRepository = new CharacterRepository(dbInstance);
+      const antagonistRepository = new AntagonistRepository(dbInstance);
+      const inventoryRepository = new InventoryRepository(dbInstance);
+      const statusEffectRepository = new StatusEffectRepository(dbInstance);
+    
+      // Pass all repositories together for handler access
+      var repositories = {
+        characterRepository,
+        antagonistRepository,
+        inventoryRepository,
+        statusEffectRepository,
+      };
     } catch (err: any) {
       console.error("Error initializing database:", err.message);
       process.exit(1);
@@ -90,7 +125,7 @@ async function startServer() {
         const handler = toolDispatcher[name];
         if (handler) {
             try {
-                return await handler(db, args);
+                return await handler(repositories, args);
             } catch (error: any) {
                 console.error(`Error in tool '${name}':`, error);
                 return { content: makeTextContentArray([`❌ Error in tool '${name}': ${error.message}`]), isError: true };

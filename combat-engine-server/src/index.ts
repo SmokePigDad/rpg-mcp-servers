@@ -565,7 +565,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       // Any spending of Willpower, resource, or logging must be invoked externally by the consumer.
       case 'roll_wod_pool': {
         const { pool_size, difficulty, has_specialty = false, character_id, actor_context, force_result, ...rest } = args;
-      
+
+        // [EXTRA-ADDED: Hardened validation per requirements]
+        if (typeof pool_size !== "number" || !Number.isInteger(pool_size) || pool_size < 0) {
+          return {
+            content: makeTextContentArray(["Error: 'pool_size' must be a non-negative integer."]),
+            isError: true
+          };
+        }
+        if (pool_size > 0 && (typeof difficulty !== "number" || !Number.isInteger(difficulty) || difficulty < 2 || difficulty > 10)) {
+          return {
+            content: makeTextContentArray(["Error: 'difficulty' must be an integer between 2 and 10."]),
+            isError: true
+          };
+        }
+       
         // --- Input Validation ---
         if (typeof pool_size !== "number" || pool_size < 0 || !Number.isFinite(pool_size) || !Number.isInteger(pool_size)) {
           return { content: makeTextContentArray(

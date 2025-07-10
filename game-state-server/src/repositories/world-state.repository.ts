@@ -49,38 +49,54 @@ export class WorldStateRepository {
     return stmt.all(scene_id);
   }
 
-  advanceTurn(scene_id: string): void {
-    // Get the current turn order
-    const currentTurn = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
-    if (!currentTurn) {
-      // If there's no current turn, start at turn 1
-      this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(scene_id);
-      return;
+  /**
+   * Advance the turn order for a scene.
+   * Returns an object indicating success, message, next actor, new round, and new turn order.
+   */
+  advanceTurn(
+    scene_id: string
+  ): { success: boolean; message?: string; next_actor?: any; new_round?: number; new_turn_order?: number } {
+    // Get the current turn and round from current_turn table
+    const scene = this.db
+      .prepare('SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?')
+      .get(scene_id) as { current_turn: number; current_round: number } | undefined;
+
+    if (!scene) {
+      return { success: false, message: "Scene not found. Use setInitiative to start." };
     }
 
-    interface CurrentTurn {
-      current_turn: number;
-      current_round: number;
+    // Get the full initiative order, ordered by turn_order ascending (one-based)
+    const order = this.db
+      .prepare('SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC')
+      .all(scene_id);
+
+    if (order.length === 0) {
+      return { success: false, message: "Initiative order is empty for this scene." };
     }
 
-    const currentTurnData: CurrentTurn | null = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id) as CurrentTurn || null;
+    // Calculate next turn (one-based)
+    let nextTurnOrder = scene.current_turn + 1;
+    let nextRound = scene.current_round;
 
-    const current_turn = currentTurnData ? currentTurnData.current_turn : 0;
-    const current_round = currentTurnData ? currentTurnData.current_round : 0;
-
-    // Get the highest turn order
-    const highestTurn = (this.db.prepare(`SELECT MAX(turn_order) AS max_turn FROM initiative_order WHERE scene_id = ?`).get(scene_id) as any)?.max_turn as number || 0;
-
-    let newTurn = current_turn + 1;
-    let newRound = current_round;
-
-    if (newTurn > highestTurn) {
-      newTurn = 1;
-      newRound++;
+    if (nextTurnOrder > order.length) {
+      nextTurnOrder = 1;
+      nextRound++;
     }
 
-    // Update the current turn
-    this.db.prepare(`UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?`).run(newTurn, newRound, scene_id);
+    // Update the current_turn table with new turn/round
+    this.db
+      .prepare('UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?')
+      .run(nextTurnOrder, nextRound, scene_id);
+
+    // Fetch next actor (turn_order is one-based, as is index+1)
+    const nextActor = order[nextTurnOrder - 1];
+
+    return {
+      success: true,
+      next_actor: nextActor,
+      new_round: nextRound,
+      new_turn_order: nextTurnOrder,
+    };
   }
 
   getCurrentTurn(scene_id: string): any {
