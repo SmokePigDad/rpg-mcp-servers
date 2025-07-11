@@ -34,7 +34,7 @@ async function startServer() {
     console.log("Initializing game-state-server...");
 
     // --- 1. Database Setup ---
-    const DATA_DIR = join(process.cwd(), 'data');
+    const DATA_DIR = join(process.cwd(), '..', 'data');
     if (!existsSync(DATA_DIR)) {
       mkdirSync(DATA_DIR, { recursive: true });
     }

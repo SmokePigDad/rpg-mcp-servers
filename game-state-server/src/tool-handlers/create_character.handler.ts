@@ -29,15 +29,26 @@ export async function create_character_handler(
     ]), isError: true };
   }
   try {
+    console.log('[CREATE_CHARACTER] Input args:', args);
+    // Check uniqueness for name
+    const existing = await db.characters.getCharacterByName?.(args.name);
+    if (existing) {
+      console.warn('[CREATE_CHARACTER] Duplicate name detected:', args.name);
+      return {
+        content: makeTextContentArray([
+          `❌ Duplicate character name "${args.name}" is not allowed.`
+        ]),
+        isError: true
+      };
+    }
     const character = await db.characters.createCharacter(args);
     if (!character) {
       return { content: makeTextContentArray([`❌ Error creating character: Character not found after creation.`]), isError: true };
     }
     return { content: makeTextContentArray([`Character \"${character.name}\" created with ID ${character.id}`]) };
   } catch (error: unknown) {
-    // TODO: Specify correct type for error
     const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("create_character_handler error:", error);
+    console.error("[CREATE_CHARACTER] Handler error:", error);
     return { content: makeTextContentArray([`❌ Error creating character: ${errMsg}`]), isError: true };
   }
 }

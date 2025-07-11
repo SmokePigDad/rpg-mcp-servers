@@ -39,11 +39,13 @@
         "spend_xp",
         "update_antagonist",
         "update_character",
-        "update_item"
+        "update_item",
+        "create_character"
       ],
       "disabledTools": [
         "advance_turn"
-      ]
+      ],
+      "disabled": false
     },
     "rpg-combat-engine": {
       "name": "rpg-combat-engine-server",
@@ -84,7 +86,8 @@
         "spend_rage_for_extra_actions",
         "roll_magick_effect",
         "invoke_cantrip"
-      ]
+      ],
+      "disabled": false
     }
   }
 }

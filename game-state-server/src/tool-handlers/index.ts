@@ -1,5 +1,7 @@
 import type { GameDatabase } from '../types/db.types.js';
 
+import { toolDefinitions } from '../tool-definitions.js';
+
 // Import all your handlers here
 import { add_item_handler } from './add_item.handler.js';
 import { advance_turn_handler } from './advance_turn.handler.js';
@@ -56,6 +58,11 @@ export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Pro
   'improve_trait': improve_trait_handler,
   'list_antagonists': list_antagonists_handler,
   'list_characters': list_characters_handler,
+  'list_tools': async (db, args) => {
+    return {
+      content: [{ type: 'text', text: JSON.stringify(Object.values(toolDefinitions), null, 2) }]
+    };
+  },
   'remove_antagonist': remove_antagonist_handler,
   'remove_item': remove_item_handler,
   'remove_status_effect': remove_status_effect_handler,
