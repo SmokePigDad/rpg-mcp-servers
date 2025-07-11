@@ -330,15 +330,27 @@ export const toolDefinitions = {
   },
   set_initiative: {
     name: "set_initiative",
-    description: "Set initiative for a character or antagonist.",
+    description: "Set the initiative order for a scene. Overwrites all entries for that scene.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        antagonist_id: { type: "number", description: "ID of the antagonist" },
-        initiative_value: { type: "number", description: "Initiative value" }
+        scene_id: { type: "string" },
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              character_id: { type: ["number", "null"] },
+              npc_id: { type: ["number", "null"] },
+              actor_name: { type: "string" },
+              initiative_score: { type: "number" },
+              turn_order: { type: "number" }
+            },
+            required: ["initiative_score", "turn_order"]
+          }
+        }
       },
-      required: ["initiative_value"]
+      required: ["scene_id", "entries"]
     }
   },
   get_initiative_order: {

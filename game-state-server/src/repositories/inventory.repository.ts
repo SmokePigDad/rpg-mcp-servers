@@ -61,6 +61,10 @@ constructor(db: Database) {
     };
   }
 
+  // In inventory.repository.ts, replace the existing updateItem method
+  // In game-state-server/src/repositories/inventory.repository.ts
+
+  // REPLACE the existing updateItem method
   updateItem(item_id: number, updates: any): any {
     const allowedFields = Object.keys(updates).filter(key => key !== "id");
     if (allowedFields.length === 0) {
@@ -71,7 +75,12 @@ constructor(db: Database) {
     const values = allowedFields.map(field => (updates as any)[field]);
 
     const stmt = this.db.prepare(`UPDATE inventory SET ${setClause} WHERE id = ?`);
-    stmt.run(...values, item_id);
+    const result = stmt.run(...values, item_id);
+
+    // THE FIX: Check if the update actually changed any rows. If not, the item didn't exist.
+    if (result.changes === 0) {
+      throw new Error(`Item with ID ${item_id} not found, no update performed.`);
+    }
 
     return this.getInventoryItemById(item_id);
   }

@@ -1,5 +1,6 @@
 import type { Database } from 'better-sqlite3';
 import type { CharacterData } from '../types/character.types.js';
+import { HealthTracker } from '../health-tracker.js';
 
 interface Ability {
   name: string;
@@ -112,18 +113,54 @@ constructor(db: Database) {
     return enrichedCharacter;
   }
 
+  // In character.repository.ts, replace the existing updateCharacter method
+  // REPLACE the entire updateCharacter method with this
   public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
-    if (!updates || Object.keys(updates).length === 0) {
-      return this.getCharacterById(id);
+    const character = this.getCharacterById(id);
+    if (!character) {
+      throw new Error(`Character with ID ${id} not found for update.`);
     }
-    const allowedFields = Object.keys(updates).filter(key => key !== "id");
-    if (allowedFields.length === 0) {
-      return this.getCharacterById(id);
+
+    // Define which fields belong to which table for proper routing
+    const mainTableFields = ['name', 'concept', 'strength', 'dexterity', 'stamina', 'charisma', 'manipulation', 'appearance', 'perception', 'intelligence', 'wits', 'willpower_current', 'willpower_permanent', 'health_levels', 'experience'];
+    const splatTableFields: Record<string, string[]> = {
+      vampire: ['clan', 'generation', 'blood_pool_current', 'blood_pool_max', 'humanity'],
+      werewolf: ['breed', 'auspice', 'tribe', 'gnosis_current', 'gnosis_permanent', 'rage_current', 'rage_permanent', 'renown_glory', 'renown_honor', 'renown_wisdom'],
+      mage: ['tradition_convention', 'arete', 'quintessence', 'paradox'],
+      changeling: ['kith', 'seeming', 'glamour_current', 'glamour_permanent', 'banality_permanent']
+    };
+
+    const mainUpdates: Record<string, any> = {};
+    const splatUpdates: Record<string, any> = {};
+
+    // Separate the updates into two groups based on where the data lives
+    for (const key in updates) {
+      if (mainTableFields.includes(key)) {
+        mainUpdates[key] = updates[key];
+      } else if (splatTableFields[character.game_line]?.includes(key)) {
+        splatUpdates[key] = updates[key];
+      }
     }
-    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
-    const values = allowedFields.map(field => (updates as any)[field]);
-    const stmt = this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`);
-    stmt.run(...values, id);
+
+    this.db.transaction(() => {
+      // Update the main 'characters' table
+      if (Object.keys(mainUpdates).length > 0) {
+        // FIX: Ensure health_levels is always stored as a valid JSON string
+        if (mainUpdates.health_levels && typeof mainUpdates.health_levels === 'object') {
+          mainUpdates.health_levels = JSON.stringify(mainUpdates.health_levels);
+        }
+        const setClause = Object.keys(mainUpdates).map(field => `${field} = ?`).join(', ');
+        this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`).run(...Object.values(mainUpdates), id);
+      }
+
+      // Update the splat-specific traits table
+      if (Object.keys(splatUpdates).length > 0) {
+        const splatTableName = `character_${character.game_line}_traits`;
+        const setClause = Object.keys(splatUpdates).map(field => `${field} = ?`).join(', ');
+        this.db.prepare(`UPDATE ${splatTableName} SET ${setClause} WHERE character_id = ?`).run(...Object.values(splatUpdates), id);
+      }
+    })();
+    
     return this.getCharacterById(id);
   }
   listCharacters(): CharacterData[] {
@@ -131,58 +168,20 @@ constructor(db: Database) {
     return rows as CharacterData[];
   }
 
-  /** Applies damage to a character, considering damage type and overflow. */
+  // In character.repository.ts, replace the existing applyDamage method
   public applyDamage(characterId: number, dmg: { aggravated?: number; lethal?: number; bashing?: number }): CharacterData | null {
-    const character = this.getCharacterById(characterId);
-    if (!character) {
-      return null;
-    }
+      const character = this.getCharacterById(characterId);
+      if (!character) return null;
 
-    const prevHealth = character.health_levels ? JSON.parse(character.health_levels) : {};
-    let boxes: ('/' | 'X' | '*' | '')[] = Array(7).fill('');
+      const tracker = HealthTracker.from(character.health_levels);
+      tracker.applyDamage(dmg);
 
-    // Apply damage logic here, considering types and overflow
-    const applyType = (count: number, symbol: '/' | 'X' | '*') => {
-      for (let i = 0; i < (count || 0); ++i) {
-        let idx = -1;
-        if (symbol === '*') {
-          idx = boxes.findIndex(x => x === '' || x === '/' || x === 'X');
-        } else if (symbol === 'X') {
-          idx = boxes.findIndex(x => x === '' || x === '/');
-        } else if (symbol === '/') {
-          idx = boxes.findIndex(x => x === '');
-        }
-        if (idx !== -1) {
-          if (
-            boxes[idx] === '' ||
-            (symbol === 'X' && boxes[idx] === '/') ||
-            (symbol === '*' && (boxes[idx] === '/' || boxes[idx] === 'X'))
-          ) {
-            boxes[idx] = symbol;
-          }
-        }
-      }
-    };
+      // THIS IS THE FIX: Always use the .serialize() method which returns valid JSON
+      const updatedHealthJson = tracker.serialize();
 
-    applyType(dmg.aggravated || 0, '*');
-    applyType(dmg.lethal || 0, 'X');
-    applyType(dmg.bashing || 0, '/');
+      this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthJson, characterId);
 
-    let over = boxes.filter(c => c === '*' || c === 'X' || c === '/').length - 7;
-    if (over > 0) {
-      for (let i = boxes.length - 1; i >= 0 && over > 0; --i) {
-        if (boxes[i] !== '*') {
-          boxes[i] = '*';
-          over--;
-        }
-      }
-    }
-
-    const updatedHealthLevels = boxes.join('');
-
-    this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthLevels, characterId);
-
-    return this.getCharacterById(characterId);
+      return this.getCharacterById(characterId);
   }
 
   createCharacter(data: any) {

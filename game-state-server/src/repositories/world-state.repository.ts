@@ -1,3 +1,5 @@
+// File: game-state-server/src/repositories/world-state.repository.ts
+
 import type { Database } from 'better-sqlite3';
 
 export class WorldStateRepository {
@@ -9,6 +11,7 @@ export class WorldStateRepository {
 
   saveWorldState(state: { location?: string; notes?: string; data?: any }): void {
     const dataStr = state.data ? JSON.stringify(state.data) : null;
+    // Use UPSERT for a single world state row
     this.db.prepare(`
       INSERT INTO world_state (id, location, notes, data, last_updated)
       VALUES (1, @location, @notes, @data, CURRENT_TIMESTAMP)
@@ -20,109 +23,128 @@ export class WorldStateRepository {
     `).run({ location: state.location, notes: state.notes, data: dataStr });
   }
 
-  getWorldState(): { location: string; notes: string; data: any } | undefined {
-    const worldState = this.db.prepare('SELECT location, notes, data FROM world_state WHERE id = 1').get() as { location: string; notes: string; data: string } | undefined;
-    if (worldState) {
+  getWorldState(): any {
+    const worldState = this.db.prepare('SELECT * FROM world_state WHERE id = 1').get() as any;
+    if (worldState && worldState.data) {
       try {
-        worldState.data = typeof worldState.data === 'string' ? JSON.parse(worldState.data) : worldState.data;
+        worldState.data = JSON.parse(worldState.data);
       } catch (err) {
         console.error("Error parsing world state data:", err);
-        worldState.data = null as any;
+        worldState.data = null;
       }
     }
     return worldState;
   }
 
-  saveStoryProgress(characterId: number, storyProgress: any): void {
-    const progressStr = JSON.stringify(storyProgress);
-    this.db.prepare(`
-      INSERT INTO story_progress (character_id, progress_data, last_updated)
-      VALUES (@character_id, @progress_data, CURRENT_TIMESTAMP)
-      ON CONFLICT(character_id) DO UPDATE SET
-        progress_data = excluded.progress_data,
-        last_updated = excluded.last_updated;
-    `).run({ character_id: characterId, progress_data: progressStr });
+  // CORRECTED: This method now matches the simpler schema.
+  saveStoryProgress(progress: { chapter: string; scene: string; summary: string }): void {
+    this.db.prepare(
+      'INSERT INTO story_progress (chapter, scene, summary) VALUES (?, ?, ?)'
+    ).run(progress.chapter, progress.scene, progress.summary);
   }
 
+  // --- CORRECTED INITIATIVE & TURN MANAGEMENT ---
+
+  setInitiative(sceneId: string, entries: any[]): void {
+    const getCharacterName = this.db.prepare('SELECT name FROM characters WHERE id = ?');
+    const getNpcName = this.db.prepare('SELECT name FROM npcs WHERE id = ?');
+
+    // Start a transaction to ensure all operations succeed or fail together
+    this.db.transaction(() => {
+        // Clear old data for this scene to ensure a fresh start
+        this.db.prepare(`DELETE FROM initiative_order WHERE scene_id = ?`).run(sceneId);
+        this.db.prepare(`DELETE FROM scenes WHERE scene_id = ?`).run(sceneId);
+
+        // Initialize the scene state
+        this.db.prepare(`INSERT INTO scenes (scene_id, current_round, current_turn_order) VALUES (?, 1, 0)`).run(sceneId);
+
+        const insertStmt = this.db.prepare(`
+            INSERT INTO initiative_order (scene_id, actor_name, initiative_score, turn_order, character_id, npc_id)
+            VALUES (@scene_id, @actor_name, @initiative_score, @turn_order, @character_id, @npc_id)
+        `);
+
+        for (const entry of entries) {
+            let actor_name = entry.actor_name;
+
+            // --- THIS IS THE FIX ---
+            // If actor_name is missing, fetch it from the database using the ID.
+            if (!actor_name) {
+                if (entry.character_id) {
+                    const char = getCharacterName.get(entry.character_id);
+                    if (char) actor_name = (char as any).name;
+                } else if (entry.npc_id) {
+                    const npc = getNpcName.get(entry.npc_id);
+                    if (npc) actor_name = (npc as any).name;
+                }
+            }
+
+            // If we still don't have a name, the entry is invalid.
+            if (!actor_name) {
+                throw new Error(`Could not determine actor_name for entry with initiative ${entry.initiative_score}. Provide a name or a valid character/npc ID.`);
+            }
+
+            insertStmt.run({
+                scene_id: sceneId,
+                actor_name: actor_name,
+                initiative_score: entry.initiative_score,
+                turn_order: entry.turn_order,
+                character_id: entry.character_id ?? null,
+                npc_id: entry.npc_id ?? null,
+            });
+        }
+    })();
+  }
+  
   getInitiativeOrder(scene_id: string): any[] {
-    const stmt = this.db.prepare(`SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC`);
-    return stmt.all(scene_id);
+    return this.db.prepare('SELECT * FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC').all(scene_id);
   }
-
-  /**
-   * Advance the turn order for a scene.
-   * Returns an object indicating success, message, next actor, new round, and new turn order.
-   */
-  advanceTurn(
-    scene_id: string
-  ): { success: boolean; message?: string; next_actor?: any; new_round?: number; new_turn_order?: number } {
-    // Get the current turn and round from current_turn table
-    const scene = this.db
-      .prepare('SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?')
-      .get(scene_id) as { current_turn: number; current_round: number } | undefined;
+  
+  advanceTurn(scene_id: string): { success: boolean; message?: string; next_actor?: any; new_round?: number; new_turn_order?: number } {
+    const scene = this.db.prepare('SELECT * FROM scenes WHERE scene_id = ?').get(scene_id) as any;
 
     if (!scene) {
-      return { success: false, message: "Scene not found. Use setInitiative to start." };
+        return { success: false, message: `Scene with ID '${scene_id}' has not been started. Use set_initiative first.` };
     }
 
-    // Get the full initiative order, ordered by turn_order ascending (one-based)
-    const order = this.db
-      .prepare('SELECT actor_name, initiative_score, turn_order, character_id, npc_id FROM initiative_order WHERE scene_id = ? ORDER BY turn_order ASC')
-      .all(scene_id);
-
+    const order = this.getInitiativeOrder(scene_id);
     if (order.length === 0) {
-      return { success: false, message: "Initiative order is empty for this scene." };
+        return { success: false, message: "Initiative order is empty for this scene." };
     }
 
-    // Calculate next turn (one-based)
-    let nextTurnOrder = scene.current_turn + 1;
-    let nextRound = scene.current_round;
+    // FIX: Correctly handle the very first turn of a scene
+    let currentTurnOrder = scene.current_turn_order === 0 ? 1 : scene.current_turn_order + 1;
+    let currentRound = scene.current_round;
 
-    if (nextTurnOrder > order.length) {
-      nextTurnOrder = 1;
-      nextRound++;
+    if (currentTurnOrder > order.length) {
+        currentTurnOrder = 1;
+        currentRound++;
     }
 
-    // Update the current_turn table with new turn/round
-    this.db
-      .prepare('UPDATE current_turn SET current_turn = ?, current_round = ? WHERE scene_id = ?')
-      .run(nextTurnOrder, nextRound, scene_id);
-
-    // Fetch next actor (turn_order is one-based, as is index+1)
-    const nextActor = order[nextTurnOrder - 1];
+    this.db.prepare('UPDATE scenes SET current_turn_order = ?, current_round = ? WHERE scene_id = ?').run(currentTurnOrder, currentRound, scene_id);
+    
+    const nextActor = order[currentTurnOrder - 1]; // Array is 0-indexed
 
     return {
       success: true,
       next_actor: nextActor,
-      new_round: nextRound,
-      new_turn_order: nextTurnOrder,
+      new_round: currentRound,
+      new_turn_order: currentTurnOrder,
     };
   }
 
   getCurrentTurn(scene_id: string): any {
-    const turnData = this.db.prepare(`SELECT current_turn, current_round FROM current_turn WHERE scene_id = ?`).get(scene_id);
-    return turnData || { current_turn: 0, current_round: 0 };
-  }
-
-  setInitiative(sceneId: string, entries: any[]): void {
-    // Start a transaction
-    const transaction = this.db.transaction(() => {
-      // Delete existing initiative order for the scene
-      this.db.prepare(`DELETE FROM initiative_order WHERE scene_id = ?`).run(sceneId);
-
-      // Insert new initiative order entries
-      const insert = this.db.prepare(`INSERT INTO initiative_order (scene_id, actor_name, initiative_score, turn_order, character_id, npc_id) VALUES (@scene_id, @actor_name, @initiative_score, @turn_order, @character_id, @npc_id)`);
-      for (const entry of entries) {
-        insert.run({ scene_id: sceneId, ...entry });
-      }
-
-      // If current_turn doesn't exist, create it
-      if (!this.db.prepare(`SELECT 1 FROM current_turn WHERE scene_id = ?`).get(sceneId)) {
-        this.db.prepare(`INSERT INTO current_turn (scene_id, current_turn, current_round) VALUES (?, 1, 1)`).run(sceneId);
-      }
-    });
-
-    // Execute the transaction
-    transaction();
+    const scene = this.db.prepare('SELECT * FROM scenes WHERE scene_id = ?').get(scene_id) as any;
+    if (!scene || scene.current_turn_order === 0) {
+      return { success: false, message: "Combat has not started or initiative is not set." };
+    }
+    
+    const actor = this.db.prepare('SELECT * FROM initiative_order WHERE scene_id = ? AND turn_order = ?').get(scene_id, scene.current_turn_order);
+    
+    return {
+      success: true,
+      current_round: scene.current_round,
+      current_turn: scene.current_turn_order,
+      actor: actor
+    };
   }
 }
