@@ -1,6 +1,6 @@
 // game-state-server/src/tool-handlers/get_character.handler.ts
 import type { GameDatabase } from '../types/db.types.js';
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import { CharacterService } from '../services/character.service.js';
 import { formatSheetByGameLine } from '../characterSheets.js';
 
@@ -21,9 +21,9 @@ export async function get_character_handler(
     Number.isNaN(args.character_id)
   ) {
     return {
-      content: makeTextContentArray([
+      content: [
         "❌ Invalid or missing 'character_id'. Must provide a valid number."
-      ]),
+      ].map(makeTextContent),
       isError: true
     };
   }
@@ -37,6 +37,6 @@ export async function get_character_handler(
     const sheet = formatSheetByGameLine({ character }); // Assuming you have this function
     return { content: [sheet] };
   } catch (error: any) {
-    return { content: makeTextContentArray([`❌ ${error.message}`]), isError: true };
+    return { content: [`❌ ${error.message}`].map(makeTextContent), isError: true };
   }
 }

@@ -8,6 +8,7 @@ import { advance_turn_handler } from './advance_turn.handler.js';
 import { apply_damage_handler } from './apply_damage.handler.js';
 import { apply_status_effect_handler } from './apply_status_effect.handler.js';
 import { award_xp_handler } from './award_xp.handler.js';
+import { batch_improve_traits_handler } from './batch_improve_traits.handler.js';
 import { create_antagonist_handler } from './create_antagonist.handler.js';
 import { create_character_handler } from './create_character.handler.js';
 import { gain_resource_handler } from './gain_resource.handler.js';
@@ -36,6 +37,8 @@ import { spend_xp_handler } from './spend_xp.handler.js';
 import { update_antagonist_handler } from './update_antagonist.handler.js';
 import { update_character_handler } from './update_character.handler.js';
 import { update_item_handler } from './update_item.handler.js';
+import { create_custom_antagonist_handler } from './create_custom_antagonist.handler.js';
+import { batch_improve_antagonist_traits_handler } from './batch_improve_antagonist_traits.handler.js';
 
 // Create a single map of all tool handlers
 export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Promise<any>> = {
@@ -46,6 +49,7 @@ export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Pro
   'award_xp': award_xp_handler,
   'create_antagonist': create_antagonist_handler,
   'create_character': create_character_handler,
+  'create_custom_antagonist': create_custom_antagonist_handler,
   'gain_resource': gain_resource_handler,
   'get_antagonist': get_antagonist_handler,
   'get_character_by_name': get_character_by_name_handler,
@@ -57,6 +61,8 @@ export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Pro
   'get_trait_improvement_cost': get_trait_improvement_cost_handler,
   'get_world_state': get_world_state_handler,
   'improve_trait': improve_trait_handler,
+  'batch_improve_traits': batch_improve_traits_handler,
+  'batch_improve_antagonist_traits': batch_improve_antagonist_traits_handler,
   'list_antagonists': list_antagonists_handler,
   'list_characters': list_characters_handler,
    

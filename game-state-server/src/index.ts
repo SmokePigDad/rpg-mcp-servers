@@ -11,22 +11,16 @@ import { createDatabase, initializeSchema } from './schema.js';
 import { createGameDatabase } from './repositories/game-database.js';
 import type { GameDatabase as GameDatabaseType } from './types/db.types.js';
 
-// Centralized Tool Imports
+// === THIS IS THE CRITICAL PART ===
+// Import the single source of truth for all tool definitions and handlers
 import { toolDefinitions } from './tool-definitions.js';
 import { toolDispatcher } from './tool-handlers/index.js';
 
 /**
  * Utility to ensure all MCP content is correctly formatted as text.
- * This prevents client-side ZodErrors for non-text content.
  */
-export function makeTextContentArray(contentArr: any[]): { type: 'text'; text: string }[] {
-  return contentArr.map(entry => {
-    if (typeof entry === 'string') {
-      return { type: 'text', text: entry };
-    }
-    // For any other objects/values, serialize as prettified JSON.
-    return { type: 'text', text: JSON.stringify(entry, null, 2) };
-  });
+export function makeTextContent(text: string): { type: 'text'; text: string } {
+    return { type: 'text', text };
 }
 
 async function startServer() {
@@ -46,21 +40,19 @@ async function startServer() {
 
     // --- 2. Initialize the Server with the Correct Tool Definitions Object ---
     const server = new Server(
-      { name: 'rpg-game-state-server', version: '2.1.0' },
+      { name: 'rpg-game-state-server', version: '3.0.0' },
       {
         capabilities: {
-          // THIS IS THE FIX: Pass the imported object directly.
-          // The SDK expects a map of { [tool_name]: tool_definition }, which is exactly
-          // what your tool-definitions.ts file exports.
-          tools: toolDefinitions
+          // Use the imported toolDefinitions object directly.
+          // The SDK expects a map of { [tool_name]: tool_definition }.
+          tools: toolDefinitions 
         },
       }
     );
 
     // --- 3. Set Up Request Handlers ---
     server.setRequestHandler(ListToolsRequestSchema, async () => {
-      // For this handler, you must return an ARRAY of definitions.
-      // Object.values() is correct here.
+      // For the ListTools request, the SDK expects an array of the definitions.
       return { tools: Object.values(toolDefinitions) };
     });
 
@@ -72,26 +64,20 @@ async function startServer() {
         try {
           return await handler(gameDatabase, args);
         } catch (error: any) {
-          console.error(`Error in tool '${name}':`, error);
-          return {
-            content: makeTextContentArray([`❌ Error executing '${name}': ${error.message}`]),
-            isError: true
-          };
+          return { content: [makeTextContent(`❌ Error in tool '${name}': ${error.message}`)], isError: true };
         }
       }
 
-      return {
-        content: makeTextContentArray([`❌ Unknown tool in game-state-server: ${name}`]),
-        isError: true
-      };
+      return { content: [makeTextContent(`❌ Unknown tool in game-state-server: ${name}`)], isError: true };
     });
 
     // --- 4. Connect and Start Listening ---
     const transport = new StdioServerTransport();
     server.connect(transport);
-    console.error('✅ oWoD RPG Game State MCP Server v2.1.0 running on stdio');
+    console.error('✅ oWoD Game State Server v3.0.0 running on stdio');
 
-  } catch (error: any) {
+  } catch (error: any)
+  {
     console.error('❌ FATAL: Server failed to start:', error.message);
     process.exit(1);
   }

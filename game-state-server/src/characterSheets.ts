@@ -131,6 +131,7 @@ function formatCoreBlocks(character: any): string {
   return [
     `👤 Name: ${character.name}`,
     character.concept ? `🧠 Concept: ${character.concept}` : '',
+    character.title ? `👑 Title: ${character.title}` : '',
     (() => {
       let splatInfo = '';
       switch ((character.game_line || '').toLowerCase()) {
@@ -178,6 +179,12 @@ function formatCoreBlocks(character: any): string {
 export function formatVampireSheet(opts: CharacterSheetOptions) {
   const { character, extra = {} } = opts;
   let out = `🎲 World of Darkness: VAMPIRE Sheet\n\n`;
+  if (character.title) out += `👑 Title: ${character.title}\n`;
+  if (character.coterie_name) out += `Coterie: ${character.coterie_name}\n`;
+  if (character.sect_status) out += `Sect Status: ${character.sect_status}\n`;
+  if (character.title) out += `👑 Title: ${character.title}\n`;
+  if (character.coterie_name) out += `Coterie: ${character.coterie_name}\n`;
+  if (character.sect_status) out += `Sect Status: ${character.sect_status}\n`;
   out += formatCoreBlocks(character) + '\n';
   out += formatStatusBlocks(opts);
 
@@ -192,6 +199,7 @@ export function formatVampireSheet(opts: CharacterSheetOptions) {
     });
   }
   out += `Blood Pool: ${character.blood_pool_current || 0}/${character.blood_pool_max || 0}, Humanity: ${character.humanity ?? ''}\n`;
+  if (character.notes) out += `\n📝 Notes:\n${character.notes}\n`;
   return { type: 'text', text: out };
 }
 /**
@@ -200,6 +208,10 @@ export function formatVampireSheet(opts: CharacterSheetOptions) {
 export function formatWerewolfSheet(opts: CharacterSheetOptions) {
   const { character, extra = {} } = opts;
   let out = `🎲 World of Darkness: WEREWOLF Sheet\n\n`;
+  if (character.title) out += `👑 Title: ${character.title}\n`;
+  if (character.pack_name) out += `Pack: ${character.pack_name}`;
+  if (character.pack_totem) out += ` (Totem: ${character.pack_totem})`;
+  if (character.pack_name || character.pack_totem) out += `\n`;
   out += formatCoreBlocks(character) + '\n';
   out += formatStatusBlocks(opts);
 
@@ -214,6 +226,7 @@ export function formatWerewolfSheet(opts: CharacterSheetOptions) {
     });
   }
   out += `Rage: ${character.rage_current || 0}, Gnosis: ${character.gnosis_current || 0}, Renown: Glory ${character.renown_glory || 0}, Honor ${character.renown_honor || 0}, Wisdom ${character.renown_wisdom || 0}\n`;
+  if (character.notes) out += `\n📝 Notes:\n${character.notes}\n`;
   return { type: 'text', text: out };
 }
 /**
@@ -222,6 +235,9 @@ export function formatWerewolfSheet(opts: CharacterSheetOptions) {
 export function formatMageSheet(opts: CharacterSheetOptions) {
   const { character, extra = {} } = opts;
   let out = `🎲 World of Darkness: MAGE Sheet\n\n`;
+  if (character.title) out += `👑 Title: ${character.title}\n`;
+  if (character.cabal_name) out += `Cabal: ${character.cabal_name}\n`;
+  if (character.paradigm_notes) out += `Paradigm Notes: ${character.paradigm_notes}\n`;
   out += formatCoreBlocks(character) + '\n';
   out += formatStatusBlocks(opts);
 
@@ -236,6 +252,7 @@ export function formatMageSheet(opts: CharacterSheetOptions) {
     });
   }
   out += `Arete: ${character.arete || 0}, Quintessence: ${character.quintessence || 0}, Paradox: ${character.paradox || 0}\n`;
+  if (character.notes) out += `\n📝 Notes:\n${character.notes}\n`;
   return { type: 'text', text: out };
 }
 /**
@@ -244,6 +261,9 @@ export function formatMageSheet(opts: CharacterSheetOptions) {
 export function formatChangelingSheet(opts: CharacterSheetOptions) {
   const { character, extra = {} } = opts;
   let out = `🎲 World of Darkness: CHANGELING Sheet\n\n`;
+  if (character.title) out += `👑 Title: ${character.title}\n`;
+  if (character.court) out += `Court: ${character.court}\n`;
+  if (character.house) out += `House: ${character.house}\n`;
   out += formatCoreBlocks(character) + '\n';
   out += formatStatusBlocks(opts);
 
@@ -263,6 +283,7 @@ export function formatChangelingSheet(opts: CharacterSheetOptions) {
     });
   }
   out += `Glamour: ${character.glamour_current || 0}/${character.glamour_permanent || 0}, Banality: ${character.banality_permanent || 0}\n`;
+  if (character.notes) out += `\n📝 Notes:\n${character.notes}\n`;
   return { type: 'text', text: out };
 }
 /**

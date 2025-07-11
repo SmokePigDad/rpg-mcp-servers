@@ -167,59 +167,173 @@ export class CharacterRepository {
     return this.getCharacterById(characterId);
   }
 
+  // REPLACE createCharacter
   public createCharacter(data: Partial<CharacterData>): CharacterData | null {
-    if (!data.name || !data.game_line || !['vampire', 'werewolf', 'mage', 'changeling'].includes(data.game_line)) {
-      throw new Error(`Invalid game_line or missing name.`);
-    }
+      // ... (health tracker setup remains the same) ...
 
-    const healthTracker = HealthTracker.healthy();
-    const health_levels_json = healthTracker.serialize();
+      const healthTracker = HealthTracker.healthy();
+      const health_levels_json = healthTracker.serialize();
 
-    const charId = this.db.transaction(() => {
-      const stmt = this.db.prepare(`
-        INSERT INTO characters (
-          name, concept, game_line, strength, dexterity, stamina, charisma, manipulation, appearance,
-          perception, intelligence, wits, willpower_current, willpower_permanent, health_levels, experience
-        ) VALUES (
-          @name, @concept, @game_line, @strength, @dexterity, @stamina, @charisma, @manipulation, @appearance,
-          @perception, @intelligence, @wits, @willpower_current, @willpower_permanent, @health_levels, @experience
-        )
-      `);
+      const charId = this.db.transaction(() => {
+          const stmt = this.db.prepare(`
+              INSERT INTO characters (name, concept, game_line, strength, dexterity, stamina, charisma, manipulation, appearance,
+              perception, intelligence, wits, willpower_current, willpower_permanent, health_levels, experience, title, notes)
+              VALUES (@name, @concept, @game_line, @strength, @dexterity, @stamina, @charisma, @manipulation, @appearance,
+              @perception, @intelligence, @wits, @willpower_current, @willpower_permanent, @health_levels, @experience, @title, @notes)
+          `);
+          const result = stmt.run({
+              name: data.name,
+              concept: data.concept || null,
+              game_line: data.game_line,
+              strength: data.strength ?? 1,
+              dexterity: data.dexterity ?? 1,
+              stamina: data.stamina ?? 1,
+              charisma: data.charisma ?? 1,
+              manipulation: data.manipulation ?? 1,
+              appearance: data.appearance ?? 1,
+              perception: data.perception ?? 1,
+              intelligence: data.intelligence ?? 1,
+              wits: data.wits ?? 1,
+              willpower_current: data.willpower_permanent ?? 5,
+              willpower_permanent: data.willpower_permanent ?? 5,
+              health_levels: health_levels_json,
+              experience: data.experience ?? 0,
+              title: data.title ?? null,
+              notes: data.notes ?? null
+          });
+          const localCharId = result.lastInsertRowid as number;
 
-      const result = stmt.run({
-        name: data.name, concept: data.concept || null, game_line: data.game_line,
-        strength: data.strength || 1, dexterity: data.dexterity || 1, stamina: data.stamina || 1,
-        charisma: data.charisma || 1, manipulation: data.manipulation || 1, appearance: data.appearance || 1,
-        perception: data.perception || 1, intelligence: data.intelligence || 1, wits: data.wits || 1,
-        willpower_current: data.willpower_permanent || 5, willpower_permanent: data.willpower_permanent || 5,
-        health_levels: health_levels_json, experience: data.experience || 0
-      });
-      const localCharId = result.lastInsertRowid as number;
+          switch (data.game_line) {
+              case 'vampire':
+                  this.db.prepare(`INSERT INTO character_vampire_traits (character_id, clan, generation, blood_pool_current, blood_pool_max, humanity, coterie_name, sect_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+                      localCharId,
+                      data.clan ?? null,
+                      data.generation ?? 13,
+                      data.blood_pool_current ?? 10,
+                      data.blood_pool_max ?? 10,
+                      data.humanity ?? 7,
+                      data.coterie_name ?? null,
+                      data.sect_status ?? null
+                  );
+                  break;
+              case 'werewolf':
+                  this.db.prepare(`INSERT INTO character_werewolf_traits (character_id, breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom, pack_name, pack_totem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+                      localCharId,
+                      data.breed ?? null,
+                      data.auspice ?? null,
+                      data.tribe ?? null,
+                      data.gnosis_current ?? 3,
+                      data.gnosis_permanent ?? 3,
+                      data.rage_current ?? 1,
+                      data.rage_permanent ?? 1,
+                      data.renown_glory ?? 0,
+                      data.renown_honor ?? 0,
+                      data.renown_wisdom ?? 0,
+                      data.pack_name ?? null,
+                      data.pack_totem ?? null
+                  );
+                  break;
+              case 'mage':
+                  this.db.prepare(`INSERT INTO character_mage_traits (character_id, tradition_convention, arete, quintessence, paradox, cabal_name, paradigm_notes) VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
+                      localCharId,
+                      data.tradition_convention ?? null,
+                      data.arete ?? 1,
+                      data.quintessence ?? 0,
+                      data.paradox ?? 0,
+                      data.cabal_name ?? null,
+                      data.paradigm_notes ?? null
+                  );
+                  break;
+              case 'changeling':
+                  this.db.prepare(`INSERT INTO character_changeling_traits (character_id, kith, seeming, glamour_current, glamour_permanent, banality_permanent, court, house, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+                      localCharId,
+                      data.kith ?? null,
+                      data.seeming ?? null,
+                      data.glamour_current ?? 4,
+                      data.glamour_permanent ?? 4,
+                      data.banality_permanent ?? 3,
+                      data.court ?? null,
+                      data.house ?? null,
+                      data.title ?? null
+                  );
+                  break;
+          }
+          // ... (ability/discipline insertion logic remains the same) ...
+          if (data.abilities && Array.isArray(data.abilities)) {
+              const abilityStmt = this.db.prepare(`INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty) VALUES (?, ?, ?, ?, ?)`);
+              for (const ability of data.abilities) {
+                  abilityStmt.run(localCharId, ability.name, ability.type, ability.rating, ability.specialty ?? null);
+              }
+          }
+          return localCharId;
+      })();
+      return this.getCharacterById(charId as number);
+  }
 
-      switch (data.game_line) {
-        case 'vampire':
-          this.db.prepare(`INSERT INTO character_vampire_traits (character_id, clan, generation, blood_pool_current, blood_pool_max, humanity) VALUES (?, ?, ?, ?, ?, ?)`).run(localCharId, data.clan ?? null, data.generation ?? 13, data.blood_pool_current ?? 10, data.blood_pool_max ?? 10, data.humanity ?? 7);
-          break;
-        case 'werewolf':
-          this.db.prepare(`INSERT INTO character_werewolf_traits (character_id, breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(localCharId, data.breed ?? null, data.auspice ?? null, data.tribe ?? null, data.gnosis_current ?? 3, data.gnosis_permanent ?? 3, data.rage_current ?? 1, data.rage_permanent ?? 1, data.renown_glory ?? 0, data.renown_honor ?? 0, data.renown_wisdom ?? 0);
-          break;
-        case 'mage':
-          this.db.prepare(`INSERT INTO character_mage_traits (character_id, tradition_convention, arete, quintessence, paradox) VALUES (?, ?, ?, ?, ?)`).run(localCharId, data.tradition_convention ?? null, data.arete ?? 1, data.quintessence ?? 0, data.paradox ?? 0);
-          break;
-        case 'changeling':
-          this.db.prepare(`INSERT INTO character_changeling_traits (character_id, kith, seeming, glamour_current, glamour_permanent, banality_permanent) VALUES (?, ?, ?, ?, ?, ?)`).run(localCharId, data.kith ?? null, data.seeming ?? null, data.glamour_current ?? 4, data.glamour_permanent ?? 4, data.banality_permanent ?? 3);
-          break;
-      }
+  public batchImproveTraits(character_id: number, improvements: { trait_type: string; trait_name: string; }[]): { summary: string; final_xp: number; } {
+      const calculateXpCost = (trait_type: string, current_rating: number): number => {
+          const new_rating = current_rating + 1;
+          switch (trait_type) {
+              case 'attribute': return new_rating * 4;
+              case 'ability': return new_rating * 2;
+              case 'discipline': return new_rating * 5; // VTM
+              case 'arete': return new_rating * 10; // MTA
+              case 'art': return new_rating * 4; // CTD
+              case 'willpower': return current_rating; // V20 rule
+              default: throw new Error(`XP cost calculation not defined for trait type: ${trait_type}`);
+          }
+      };
 
-      if (data.abilities && Array.isArray(data.abilities)) {
-        const abilityStmt = this.db.prepare(`INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty) VALUES (?, ?, ?, ?, ?)`);
-        for (const ability of data.abilities) {
-          abilityStmt.run(localCharId, ability.name, ability.type, ability.rating, ability.specialty ?? null);
-        }
-      }
-      return localCharId;
-    })();
+      return this.db.transaction(() => {
+          const character = this.getCharacterById(character_id);
+          if (!character) throw new Error("Character not found.");
 
-    return this.getCharacterById(charId as number);
+          let totalXpCost = 0;
+          const improvementDetails: string[] = [];
+          const improvementActions: (() => void)[] = [];
+
+          for (const imp of improvements) {
+              const { trait_type, trait_name } = imp;
+              let current_rating = 0;
+              let isRelational = ['ability', 'discipline', 'art', 'sphere', 'gift'].includes(trait_type);
+
+              if (isRelational) {
+                  const relationalTraits = (character as any)[`${trait_type}s`] || [];
+                  const trait = relationalTraits.find((t: any) => t.name.toLowerCase() === trait_name.toLowerCase());
+                  current_rating = trait ? trait.rating : 0;
+              } else {
+                  current_rating = (character as any)[trait_name.toLowerCase()] ?? 0;
+              }
+              
+              if (typeof current_rating !== 'number') {
+                  throw new Error(`Trait '${trait_name}' could not be found or does not have a numeric rating.`);
+              }
+
+              const cost = calculateXpCost(trait_type, current_rating);
+              totalXpCost += cost;
+              improvementDetails.push(`${trait_name} (${current_rating} -> ${current_rating + 1}) for ${cost} XP`);
+
+              const new_rating = current_rating + 1;
+              if (isRelational) {
+                  const table = `character_${trait_type}s`;
+                  const nameCol = `${trait_type}_name`;
+                  improvementActions.push(() => this.updateOrInsertRelationalTrait(character_id, table, nameCol, trait_name, new_rating));
+              } else {
+                  improvementActions.push(() => this.updateCharacter(character_id, { [trait_name]: new_rating }));
+              }
+          }
+
+          if (character.experience < totalXpCost) {
+              throw new Error(`Insufficient XP. Needs ${totalXpCost}, but only has ${character.experience}.`);
+          }
+
+          // Execute all improvements
+          improvementActions.forEach(action => action());
+
+          const final_xp = character.experience - totalXpCost;
+          this.updateCharacter(character_id, { experience: final_xp });
+
+          return { summary: `Successfully improved: ${improvementDetails.join(', ')}.`, final_xp };
+      })();
   }
 }

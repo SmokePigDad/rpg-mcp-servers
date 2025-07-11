@@ -1,30 +1,50 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function award_xp_handler(db: GameDatabase, args: any) {
-  // Input validation
+  // --- Input Validation ---
   if (
     !args ||
-    typeof args.character_id !== 'number' ||
-    Number.isNaN(args.character_id) ||
-    typeof args.amount !== 'number' ||
-    Number.isNaN(args.amount)
+    typeof args.target_id !== 'number' ||
+    !['character', 'antagonist'].includes(args.target_type) ||
+    typeof args.amount !== 'number' || args.amount <= 0 ||
+    typeof args.reason !== 'string'
   ) {
-    return { content: makeTextContentArray([
-      "❌ Invalid or missing arguments: 'character_id' and 'amount' must be valid numbers."
-    ]), isError: true };
+    return { 
+      content: ["❌ Invalid arguments. Requires 'target_id', 'target_type' ('character' or 'antagonist'), a positive 'amount', and a 'reason'."].map(makeTextContent),
+      isError: true
+    };
   }
 
-  const { character_id, amount, reason } = args;
+  const { target_id, target_type, amount, reason } = args;
 
-  const character = db.characters.getCharacterById(character_id);
+  try {
+    let target: any;
+    let newExperience: number;
 
-  if (!character) {
-    return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
+    if (target_type === 'character') {
+      target = await db.characters.getCharacterById(target_id);
+      if (!target) {
+        throw new Error(`Character with ID ${target_id} not found.`);
+      }
+      newExperience = (target.experience || 0) + amount;
+      await db.characters.updateCharacter(target_id, { experience: newExperience });
+    } else { // target_type is 'antagonist'
+      target = await db.antagonists.getAntagonistById(target_id);
+      if (!target) {
+        throw new Error(`Antagonist with ID ${target_id} not found.`);
+      }
+      newExperience = (target.experience || 0) + amount;
+      await db.antagonists.updateAntagonist(target_id, { experience: newExperience });
+    }
+
+    const output = `✅ Awarded ${amount} XP to ${target.name} (${target_type}).\nNew total: ${newExperience}.\nReason: ${reason}`;
+    return { content: [output].map(makeTextContent) };
+
+  } catch (error: any) {
+    return { 
+      content: [`❌ Error awarding XP: ${error.message}`].map(makeTextContent),
+      isError: true
+    };
   }
-
-  const newExperience = (character.experience || 0) + amount;
-  db.characters.updateCharacter(character_id, { experience: newExperience });
-
-  return { content: makeTextContentArray([`✅ Awarded ${amount} XP to ${character.name}. New total: ${newExperience}. Reason: ${typeof reason === "string" && reason.trim().length > 0 ? reason : "No reason provided."}`]) };
 }

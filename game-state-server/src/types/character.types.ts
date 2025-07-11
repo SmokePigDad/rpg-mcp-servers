@@ -35,6 +35,27 @@ export interface CharacterData extends CharacterAttributes {
   inventory: InventoryItem[];
   status_effects: StatusEffect[];
   [key: string]: any;
+
+  // --- NEW OPTIONAL FIELDS (ALL SPLATS) ---
+  title?: string | null;      // Changeling, Vampire (Prince, etc.)
+  notes?: string | null;      // Generic notes for any character
+
+  // Vampire
+  coterie_name?: string | null;
+  sect_status?: string | null;
+
+  // Werewolf
+  pack_name?: string | null;
+  pack_totem?: string | null;
+
+  // Mage
+  cabal_name?: string | null;
+  paradigm_notes?: string | null;
+
+  // Changeling
+  court?: string | null;
+  house?: string | null;
+  seeming?: string | null; // Already present but good to confirm
 }
 
 interface Ability {

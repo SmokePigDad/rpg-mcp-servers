@@ -1,3 +1,36 @@
+# MCP Supplemental Testing Plan: Custom Antagonists & NPC Progression
+
+**Date of Execution:** 2025-07-11  
+**Executor:** Automated test via Roo
+
+---
+
+## Test Preamble
+
+**Objective:**  
+To validate the end-to-end functionality, data integrity, and error handling of the following features in the MCP engine:
+
+- `create_custom_antagonist`
+- `batch_improve_antagonist_traits`
+- Updated `award_xp` system targeting antagonists (NPCs)
+
+**Test Environment:**  
+A clean, newly built database is utilized to eliminate legacy data, ensure no ID/name conflicts, and accurately test error handling logic.
+
+**Prerequisite:**  
+A player character may be created for future tests, but the primary focus is on antagonists.
+
+**Method:**  
+Every test is performed as a distinct, atomic step. For each:
+- Tool inputs are provided as specified or with deliberate error conditions for validation.
+- All tool responses, system state changes, and error messages are documented inline below as test results.
+- After each test operation, data retrieval calls are made to verify persistence, correctness, and system integrity as required.
+
+---
+
+**Test Sequence:**
+The following steps will be executed in order and results inserted after each test step.
+
 # MCP Comprehensive Testing Results
 
 *Test Run Date: 2025-07-11*  

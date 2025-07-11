@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function set_initiative_handler(db: GameDatabase, args: any) {
@@ -7,8 +7,8 @@ export async function set_initiative_handler(db: GameDatabase, args: any) {
     db.worldState.setInitiative(scene_id, entries);
   } catch (err) {
     const errorMsg = (err && typeof err === 'object' && 'message' in err) ? (err as any).message : String(err);
-    return { content: makeTextContentArray([`❌ Could not set initiative for scene ${scene_id}: ${errorMsg}`]), isError: true };
+    return { content: [`❌ Could not set initiative for scene ${scene_id}: ${errorMsg}`].map(makeTextContent), isError: true };
   }
 
-  return { content: makeTextContentArray([`✅ Set initiative for scene ${scene_id}.`]) };
+  return { content: [`✅ Set initiative for scene ${scene_id}.`].map(makeTextContent) };
 }

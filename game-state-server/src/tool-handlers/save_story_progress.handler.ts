@@ -1,5 +1,5 @@
 // game-state-server/src/tool-handlers/save_story_progress.handler.ts
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function save_story_progress_handler(db: GameDatabase, args: any) {
@@ -10,9 +10,9 @@ export async function save_story_progress_handler(db: GameDatabase, args: any) {
     args.summary == null
   ) {
     return {
-      content: makeTextContentArray([
+      content: [
         "❌ Invalid input. 'chapter', 'scene', and 'summary' are required."
-      ]),
+      ].map(makeTextContent),
       isError: true
     };
   }
@@ -21,8 +21,8 @@ export async function save_story_progress_handler(db: GameDatabase, args: any) {
 
   try {
     db.worldState.saveStoryProgress({ chapter, scene, summary });
-    return { content: makeTextContentArray([`📖 Story progress for Chapter ${chapter}, Scene ${scene} saved.`]) };
+    return { content: [`📖 Story progress for Chapter ${chapter}, Scene ${scene} saved.`].map(makeTextContent) };
   } catch (error: any) {
-    return { content: makeTextContentArray([`❌ Could not save story progress: ${error.message}`]), isError: true };
+    return { content: [`❌ Could not save story progress: ${error.message}`].map(makeTextContent), isError: true };
   }
 }

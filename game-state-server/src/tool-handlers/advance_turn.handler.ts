@@ -1,12 +1,12 @@
 // In game-state-server/src/tool-handlers/advance_turn.handler.ts
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function advance_turn_handler(db: GameDatabase, args: any) {
   if (!args || typeof args.scene_id !== 'string') {
     return { 
-      content: makeTextContentArray(["❌ Invalid or missing 'scene_id'. Must be a string."]), 
-      isError: true 
+      content: ["❌ Invalid or missing 'scene_id'. Must be a string."].map(makeTextContent),
+      isError: true
     };
   }
 
@@ -16,7 +16,7 @@ export async function advance_turn_handler(db: GameDatabase, args: any) {
     const result = db.worldState.advanceTurn(scene_id);
 
     if (!result.success || !result.next_actor) {
-      return { content: makeTextContentArray([`❌ ${result.message || 'Could not advance turn.'}`]), isError: true };
+      return { content: [`❌ ${result.message || 'Could not advance turn.'}`].map(makeTextContent), isError: true };
     }
 
     const { next_actor, new_round, new_turn_order } = result;
@@ -37,8 +37,8 @@ export async function advance_turn_handler(db: GameDatabase, args: any) {
   } catch (error: any) {
     console.error(`[advance_turn_handler] Error:`, error);
     return { 
-      content: makeTextContentArray([`❌ An unexpected error occurred while advancing the turn: ${error.message}`]), 
-      isError: true 
+      content: [`❌ An unexpected error occurred while advancing the turn: ${error.message}`].map(makeTextContent),
+      isError: true
     };
   }
 }

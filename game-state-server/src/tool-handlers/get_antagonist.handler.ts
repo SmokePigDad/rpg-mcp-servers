@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_antagonist_handler(db: GameDatabase, args: any) {
@@ -9,9 +9,9 @@ export async function get_antagonist_handler(db: GameDatabase, args: any) {
     (typeof args.antagonist_id !== "string" && typeof args.antagonist_id !== "number")
   ) {
     return {
-      content: makeTextContentArray([
+      content: [
         "❌ Invalid or missing 'antagonist_id'. It must be a string or number."
-      ]),
+      ].map(makeTextContent),
       isError: true
     };
   }
@@ -20,8 +20,8 @@ export async function get_antagonist_handler(db: GameDatabase, args: any) {
   const antagonist = db.antagonists.getAntagonistById(antagonist_id);
 
   if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
+    return { content: [`❌ Antagonist with ID ${antagonist_id} not found.`].map(makeTextContent), isError: true };
   }
 
-  return { content: makeTextContentArray([JSON.stringify(antagonist, null, 2)]) };
+  return { content: [JSON.stringify(antagonist, null, 2)].map(makeTextContent) };
 }

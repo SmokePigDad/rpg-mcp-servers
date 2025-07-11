@@ -203,3 +203,10 @@ Resolves a contested action between two actors, attacker and defender.
 - Successes always use a positive icon (✅ or formatted content block) with updated details.
 
 If you see any deviation, please report for update, but as of this revision, the documentation and handler validation are tightly coupled.
+
+#### `create_custom_antagonist`
+**(NEW)** Creates a unique NPC from scratch. Use for important characters where specific details matter.
+
+-   **`batch_improve_antagonist_traits(antagonist_id, improvements)`**: **(NEW)** Spends XP to improve multiple traits for an NPC, allowing them to grow over time.
+
+-   **`award_xp(target_id, target_type, amount, reason)`**: Gives experience points to a character or antagonist. `target_type` must be either `'character'` or `'antagonist'`.

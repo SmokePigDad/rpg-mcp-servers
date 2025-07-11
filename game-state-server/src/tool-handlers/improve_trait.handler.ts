@@ -1,5 +1,5 @@
 // game-state-server/src/tool-handlers/improve_trait.handler.ts
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/index.js';
 
 function calculateXpCost(trait_type: string, current_rating: number): number {
@@ -17,12 +17,12 @@ function calculateXpCost(trait_type: string, current_rating: number): number {
 export async function improve_trait_handler(db: GameDatabase, args: any) {
     const { character_id, trait_type, trait_name } = args;
     if (!character_id || !trait_type || !trait_name) {
-        return { content: makeTextContentArray(["❌ Missing required arguments."]), isError: true };
+        return { content: ["❌ Missing required arguments."].map(makeTextContent), isError: true };
     }
     
     const character = db.characters.getCharacterById(character_id);
     if (!character) {
-        return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
+        return { content: [`❌ Character with ID ${character_id} not found.`].map(makeTextContent), isError: true };
     }
 
     let current_rating = 0;
@@ -53,12 +53,12 @@ export async function improve_trait_handler(db: GameDatabase, args: any) {
         const trait = relationalTraits.find((t: any) => t.name === trait_name);
         current_rating = trait ? trait.rating : 0;
     } else {
-        return { content: makeTextContentArray([`❌ Invalid trait type or name.`]), isError: true };
+        return { content: [`❌ Invalid trait type or name.`].map(makeTextContent), isError: true };
     }
 
     const xp_cost = calculateXpCost(trait_type, current_rating);
     if (character.experience < xp_cost) {
-        return { content: makeTextContentArray([`❌ Not enough XP. Needs ${xp_cost}, has ${character.experience}.`]), isError: true };
+        return { content: [`❌ Not enough XP. Needs ${xp_cost}, has ${character.experience}.`].map(makeTextContent), isError: true };
     }
 
     const new_rating = current_rating + 1;
@@ -91,8 +91,8 @@ export async function improve_trait_handler(db: GameDatabase, args: any) {
             await db.characters.updateCharacter(character_id, { [trait_name]: new_rating });
         }
     } catch (e: any) {
-        return { content: makeTextContentArray([`❌ DB Error during trait improvement: ${e.message}`]), isError: true };
+        return { content: [`❌ DB Error during trait improvement: ${e.message}`].map(makeTextContent), isError: true };
     }
 
-    return { content: makeTextContentArray([`✅ ${character.name} improved ${trait_name} to ${new_rating} for ${xp_cost} XP. Remaining XP: ${new_experience}.`]) };
+    return { content: [`✅ ${character.name} improved ${trait_name} to ${new_rating} for ${xp_cost} XP. Remaining XP: ${new_experience}.`].map(makeTextContent) };
 }

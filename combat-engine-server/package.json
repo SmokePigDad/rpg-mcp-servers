@@ -1,7 +1,7 @@
 {
   "name": "rpg-combat-engine-server",
-  "version": "1.0.0",
-  "description": "MCP server for D&D-style combat mechanics",
+  "version": "3.0.0",
+  "description": "MCP server for oWoD combat mechanics",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -13,8 +13,8 @@
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "tsx": "^4.0.0"
+    "@types/node": "^20.12.12",
+    "tsx": "^4.10.2",
+    "typescript": "^5.4.5"
   }
 }

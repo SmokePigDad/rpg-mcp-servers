@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import { CharacterRepository } from '../repositories/character.repository.js';
 import type { GameDatabase } from '../types/db.types.js';
 
@@ -53,7 +53,7 @@ export async function spend_xp_handler(
   }
   if (errorMsgs.length > 0) {
     return {
-      content: makeTextContentArray(errorMsgs),
+      content: errorMsgs.map(makeTextContent),
       isError: true
     };
   }
@@ -92,11 +92,11 @@ export async function spend_xp_handler(
     // Fetch updated
     const updated = repo.getCharacterById(character_id);
     result = {
-      content: makeTextContentArray([`Trait '${trait_name}' improved from ${currVal} to ${currVal + 1}. XP spent: ${xpCost}. XP remaining: ${updated?.experience ?? 0}`])
+      content: [`Trait '${trait_name}' improved from ${currVal} to ${currVal + 1}. XP spent: ${xpCost}. XP remaining: ${updated?.experience ?? 0}`].map(makeTextContent)
     };
   } catch (err: any) {
     return {
-      content: makeTextContentArray([err?.message || "Unknown error."]),
+      content: [err?.message || "Unknown error."].map(makeTextContent),
       isError: true
     };
   }

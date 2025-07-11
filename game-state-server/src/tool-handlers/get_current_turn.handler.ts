@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_current_turn_handler(db: GameDatabase, args: any) {
@@ -9,13 +9,13 @@ export async function get_current_turn_handler(db: GameDatabase, args: any) {
     (typeof args.scene_id !== "string" && typeof args.scene_id !== "number")
   ) {
     return {
-      content: makeTextContentArray([
+      content: [
         "❌ Invalid or missing 'scene_id'. Must provide a string or number."
-      ]),
+      ].map(makeTextContent),
       isError: true
     };
   }
   const { scene_id } = args;
   const currentTurn = db.worldState.getCurrentTurn(scene_id);
-  return { content: makeTextContentArray([JSON.stringify(currentTurn, null, 2)]) };
+  return { content: [JSON.stringify(currentTurn, null, 2)].map(makeTextContent) };
 }

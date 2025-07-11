@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function list_antagonists_handler(
@@ -9,5 +9,5 @@ export async function list_antagonists_handler(
 
   const antagonistList = antagonists.map(antagonist => `${antagonist.name} (ID: ${antagonist.id})`).join('\n');
 
-  return { content: makeTextContentArray([antagonistList || "No antagonists found."]) };
+  return { content: [antagonistList || "No antagonists found."].map(makeTextContent) };
 }

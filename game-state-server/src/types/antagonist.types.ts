@@ -18,6 +18,7 @@ export interface AntagonistRow {
   health_levels: string;
   blood_pool_current: number;
   notes: string;
+  experience: number;
 }
 
 export interface NpcRow {

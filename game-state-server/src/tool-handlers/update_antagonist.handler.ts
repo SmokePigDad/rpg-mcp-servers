@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function update_antagonist_handler(db: GameDatabase, args: any) {
@@ -6,8 +6,8 @@ export async function update_antagonist_handler(db: GameDatabase, args: any) {
   const antagonist = await db.antagonists.updateAntagonist(antagonist_id, updates);
 
   if (!antagonist) {
-    return { content: makeTextContentArray([`❌ Antagonist with ID ${antagonist_id} not found.`]), isError: true };
+    return { content: [`❌ Antagonist with ID ${antagonist_id} not found.`].map(makeTextContent), isError: true };
   }
 
-  return { content: makeTextContentArray([`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`]) };
+  return { content: [`✅ Antagonist "${antagonist.name}" (ID: ${antagonist.id}) updated.`].map(makeTextContent) };
 }

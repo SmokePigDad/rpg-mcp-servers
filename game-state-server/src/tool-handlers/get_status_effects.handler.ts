@@ -1,4 +1,4 @@
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_status_effects_handler(db: GameDatabase, args: any) {
@@ -12,9 +12,9 @@ export async function get_status_effects_handler(db: GameDatabase, args: any) {
     Number.isNaN(args.target_id)
   ) {
     return {
-      content: makeTextContentArray([
+      content: [
         "❌ Invalid or missing arguments. 'target_type' must be a non-empty string, 'target_id' must be a valid number."
-      ]),
+      ].map(makeTextContent),
       isError: true
     };
   }
@@ -23,5 +23,5 @@ export async function get_status_effects_handler(db: GameDatabase, args: any) {
 
   const effectList = effects.map(effect => `${effect.effect_name} (ID: ${effect.id})`).join('\n');
 
-  return { content: makeTextContentArray([effectList || `No status effects found for ${target_type} with ID ${target_id}.`]) };
+  return { content: [effectList || `No status effects found for ${target_type} with ID ${target_id}.`].map(makeTextContent) };
 }

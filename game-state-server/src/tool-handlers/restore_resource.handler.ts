@@ -1,12 +1,12 @@
 // game-state-server/src/tool-handlers/restore_resource.handler.ts
-import { makeTextContentArray } from '../index.js';
+import { makeTextContent } from '../index.js';
 import type { GameDatabase } from '../types/index.js';
 
 export async function restore_resource_handler(db: GameDatabase, args: any) {
   const { character_id, resource_name, amount = 1 } = args;
   
   const character = await db.characters.getCharacterById(character_id);
-  if (!character) return { content: makeTextContentArray([`❌ Character not found.`]), isError: true };
+  if (!character) return { content: [`❌ Character not found.`].map(makeTextContent), isError: true };
 
   const resourceMap: Record<string, { current: string, max: string }> = {
     willpower: { current: 'willpower_current', max: 'willpower_permanent' },
@@ -17,7 +17,7 @@ export async function restore_resource_handler(db: GameDatabase, args: any) {
   };
   
   const res = resourceMap[resource_name];
-  if (!res) return { content: makeTextContentArray([`❌ Invalid resource '${resource_name}'.`]), isError: true };
+  if (!res) return { content: [`❌ Invalid resource '${resource_name}'.`].map(makeTextContent), isError: true };
   
   const currentValue = (character as any)[res.current] ?? 0;
   const maxValue = (character as any)[res.max] ?? currentValue;
@@ -28,5 +28,5 @@ export async function restore_resource_handler(db: GameDatabase, args: any) {
   const updatedChar = await db.characters.getCharacterById(character_id);
 
   const newTotal = updatedChar ? (updatedChar as any)[res.current] : 'N/A';
-  return { content: makeTextContentArray([`✅ ${character.name} restored ${amount} ${resource_name}. New total: ${newTotal}/${maxValue}`]) };
+  return { content: [`✅ ${character.name} restored ${amount} ${resource_name}. New total: ${newTotal}/${maxValue}`].map(makeTextContent) };
 }
