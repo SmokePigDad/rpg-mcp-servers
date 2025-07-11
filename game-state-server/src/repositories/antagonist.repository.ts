@@ -116,13 +116,62 @@ export class AntagonistRepository {
     return this.getAntagonistById(npcId as number);
   }
 
-  public updateAntagonist(id: number, updates: Partial<AntagonistRow>): AntagonistRow | null {
-    // ... (This method should be the one with full validation as created in the previous step)
-    // For brevity, assuming the robust version is here.
-    const setClause = Object.keys(updates).map(field => `${field} = ?`).join(', ');
-    this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`).run(...Object.values(updates), id);
-    return this.getAntagonistById(id);
-  }
+    // REPLACED updateAntagonist method: Simplified, robust, and type-safe
+
+    public updateAntagonist(id: number, updates: Partial<AntagonistRow>): AntagonistRow | null {
+        if (!updates || Object.keys(updates).length === 0) {
+            // No updates provided, just return the current state.
+            return this.getAntagonistById(id);
+        }
+
+        const validNpcFields: { [key: string]: string } = {
+            name: 'string', template: 'string', concept: 'string', game_line: 'string',
+            strength: 'number', dexterity: 'number', stamina: 'number',
+            charisma: 'number', manipulation: 'number', appearance: 'number',
+            perception: 'number', intelligence: 'number', wits: 'number',
+            willpower_current: 'number', willpower_permanent: 'number',
+            notes: 'string',
+            experience: 'number'
+        };
+
+        const setClauseParts: string[] = [];
+        const values: (string | number | null)[] = [];
+
+        for (const key in updates) {
+            if (key === 'id' || key === 'health_levels') continue; // Do not allow direct update of ID or health_levels
+
+            if (!validNpcFields[key]) {
+                throw new Error(`Invalid field for update: '${key}'. Field does not exist or cannot be updated.`);
+            }
+
+            const value = (updates as any)[key];
+            if (typeof value !== validNpcFields[key]) {
+                throw new Error(`Invalid data type for field '${key}'. Expected ${validNpcFields[key]}, but got ${typeof value}.`);
+            }
+
+            setClauseParts.push(`${key} = ?`);
+            values.push(value);
+        }
+
+        if (setClauseParts.length === 0) {
+            // No valid fields were provided for update.
+            return this.getAntagonistById(id);
+        }
+
+        // Add the ID to the end of the values array for the WHERE clause
+        values.push(id);
+
+        const setClause = setClauseParts.join(', ');
+        const stmt = this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`);
+        const result = stmt.run(...values);
+
+        if (result.changes === 0) {
+            // This can happen if the ID doesn't exist.
+            throw new Error(`Antagonist with ID ${id} not found, no update performed.`);
+        }
+
+        return this.getAntagonistById(id);
+    }
   
   public applyDamage(id: number, damage: { bashing: number; lethal: number; aggravated: number }): AntagonistRow | null {
     const npc = this.getAntagonistById(id);

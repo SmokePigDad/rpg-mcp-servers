@@ -24,7 +24,8 @@ export function initializeSchema(db: DatabaseType): void {
       charisma INTEGER DEFAULT 1, manipulation INTEGER DEFAULT 1, appearance INTEGER DEFAULT 1,
       perception INTEGER DEFAULT 1, intelligence INTEGER DEFAULT 1, wits INTEGER DEFAULT 1,
       willpower_current INTEGER DEFAULT 1, willpower_permanent INTEGER DEFAULT 1,
-      health_levels TEXT, notes TEXT
+      health_levels TEXT, notes TEXT,
+      experience INTEGER DEFAULT 0
     );
   `);
 
