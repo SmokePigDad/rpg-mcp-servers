@@ -23,6 +23,7 @@ import { get_world_state_handler } from './get_world_state.handler.js';
 import { improve_trait_handler } from './improve_trait.handler.js';
 import { list_antagonists_handler } from './list_antagonists.handler.js';
 import { list_characters_handler } from './list_characters.handler.js';
+import { remove_character_handler } from './remove_character.handler.js';
 import { remove_antagonist_handler } from './remove_antagonist.handler.js';
 import { remove_item_handler } from './remove_item.handler.js';
 import { remove_status_effect_handler } from './remove_status_effect.handler.js';
@@ -57,7 +58,9 @@ export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Pro
   'get_world_state': get_world_state_handler,
   'improve_trait': improve_trait_handler,
   'list_antagonists': list_antagonists_handler,
-  'list_characters': list_characters_handler,
+  
+  'remove_character': remove_character_handler,
+  
   'list_tools': async (db, args) => {
     return {
       content: [{ type: 'text', text: JSON.stringify(Object.values(toolDefinitions), null, 2) }]

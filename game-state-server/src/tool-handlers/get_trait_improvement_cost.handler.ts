@@ -1,44 +1,30 @@
+// game-state-server/src/tool-handlers/get_trait_improvement_cost.handler.ts
 import { makeTextContentArray } from '../index.js';
-import type { GameDatabase } from '../types/db.types.js';
+import type { GameDatabase } from '../types/index.js';
+
+// Re-use the same logic from the improve_trait handler for consistency.
+function calculateXpCost(trait_type: string, current_rating: number): number {
+    const new_rating = current_rating + 1;
+    switch (trait_type) {
+        case 'attribute': return new_rating * 4;
+        case 'ability': return new_rating * 2;
+        case 'discipline': return new_rating * 5;
+        case 'art': return new_rating * 4;
+        case 'willpower': return current_rating; // Cost is current rating
+        default: return 999; // Default for unknown
+    }
+}
 
 export async function get_trait_improvement_cost_handler(db: GameDatabase, args: any) {
-  // Input validation
-  if (
-    !args ||
-    typeof args.character_id !== "number" ||
-    Number.isNaN(args.character_id) ||
-    typeof args.trait_name !== "string" ||
-    args.trait_name.trim().length === 0
-  ) {
-    return {
-      content: makeTextContentArray([
-        "❌ Invalid or missing arguments. 'character_id' must be a valid number and 'trait_name' must be a non-empty string."
-      ]),
-      isError: true
-    };
-  }
-  const { character_id, trait_name } = args;
-  const character = db.characters.getCharacterById(character_id);
+  const { character_id, trait_type, trait_name } = args;
+  
+  const character = await db.characters.getCharacterById(character_id);
+  if (!character) return { content: makeTextContentArray([`❌ Character not found.`]), isError: true };
 
-  if (!character) {
-    return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
-  }
+  // This logic is simplified; a full implementation would check relational tables too.
+  const current_rating = (character as any)[trait_name.toLowerCase()] ?? 0;
+  
+  const cost = calculateXpCost(trait_type, current_rating);
 
-  let cost = 5; // Default cost
-  switch (character.game_line) {
-    case 'vampire':
-      cost = 7;
-      break;
-    case 'werewolf':
-      cost = 8;
-      break;
-    case 'mage':
-      cost = 9;
-      break;
-    case 'changeling':
-      cost = 6;
-      break;
-  }
-
-  return { content: makeTextContentArray([`The cost to improve ${trait_name} is ${cost} XP.`]) };
+  return { content: makeTextContentArray([`Cost to improve ${trait_name} from ${current_rating} to ${current_rating + 1} is ${cost} XP.`]) };
 }

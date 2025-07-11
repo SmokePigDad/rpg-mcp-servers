@@ -148,6 +148,7 @@ function formatCoreBlocks(character: any): string {
     healthBlock,
     '────────────── CORE TRAITS ──────────────',
     `🔵 Willpower: ${character.willpower_current}/${character.willpower_permanent}`,
+    `⭐ Experience: ${character.experience || 0}`,
     character.power_stat_name && character.power_stat_rating !== undefined
       ? `🪄 ${character.power_stat_name}: ${character.power_stat_rating}` : ''
   ].filter(Boolean).join('\n');

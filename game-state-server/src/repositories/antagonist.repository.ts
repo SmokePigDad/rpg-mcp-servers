@@ -19,6 +19,40 @@ constructor(db: Database) {
     const row = stmt.get(id) as AntagonistRow;
     return row ? row : null;
   }
+  /**
+   * Apply health damage (bashing, lethal, aggravated) to an NPC.
+   * Updates health_levels, returns updated AntagonistRow or null if not found.
+   */
+  applyDamage(id: number, damage: { bashing: number, lethal: number, aggravated: number }): AntagonistRow | null {
+    const npc = this.getAntagonistById(id);
+    if (!npc) return null;
+    // Parse existing health levels (should be stringified JSON or object).
+    let healthObj: Record<string, number> = {};
+    if (typeof npc.health_levels === "string") {
+      try {
+        healthObj = JSON.parse(npc.health_levels);
+      } catch {
+        healthObj = {};
+      }
+    } else if (typeof npc.health_levels === "object" && npc.health_levels !== null) {
+      healthObj = typeof npc.health_levels === "object" && npc.health_levels !== null
+        ? JSON.parse(JSON.stringify(npc.health_levels))
+        : {};
+    }
+    // Default health levels if missing
+    const order = ["bruised", "hurt", "injured", "wounded", "mauled", "crippled", "incapacitated"];
+    order.forEach(lvl => { if (!(lvl in healthObj)) healthObj[lvl] = 0; });
+
+    // Assign damage in order (bashing → lethal → aggravated). Each call adds one type only, for total provided.
+    // We'll simply increment bashing/lethal/agg in that order, by damage amount, similar to characters.
+    if (damage.bashing) healthObj["bruised"] += damage.bashing;
+    if (damage.lethal) healthObj["hurt"] += damage.lethal;
+    if (damage.aggravated) healthObj["mauled"] += damage.aggravated;
+
+    // Save updated health levels
+    this.db.prepare("UPDATE npcs SET health_levels = ? WHERE id = ?").run(JSON.stringify(healthObj), id);
+    return this.getAntagonistById(id);
+  }
   
   createAntagonist(template_name: string, custom_name?: string): AntagonistRow | null {
     const template = (ANTAGONIST_TEMPLATES as any)[template_name];

@@ -1,3 +1,5 @@
+// File: game-state-server/src/repositories/character.repository.ts
+
 import type { Database } from 'better-sqlite3';
 import type { CharacterData } from '../types/character.types.js';
 import { HealthTracker } from '../health-tracker.js';
@@ -16,112 +18,62 @@ interface SupernaturalPower {
 
 export class CharacterRepository {
   private db: Database;
-constructor(db: Database) {
+  constructor(db: Database) {
     this.db = db;
   }
 
-  getCharacterByName(name: string): CharacterData | null {
-    const row = this.db.prepare('SELECT * FROM characters WHERE name = ?').get(name);
-    return row ? (row as CharacterData) : null;
+  public removeCharacter(id: number): boolean {
+    const stmt = this.db.prepare('DELETE FROM characters WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
   }
 
-  getCharacterById(id: number): CharacterData | null {
+  public getCharacterByName(name: string): CharacterData | null {
+    const row = this.db.prepare('SELECT * FROM characters WHERE name = ?').get(name);
+    if (!row) return null;
+    // After getting the base character, enrich it with relational data.
+    return this.getCharacterById((row as any).id);
+  }
+
+  public getCharacterById(id: number): CharacterData | null {
     const character = this.db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
     if (!character) {
       return null;
     }
 
-    // Convert the basic row to CharacterData and enhance with game-line-specific data
     const enrichedCharacter = character as CharacterData;
     
-    // Initialize required arrays
-    enrichedCharacter.abilities = [];
-    enrichedCharacter.disciplines = [];
-    enrichedCharacter.inventory = [];
-    enrichedCharacter.status_effects = [];
-
-    // Fetch abilities for all game lines
-    const abilities = this.db.prepare(
-      'SELECT ability_name as name, ability_type as type, rating, specialty FROM character_abilities WHERE character_id = ?'
-    ).all(id);
-    enrichedCharacter.abilities = abilities as Ability[];
-
-    // Fetch game-line-specific traits based on game_line
+    enrichedCharacter.abilities = this.db.prepare('SELECT ability_name as name, ability_type as type, rating, specialty FROM character_abilities WHERE character_id = ?').all(id) as Ability[];
+    
     switch (enrichedCharacter.game_line) {
       case 'vampire':
-        const vampireTraits = this.db.prepare(
-          'SELECT clan, generation, blood_pool_current, blood_pool_max, humanity FROM character_vampire_traits WHERE character_id = ?'
-        ).get(id);
-        if (vampireTraits) {
-          Object.assign(enrichedCharacter, vampireTraits);
-        }
-        
-        const disciplines = this.db.prepare(
-          'SELECT discipline_name as name, rating FROM character_disciplines WHERE character_id = ?'
-        ).all(id);
-        enrichedCharacter.disciplines = disciplines as SupernaturalPower[];
+        Object.assign(enrichedCharacter, this.db.prepare('SELECT * FROM character_vampire_traits WHERE character_id = ?').get(id) || {});
+        enrichedCharacter.disciplines = this.db.prepare('SELECT discipline_name as name, rating FROM character_disciplines WHERE character_id = ?').all(id) as SupernaturalPower[];
         break;
-
       case 'werewolf':
-        const werewolfTraits = this.db.prepare(
-          'SELECT breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom FROM character_werewolf_traits WHERE character_id = ?'
-        ).get(id);
-        if (werewolfTraits) {
-          Object.assign(enrichedCharacter, werewolfTraits);
-        }
-        
-        const gifts = this.db.prepare(
-          'SELECT gift_name as name, rank as rating FROM character_gifts WHERE character_id = ?'
-        ).all(id);
-        enrichedCharacter.gifts = gifts as SupernaturalPower[];
+        Object.assign(enrichedCharacter, this.db.prepare('SELECT * FROM character_werewolf_traits WHERE character_id = ?').get(id) || {});
+        enrichedCharacter.gifts = this.db.prepare('SELECT gift_name as name, rank as rating FROM character_gifts WHERE character_id = ?').all(id) as SupernaturalPower[];
         break;
-
       case 'mage':
-        const mageTraits = this.db.prepare(
-          'SELECT tradition_convention, arete, quintessence, paradox FROM character_mage_traits WHERE character_id = ?'
-        ).get(id);
-        if (mageTraits) {
-          Object.assign(enrichedCharacter, mageTraits);
-        }
-        
-        const spheres = this.db.prepare(
-          'SELECT sphere_name as name, rating FROM character_spheres WHERE character_id = ?'
-        ).all(id);
-        enrichedCharacter.spheres = spheres as SupernaturalPower[];
+        Object.assign(enrichedCharacter, this.db.prepare('SELECT * FROM character_mage_traits WHERE character_id = ?').get(id) || {});
+        enrichedCharacter.spheres = this.db.prepare('SELECT sphere_name as name, rating FROM character_spheres WHERE character_id = ?').all(id) as SupernaturalPower[];
         break;
-
       case 'changeling':
-        const changelingTraits = this.db.prepare(
-          'SELECT kith, seeming, glamour_current, glamour_permanent, banality_permanent FROM character_changeling_traits WHERE character_id = ?'
-        ).get(id);
-        if (changelingTraits) {
-          Object.assign(enrichedCharacter, changelingTraits);
-        }
-        
-        const arts = this.db.prepare(
-          'SELECT art_name as name, rating FROM character_arts WHERE character_id = ?'
-        ).all(id);
-        enrichedCharacter.arts = arts as SupernaturalPower[];
-        
-        const realms = this.db.prepare(
-          'SELECT realm_name as name, rating FROM character_realms WHERE character_id = ?'
-        ).all(id);
-        enrichedCharacter.realms = realms as SupernaturalPower[];
+        Object.assign(enrichedCharacter, this.db.prepare('SELECT * FROM character_changeling_traits WHERE character_id = ?').get(id) || {});
+        enrichedCharacter.arts = this.db.prepare('SELECT art_name as name, rating FROM character_arts WHERE character_id = ?').all(id) as SupernaturalPower[];
+        enrichedCharacter.realms = this.db.prepare('SELECT realm_name as name, rating FROM character_realms WHERE character_id = ?').all(id) as SupernaturalPower[];
         break;
     }
 
     return enrichedCharacter;
   }
 
-  // In character.repository.ts, replace the existing updateCharacter method
-  // REPLACE the entire updateCharacter method with this
   public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
     const character = this.getCharacterById(id);
     if (!character) {
       throw new Error(`Character with ID ${id} not found for update.`);
     }
 
-    // Define which fields belong to which table for proper routing
     const mainTableFields = ['name', 'concept', 'strength', 'dexterity', 'stamina', 'charisma', 'manipulation', 'appearance', 'perception', 'intelligence', 'wits', 'willpower_current', 'willpower_permanent', 'health_levels', 'experience'];
     const splatTableFields: Record<string, string[]> = {
       vampire: ['clan', 'generation', 'blood_pool_current', 'blood_pool_max', 'humanity'],
@@ -133,19 +85,16 @@ constructor(db: Database) {
     const mainUpdates: Record<string, any> = {};
     const splatUpdates: Record<string, any> = {};
 
-    // Separate the updates into two groups based on where the data lives
     for (const key in updates) {
       if (mainTableFields.includes(key)) {
-        mainUpdates[key] = updates[key];
+        mainUpdates[key] = updates[key as keyof typeof updates];
       } else if (splatTableFields[character.game_line]?.includes(key)) {
-        splatUpdates[key] = updates[key];
+        splatUpdates[key] = updates[key as keyof typeof updates];
       }
     }
-
+    
     this.db.transaction(() => {
-      // Update the main 'characters' table
       if (Object.keys(mainUpdates).length > 0) {
-        // FIX: Ensure health_levels is always stored as a valid JSON string
         if (mainUpdates.health_levels && typeof mainUpdates.health_levels === 'object') {
           mainUpdates.health_levels = JSON.stringify(mainUpdates.health_levels);
         }
@@ -153,7 +102,6 @@ constructor(db: Database) {
         this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`).run(...Object.values(mainUpdates), id);
       }
 
-      // Update the splat-specific traits table
       if (Object.keys(splatUpdates).length > 0) {
         const splatTableName = `character_${character.game_line}_traits`;
         const setClause = Object.keys(splatUpdates).map(field => `${field} = ?`).join(', ');
@@ -163,173 +111,94 @@ constructor(db: Database) {
     
     return this.getCharacterById(id);
   }
-  listCharacters(): CharacterData[] {
+
+  public updateOrInsertRelationalTrait(character_id: number, table: string, name_column: string, trait_name: string, new_rating: number, ability_type?: string): void {
+    const existing = this.db.prepare(`SELECT rating FROM ${table} WHERE character_id = ? AND ${name_column} = ?`).get(character_id, trait_name);
+
+    if (existing) {
+      this.db.prepare(`UPDATE ${table} SET rating = ? WHERE character_id = ? AND ${name_column} = ?`).run(new_rating, character_id, trait_name);
+    } else {
+      if (table === 'character_abilities') {
+        if (!ability_type) {
+          throw new Error("Internal error: ability_type is required when adding a new ability.");
+        }
+        this.db.prepare(`INSERT INTO ${table} (character_id, ${name_column}, ability_type, rating) VALUES (?, ?, ?, ?)`).run(character_id, trait_name, ability_type, new_rating);
+      } else {
+        this.db.prepare(`INSERT INTO ${table} (character_id, ${name_column}, rating) VALUES (?, ?, ?)`).run(character_id, trait_name, new_rating);
+      }
+    }
+  }
+
+  public listCharacters(): CharacterData[] {
     const rows = this.db.prepare('SELECT * FROM characters').all();
-    return rows as CharacterData[];
+    return rows.map(row => this.getCharacterById((row as any).id)).filter(Boolean) as CharacterData[];
   }
 
-  // In character.repository.ts, replace the existing applyDamage method
   public applyDamage(characterId: number, dmg: { aggravated?: number; lethal?: number; bashing?: number }): CharacterData | null {
-      const character = this.getCharacterById(characterId);
-      if (!character) return null;
+    const character = this.getCharacterById(characterId);
+    if (!character) return null;
 
-      const tracker = HealthTracker.from(character.health_levels);
-      tracker.applyDamage(dmg);
+    const tracker = HealthTracker.from(character.health_levels);
+    tracker.applyDamage(dmg);
 
-      // THIS IS THE FIX: Always use the .serialize() method which returns valid JSON
-      const updatedHealthJson = tracker.serialize();
-
-      this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthJson, characterId);
-
-      return this.getCharacterById(characterId);
+    const updatedHealthJson = tracker.serialize();
+    this.db.prepare(`UPDATE characters SET health_levels = ? WHERE id = ?`).run(updatedHealthJson, characterId);
+    return this.getCharacterById(characterId);
   }
 
-  createCharacter(data: any) {
-    if (!['vampire', 'werewolf', 'mage', 'changeling'].includes(data.game_line)) {
-      throw new Error(`Invalid game_line: ${data.game_line}. Must be one of: vampire, werewolf, mage, changeling`);
+  public createCharacter(data: Partial<CharacterData>): CharacterData | null {
+    if (!data.name || !data.game_line || !['vampire', 'werewolf', 'mage', 'changeling'].includes(data.game_line)) {
+      throw new Error(`Invalid game_line or missing name.`);
     }
 
-    const health_levels = data.health_levels || { bruised: 0, hurt: 0, injured: 0, wounded: 0, mauled: 0, crippled: 0, incapacitated: 0 };
-    let charId: number | undefined = undefined;
+    const healthTracker = HealthTracker.healthy();
+    const health_levels_json = healthTracker.serialize();
 
-    // Transactional logic: all sub-table inserts are done atomically
-    charId = this.db.transaction(() => {
-      let localCharId: number;
-      // Insert core character data
+    const charId = this.db.transaction(() => {
       const stmt = this.db.prepare(`
         INSERT INTO characters (
-          name, concept, game_line,
-          strength, dexterity, stamina, charisma, manipulation, appearance,
-          perception, intelligence, wits,
-          willpower_current, willpower_permanent, health_levels, experience
+          name, concept, game_line, strength, dexterity, stamina, charisma, manipulation, appearance,
+          perception, intelligence, wits, willpower_current, willpower_permanent, health_levels, experience
         ) VALUES (
-          @name, @concept, @game_line,
-          @strength, @dexterity, @stamina, @charisma, @manipulation, @appearance,
-          @perception, @intelligence, @wits,
-          @willpower_current, @willpower_permanent, @health_levels, @experience
+          @name, @concept, @game_line, @strength, @dexterity, @stamina, @charisma, @manipulation, @appearance,
+          @perception, @intelligence, @wits, @willpower_current, @willpower_permanent, @health_levels, @experience
         )
       `);
 
       const result = stmt.run({
-        name: data.name,
-        concept: data.concept || null,
-        game_line: data.game_line,
-        strength: data.strength || 1,
-        dexterity: data.dexterity || 1,
-        stamina: data.stamina || 1,
-        charisma: data.charisma || 1,
-        manipulation: data.manipulation || 1,
-        appearance: data.appearance || 1,
-        perception: data.perception || 1,
-        intelligence: data.intelligence || 1,
-        wits: data.wits || 1,
-        willpower_current: data.willpower_current || 1,
-        willpower_permanent: data.willpower_permanent || 1,
-        health_levels: JSON.stringify(health_levels),
-        experience: data.experience || 0
+        name: data.name, concept: data.concept || null, game_line: data.game_line,
+        strength: data.strength || 1, dexterity: data.dexterity || 1, stamina: data.stamina || 1,
+        charisma: data.charisma || 1, manipulation: data.manipulation || 1, appearance: data.appearance || 1,
+        perception: data.perception || 1, intelligence: data.intelligence || 1, wits: data.wits || 1,
+        willpower_current: data.willpower_permanent || 5, willpower_permanent: data.willpower_permanent || 5,
+        health_levels: health_levels_json, experience: data.experience || 0
       });
-      localCharId = result.lastInsertRowid as number;
+      const localCharId = result.lastInsertRowid as number;
 
-      // --- Insert into game-line-specific tables ---
       switch (data.game_line) {
         case 'vampire':
-          this.db.prepare(`
-            INSERT INTO character_vampire_traits
-            (character_id, clan, generation, blood_pool_current, blood_pool_max, humanity)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `).run(
-            localCharId,
-            data.clan ?? null,
-            data.generation ?? 13,
-            data.blood_pool_current ?? 10,
-            data.blood_pool_max ?? 10,
-            data.humanity ?? 7
-          );
+          this.db.prepare(`INSERT INTO character_vampire_traits (character_id, clan, generation, blood_pool_current, blood_pool_max, humanity) VALUES (?, ?, ?, ?, ?, ?)`).run(localCharId, data.clan ?? null, data.generation ?? 13, data.blood_pool_current ?? 10, data.blood_pool_max ?? 10, data.humanity ?? 7);
           break;
         case 'werewolf':
-          this.db.prepare(`
-            INSERT INTO character_werewolf_traits
-            (character_id, breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(
-            localCharId,
-            data.breed ?? null, data.auspice ?? null, data.tribe ?? null,
-            data.gnosis_current ?? 3, data.gnosis_permanent ?? 3,
-            data.rage_current ?? 1, data.rage_permanent ?? 1,
-            data.renown_glory ?? 0, data.renown_honor ?? 0, data.renown_wisdom ?? 0
-          );
+          this.db.prepare(`INSERT INTO character_werewolf_traits (character_id, breed, auspice, tribe, gnosis_current, gnosis_permanent, rage_current, rage_permanent, renown_glory, renown_honor, renown_wisdom) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(localCharId, data.breed ?? null, data.auspice ?? null, data.tribe ?? null, data.gnosis_current ?? 3, data.gnosis_permanent ?? 3, data.rage_current ?? 1, data.rage_permanent ?? 1, data.renown_glory ?? 0, data.renown_honor ?? 0, data.renown_wisdom ?? 0);
           break;
         case 'mage':
-          this.db.prepare(`
-            INSERT INTO character_mage_traits
-            (character_id, tradition_convention, arete, quintessence, paradox)
-            VALUES (?, ?, ?, ?, ?)
-          `).run(
-            localCharId,
-            data.tradition_convention ?? null,
-            data.arete ?? 1,
-            data.quintessence ?? 0,
-            data.paradox ?? 0
-          );
+          this.db.prepare(`INSERT INTO character_mage_traits (character_id, tradition_convention, arete, quintessence, paradox) VALUES (?, ?, ?, ?, ?)`).run(localCharId, data.tradition_convention ?? null, data.arete ?? 1, data.quintessence ?? 0, data.paradox ?? 0);
           break;
         case 'changeling':
-          this.db.prepare(`
-            INSERT INTO character_changeling_traits
-            (character_id, kith, seeming, glamour_current, glamour_permanent, banality_permanent)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `).run(
-            localCharId,
-            data.kith ?? null, data.seeming ?? null,
-            data.glamour_current ?? 4, data.glamour_permanent ?? 4,
-            data.banality_permanent ?? 3
-          );
+          this.db.prepare(`INSERT INTO character_changeling_traits (character_id, kith, seeming, glamour_current, glamour_permanent, banality_permanent) VALUES (?, ?, ?, ?, ?, ?)`).run(localCharId, data.kith ?? null, data.seeming ?? null, data.glamour_current ?? 4, data.glamour_permanent ?? 4, data.banality_permanent ?? 3);
           break;
       }
 
-      // Changeling-specific: arts/realms
-      if (data.game_line === "changeling") {
-        if (data.arts && Array.isArray(data.arts)) {
-          const artStmt = this.db.prepare(
-            `INSERT INTO character_arts (character_id, art_name, rating) VALUES (?, ?, ?)`
-          );
-          for (const a of data.arts) {
-            artStmt.run(localCharId, a.art_name ?? a.name ?? a.label ?? '', Number(a.rating) || 0);
-          }
-        }
-        if (data.realms && Array.isArray(data.realms)) {
-          const realmStmt = this.db.prepare(
-            `INSERT INTO character_realms (character_id, realm_name, rating) VALUES (?, ?, ?)`
-          );
-          for (const r of data.realms) {
-            realmStmt.run(localCharId, r.realm_name ?? r.name ?? r.label ?? '', Number(r.rating) || 0);
-          }
-        }
-      }
-
-      // Transactional inserts for all relations as needed
       if (data.abilities && Array.isArray(data.abilities)) {
-        const abilityStmt = this.db.prepare(
-          `INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty)
-           VALUES (?, ?, ?, ?, ?)`
-        );
+        const abilityStmt = this.db.prepare(`INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty) VALUES (?, ?, ?, ?, ?)`);
         for (const ability of data.abilities) {
           abilityStmt.run(localCharId, ability.name, ability.type, ability.rating, ability.specialty ?? null);
         }
       }
-      if (data.disciplines && Array.isArray(data.disciplines)) {
-        const discStmt = this.db.prepare(
-          `INSERT INTO character_disciplines (character_id, discipline_name, rating)
-           VALUES (?, ?, ?)`
-        );
-        for (const d of data.disciplines) {
-          discStmt.run(localCharId, d.name, d.rating);
-        }
-      }
-      // ... perform additional transactional inserts for arts, realms, gifts, etc., as needed
-
       return localCharId;
     })();
 
-    return this.getCharacterById(charId!);
+    return this.getCharacterById(charId as number);
   }
 }

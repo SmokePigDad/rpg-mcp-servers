@@ -1,59 +1,32 @@
 // game-state-server/src/tool-handlers/restore_resource.handler.ts
-import type { GameDatabase } from '../types/db.types.js';
 import { makeTextContentArray } from '../index.js';
+import type { GameDatabase } from '../types/index.js';
 
-import type { CharacterData } from '../types/character.types.js';
+export async function restore_resource_handler(db: GameDatabase, args: any) {
+  const { character_id, resource_name, amount = 1 } = args;
+  
+  const character = await db.characters.getCharacterById(character_id);
+  if (!character) return { content: makeTextContentArray([`❌ Character not found.`]), isError: true };
 
-export interface RestoreResourceArgs {
-  character_id: number;
-  resource_name: string;
-  amount?: number;
-}
+  const resourceMap: Record<string, { current: string, max: string }> = {
+    willpower: { current: 'willpower_current', max: 'willpower_permanent' },
+    blood: { current: 'blood_pool_current', max: 'blood_pool_max' },
+    gnosis: { current: 'gnosis_current', max: 'gnosis_permanent' },
+    rage: { current: 'rage_current', max: 'rage_permanent' },
+    glamour: { current: 'glamour_current', max: 'glamour_permanent' }
+  };
+  
+  const res = resourceMap[resource_name];
+  if (!res) return { content: makeTextContentArray([`❌ Invalid resource '${resource_name}'.`]), isError: true };
+  
+  const currentValue = (character as any)[res.current] ?? 0;
+  const maxValue = (character as any)[res.max] ?? currentValue;
+  
+  const newValue = Math.min(maxValue, currentValue + amount);
+  
+  await db.characters.updateCharacter(character_id, { [res.current]: newValue });
+  const updatedChar = await db.characters.getCharacterById(character_id);
 
-type HandlerResponse = { content: { type: string, text: string }[]; isError?: boolean };
-
-export async function restore_resource_handler(
-  db: GameDatabase,
-  args: RestoreResourceArgs
-): Promise<HandlerResponse> {
-  // Input validation
-  if (
-    !args ||
-    typeof args.character_id !== "number" ||
-    Number.isNaN(args.character_id) ||
-    typeof args.resource_name !== "string" ||
-    args.resource_name.trim().length === 0 ||
-    (args.amount !== undefined && (typeof args.amount !== "number" || Number.isNaN(args.amount)))
-  ) {
-    return { content: makeTextContentArray([
-      "❌ Invalid or missing arguments: 'character_id' must be a valid number, 'resource_name' must be a non-empty string, and 'amount' (if provided) must be a valid number."
-    ]), isError: true };
-  }
-  try {
-    // TODO: Implement CharacterRepository.restoreResource for resource restoration semantics.
-    const character = await db.characters.getCharacterById(args.character_id);
-    if (!character) {
-      return { content: makeTextContentArray([`❌ Character with ID ${args.character_id} not found.`]), isError: true };
-    }
-    // Example: args.resource_name = 'willpower_current', args.amount restores to value or adds amount
-    const { resource_name, amount } = args;
-    const maxResource = character[`${resource_name}_permanent`] || character[resource_name]; // Fallback
-    const updates: Partial<CharacterData> = {};
-    if (typeof amount === 'number') {
-      // Clamp to max
-      updates[resource_name] = Math.min((character[resource_name] ?? 0) + amount, maxResource ?? amount);
-    } else {
-      // Optional: If direct restore
-      // updates[resource_name] = maxResource;
-    }
-    await db.characters.updateCharacter(args.character_id, updates);
-
-    return { content: makeTextContentArray([`Resource ${resource_name} restored for Character id ${args.character_id}`]) };
-    // TODO: Dedicated restoreResource logic (caps, full/partial restore rules) should go in repo layer.
-  } catch (error: unknown) {
-    // TODO: Specify correct type for error
-    const errMsg = typeof error === "object" && error && "message" in error ? (error as { message: string }).message : String(error);
-    console.error("restore_resource_handler error:", error);
-    return { content: makeTextContentArray([`❌ Error restoring resource: ${errMsg}`]), isError: true };
-  }
+  const newTotal = updatedChar ? (updatedChar as any)[res.current] : 'N/A';
+  return { content: makeTextContentArray([`✅ ${character.name} restored ${amount} ${resource_name}. New total: ${newTotal}/${maxValue}`]) };
 }

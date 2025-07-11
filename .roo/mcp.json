@@ -40,7 +40,8 @@
         "update_antagonist",
         "update_character",
         "update_item",
-        "create_character"
+        "create_character",
+        "remove_character"
       ],
       "disabledTools": [
         "advance_turn"

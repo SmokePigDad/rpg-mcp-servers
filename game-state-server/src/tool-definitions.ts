@@ -1,3 +1,5 @@
+// File: game-state-server/src/tool-definitions.ts
+
 /**
  * Centralized tool definitions for every MCP tool supported by the game-state server.
  * Exports ONLY a plain object, with tool name as key and tool data as value.
@@ -43,6 +45,20 @@ export const toolDefinitions = {
     description: "List all characters in the game state.",
     inputSchema: { type: "object", properties: {} }
   },
+  remove_character: {
+    name: "remove_character",
+    description: "Permanently delete a character and all of their associated data (abilities, inventory, etc.). This action is irreversible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        character_id: {
+          type: "number",
+          description: "The unique ID of the character to be deleted."
+        }
+      },
+      required: ["character_id"]
+    }
+  },
   update_character: {
     name: "update_character",
     description: "Update an existing character's attributes.",
@@ -62,8 +78,7 @@ export const toolDefinitions = {
       type: "object",
       properties: {
         template_name: { type: "string", description: "Name of the antagonist template" },
-        name: { type: "string", description: "Custom name for the antagonist" },
-        modifications: { type: "object", description: "Custom modifications" }
+        custom_name: { type: "string", description: "Custom name for the antagonist (optional)" }
       },
       required: ["template_name"]
     }
@@ -109,27 +124,29 @@ export const toolDefinitions = {
   },
   apply_damage: {
     name: "apply_damage",
-    description: "Apply damage to a character.",
+    description: "Apply damage to a character or NPC.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        damage: { type: "object", description: "Damage to apply (bashing, lethal, aggravated)" }
+        target_id: { type: "number" },
+        target_type: { type: "string", enum: ["character", "npc"] },
+        damage_successes: { type: "number" },
+        damage_type: { type: "string", enum: ["bashing", "lethal", "aggravated"] }
       },
-      required: ["character_id", "damage"]
+      required: ["target_id", "target_type", "damage_successes", "damage_type"]
     }
   },
   spend_resource: {
     name: "spend_resource",
-    description: "Spend a character resource (blood, willpower, etc.).",
+    description: "Spend a character resource (e.g., willpower, blood).",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        resource_type: { type: "string", description: "Type of resource to spend" },
-        amount: { type: "number", description: "Amount to spend" }
+        character_id: { type: "number" },
+        resource_name: { type: "string", description: "e.g., 'willpower', 'blood', 'rage'" },
+        amount: { type: "number", default: 1 }
       },
-      required: ["character_id", "resource_type", "amount"]
+      required: ["character_id", "resource_name"]
     }
   },
   restore_resource: {
@@ -138,24 +155,24 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        resource_type: { type: "string", description: "Type of resource to restore" },
-        amount: { type: "number", description: "Amount to restore" }
+        character_id: { type: "number" },
+        resource_name: { type: "string" },
+        amount: { type: "number", default: 1 }
       },
-      required: ["character_id", "resource_type", "amount"]
+      required: ["character_id", "resource_name"]
     }
   },
   gain_resource: {
     name: "gain_resource",
-    description: "Gain a character resource (beyond maximum).",
+    description: "Gain a character resource from an in-game action.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        resource_type: { type: "string", description: "Type of resource to gain" },
-        amount: { type: "number", description: "Amount to gain" }
+        character_id: { type: "number" },
+        resource_name: { type: "string" },
+        roll_successes: { type: "number" }
       },
-      required: ["character_id", "resource_type", "amount"]
+      required: ["character_id", "resource_name", "roll_successes"]
     }
   },
   award_xp: {
@@ -164,38 +181,37 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        amount: { type: "number", description: "Amount of XP to award" }
+        character_id: { type: "number" },
+        amount: { type: "number" },
+        reason: { type: "string", description: "Reason for the award (optional)" }
       },
       required: ["character_id", "amount"]
     }
   },
   spend_xp: {
     name: "spend_xp",
-    description: "Spend experience points to improve a trait.",
+    description: "Spend experience points. Note: This logs the expense. Use 'improve_trait' to actually change a trait.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        trait_name: { type: "string", description: "Name of the trait to improve" },
-        trait_type: { type: "string", description: "Type of trait (attribute, ability, etc.)" },
-        new_rating: { type: "number", description: "New rating for the trait" }
+        character_id: { type: "number" },
+        amount: { type: "number" },
+        reason: { type: "string" }
       },
-      required: ["character_id", "trait_name", "trait_type", "new_rating"]
+      required: ["character_id", "amount", "reason"]
     }
   },
   improve_trait: {
     name: "improve_trait",
-    description: "Improve a character trait.",
+    description: "Spend XP to improve a character trait.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        trait_name: { type: "string", description: "Name of the trait to improve" },
-        trait_type: { type: "string", description: "Type of trait" },
-        new_rating: { type: "number", description: "New rating" }
+        character_id: { type: "number" },
+        trait_type: { type: "string", enum: ["attribute", "ability", "discipline", "art", "willpower"] },
+        trait_name: { type: "string" }
       },
-      required: ["character_id", "trait_name", "trait_type", "new_rating"]
+      required: ["character_id", "trait_type", "trait_name"]
     }
   },
   get_trait_improvement_cost: {
@@ -204,49 +220,50 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        trait_name: { type: "string", description: "Name of the trait" },
-        trait_type: { type: "string", description: "Type of trait" },
-        new_rating: { type: "number", description: "Target rating" }
+        character_id: { type: "number" },
+        trait_type: { type: "string" },
+        trait_name: { type: "string" }
       },
-      required: ["character_id", "trait_name", "trait_type", "new_rating"]
+      required: ["character_id", "trait_type", "trait_name"]
     }
   },
   apply_status_effect: {
     name: "apply_status_effect",
-    description: "Apply a status effect to a character.",
+    description: "Apply a status effect to a character or NPC.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        effect_name: { type: "string", description: "Name of the effect" },
-        description: { type: "string", description: "Description of the effect" },
-        duration: { type: "number", description: "Duration in rounds/scenes" }
+        target_id: { type: "number" },
+        target_type: { type: "string", enum: ["character", "npc"] },
+        effect_name: { type: "string" },
+        description: { type: "string", description: "Narrative description of the effect." },
+        duration_type: { type: "string", enum: ["rounds", "scene", "indefinite"] },
+        duration_value: { type: "number", description: "e.g., number of rounds" }
       },
-      required: ["character_id", "effect_name"]
+      required: ["target_id", "target_type", "effect_name"]
     }
   },
   get_status_effects: {
     name: "get_status_effects",
-    description: "Get all status effects on a character.",
+    description: "Get all status effects on a target.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" }
+        target_id: { type: "number" },
+        target_type: { type: "string", enum: ["character", "npc"] }
       },
-      required: ["character_id"]
+      required: ["target_id", "target_type"]
     }
   },
   remove_status_effect: {
     name: "remove_status_effect",
-    description: "Remove a status effect from a character.",
+    description: "Remove a status effect by its ID.",
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        effect_id: { type: "number", description: "ID of the effect to remove" }
+        effect_id: { type: "number" }
       },
-      required: ["character_id", "effect_id"]
+      required: ["effect_id"]
     }
   },
   add_item: {
@@ -255,12 +272,10 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        item_name: { type: "string", description: "Name of the item" },
-        item_type: { type: "string", description: "Type of item" },
-        quantity: { type: "number", description: "Quantity to add" }
+        character_id: { type: "number" },
+        item: { type: "object", description: "An object with name, type, quantity, etc." }
       },
-      required: ["character_id", "item_name"]
+      required: ["character_id", "item"]
     }
   },
   get_inventory: {
@@ -269,7 +284,7 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" }
+        character_id: { type: "number" }
       },
       required: ["character_id"]
     }
@@ -280,8 +295,8 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        item_id: { type: "number", description: "ID of the item" },
-        updates: { type: "object", description: "Fields to update" }
+        item_id: { type: "number" },
+        updates: { type: "object" }
       },
       required: ["item_id", "updates"]
     }
@@ -292,7 +307,7 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        item_id: { type: "number", description: "ID of the item" }
+        item_id: { type: "number" }
       },
       required: ["item_id"]
     }
@@ -303,9 +318,9 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        location: { type: "string", description: "Current location" },
-        notes: { type: "string", description: "World state notes" },
-        data: { type: "object", description: "Additional world data" }
+        location: { type: "string" },
+        notes: { type: "string" },
+        data: { type: "object" }
       }
     }
   },
@@ -320,10 +335,9 @@ export const toolDefinitions = {
     inputSchema: {
       type: "object",
       properties: {
-        character_id: { type: "number", description: "ID of the character" },
-        chapter: { type: "number", description: "Chapter number" },
-        scene: { type: "number", description: "Scene number" },
-        summary: { type: "string", description: "Summary of progress" }
+        chapter: { type: "string" },
+        scene: { type: "string" },
+        summary: { type: "string" }
       },
       required: ["chapter", "scene", "summary"]
     }
@@ -356,16 +370,34 @@ export const toolDefinitions = {
   get_initiative_order: {
     name: "get_initiative_order",
     description: "Get the current initiative order.",
-    inputSchema: { type: "object", properties: {} }
+    inputSchema: {
+      type: "object",
+      properties: {
+        scene_id: { type: "string" }
+      },
+      required: ["scene_id"]
+    }
   },
   advance_turn: {
     name: "advance_turn",
     description: "Advance to the next turn in combat.",
-    inputSchema: { type: "object", properties: {} }
+    inputSchema: {
+      type: "object",
+      properties: {
+        scene_id: { type: "string" }
+      },
+      required: ["scene_id"]
+    }
   },
   get_current_turn: {
     name: "get_current_turn",
     description: "Get information about the current turn.",
-    inputSchema: { type: "object", properties: {} }
+    inputSchema: {
+      type: "object",
+      properties: {
+        scene_id: { type: "string" }
+      },
+      required: ["scene_id"]
+    }
   }
 };
