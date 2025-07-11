@@ -231,22 +231,52 @@ constructor(db: Database) {
   }
 
   updateAntagonist(id: number, updates: Partial<AntagonistRow>): AntagonistRow | null {
-    if (!updates || Object.keys(updates).length === 0) {
+      if (!updates || Object.keys(updates).length === 0) {
+          return this.getAntagonistById(id);
+      }
+
+      // Define a schema with expected types for validation
+      const validNpcFields: { [key: string]: string } = {
+          name: 'string', template: 'string', concept: 'string', game_line: 'string',
+          strength: 'number', dexterity: 'number', stamina: 'number',
+          charisma: 'number', manipulation: 'number', appearance: 'number',
+          perception: 'number', intelligence: 'number', wits: 'number',
+          willpower_current: 'number', willpower_permanent: 'number',
+          notes: 'string'
+      };
+
+      const setClauseParts: string[] = [];
+      const values: any[] = [];
+
+      for (const key in updates) {
+          if (key === 'id' || key === 'health_levels') continue; // Do not allow direct update of ID or health_levels via this method
+
+          if (!validNpcFields[key]) {
+              throw new Error(`Invalid field for update: '${key}'. Field does not exist or cannot be updated.`);
+          }
+
+          const value = (updates as any)[key];
+          if (typeof value !== validNpcFields[key]) {
+              throw new Error(`Invalid data type for field '${key}'. Expected ${validNpcFields[key]}, but got ${typeof value}.`);
+          }
+
+          setClauseParts.push(`${key} = ?`);
+          values.push(value);
+      }
+
+      if (setClauseParts.length === 0) {
+          return this.getAntagonistById(id);
+      }
+
+      const setClause = setClauseParts.join(', ');
+      const stmt = this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`);
+      const result = stmt.run(...values, id);
+
+      if (result.changes === 0) {
+          throw new Error(`Antagonist with ID ${id} not found, no update performed.`);
+      }
+
       return this.getAntagonistById(id);
-    }
-
-    const allowedFields = Object.keys(updates).filter(key => key !== "id");
-    if (allowedFields.length === 0) {
-      return this.getAntagonistById(id);
-    }
-
-    const setClause = allowedFields.map(field => `${field} = ?`).join(', ');
-    const values = allowedFields.map(field => (updates as any)[field]);
-
-    const stmt = this.db.prepare(`UPDATE npcs SET ${setClause} WHERE id = ?`);
-    stmt.run(...values, id);
-
-    return this.getAntagonistById(id);
   }
 
   listAntagonists(): AntagonistRow[] {
@@ -258,6 +288,9 @@ constructor(db: Database) {
    * Removes an antagonist (NPC) from the database, including all
    * associated ability, discipline, and supernatural trait records.
    * This ensures no lingering relational data causes UNIQUE constraint errors.
+   *
+   * NOTE: The relational tables use 'character_id' for both PCs and NPCs.
+   * This should be fixed later for clarity, but for now, we use it as is.
    */
   removeAntagonist(id: number): boolean {
     // Run all removals in a transaction to preserve data integrity.
@@ -270,7 +303,7 @@ constructor(db: Database) {
       this.db.prepare(`DELETE FROM character_arts WHERE character_id = ?`).run(id);
       this.db.prepare(`DELETE FROM character_realms WHERE character_id = ?`).run(id);
 
-      // Remove splat-specific supernatural trait tables.
+      // Remove splat-specific supernatural trait tables. The FK here is 'npc_id'.
       this.db.prepare(`DELETE FROM npc_vampire_traits WHERE npc_id = ?`).run(id);
       this.db.prepare(`DELETE FROM npc_werewolf_traits WHERE npc_id = ?`).run(id);
       this.db.prepare(`DELETE FROM npc_mage_traits WHERE npc_id = ?`).run(id);
@@ -280,7 +313,7 @@ constructor(db: Database) {
       const res = this.db.prepare('DELETE FROM npcs WHERE id = ?').run(id);
 
       if (res.changes === 0) {
-        // The main NPC was not found; rollback.
+        // The main NPC was not found; rollback the transaction by throwing an error.
         throw new Error(`Antagonist with ID ${id} not found.`);
       }
       return res.changes > 0;

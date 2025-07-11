@@ -674,49 +674,43 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       // Stateless tool: Computes both halves of a contested action, does not mutate attacker/defender
       // records or write world state. Consumer must apply outcome elsewhere.
       case 'roll_contested_action': {
-        const { attacker_pool, attacker_difficulty, attacker_specialty, defender_pool, defender_difficulty, defender_specialty } = args;
-      
-        // --- Input Validation ---
-        // Enhanced validation for clearer error messages
-        if (typeof attacker_difficulty !== "number" || !Number.isFinite(attacker_difficulty)) {
-          return { content: makeTextContentArray(
-            ["Error: 'attacker_difficulty' is required and must be a number."]), isError: true };
-        }
-        if (typeof defender_difficulty !== "number" || !Number.isFinite(defender_difficulty)) {
-          return { content: makeTextContentArray(
-            ["Error: 'defender_difficulty' is required and must be a number."]), isError: true };
-        }
-        if (
-          typeof attacker_pool !== "number" || attacker_pool < 0 || !Number.isFinite(attacker_pool) ||
-          attacker_difficulty < 2 || attacker_difficulty > 10 ||
-          typeof defender_pool !== "number" || defender_pool < 0 || !Number.isFinite(defender_pool) ||
-          defender_difficulty < 2 || defender_difficulty > 10
-        ) {
-          return { content: makeTextContentArray(
-            ["Error: All pools must be non-negative integers and all difficulties must be in the range 2–10."]), isError: true };
-        }
-      
-        const atk = rollWodPool(attacker_pool, attacker_difficulty, !!attacker_specialty);
-        const def = rollWodPool(defender_pool, defender_difficulty, !!defender_specialty);
-        const net = atk.successes - def.successes;
+          const { attacker_pool, attacker_difficulty, attacker_specialty, defender_pool, defender_difficulty, defender_specialty } = args;
+
+          // --- VALIDATION FIX ---
+          if (
+              typeof attacker_pool !== "number" || attacker_pool < 0 ||
+              typeof attacker_difficulty !== "number" || attacker_difficulty < 2 || attacker_difficulty > 10 ||
+              typeof defender_pool !== "number" || defender_pool < 0 ||
+              typeof defender_difficulty !== "number" || defender_difficulty < 2 || defender_difficulty > 10
+          ) {
+              return {
+                  content: makeTextContentArray(["Error: All pools must be non-negative integers and all difficulties must be in the range 2–10."]),
+                  isError: true
+              };
+          }
+          // --- END FIX ---
+
+          const atk = rollWodPool(attacker_pool, attacker_difficulty, !!attacker_specialty);
+          const def = rollWodPool(defender_pool, defender_difficulty, !!defender_specialty);
+          const net = atk.successes - def.successes;
         
-        let logtxt = `🎯 CONTESTED/RESISTED ACTION\n\n`;
-        logtxt += `Attacker: Pool ${attacker_pool} vs Diff ${attacker_difficulty} → Rolls: [${atk.rolls.join(', ')}] (${atk.successes} successes)${atk.isBotch ? ' [BOTCH]' : ''}\n`;
-        logtxt += `Defender: Pool ${defender_pool} vs Diff ${defender_difficulty} → Rolls: [${def.rolls.join(', ')}] (${def.successes} successes)${def.isBotch ? ' [BOTCH]' : ''}\n\n`;
-        
-        logtxt += `RESULT: `;
-        if (atk.isBotch) {
-          logtxt += `Attacker BOTCHES—automatic failure.`;
-        } else if (def.isBotch) {
-          logtxt += `Defender BOTCHES! Attacker wins automatically.`;
-        } else if (net > 0) {
-          logtxt += `Attacker wins by ${net} net success${net > 1 ? 'es' : ''}.`;
-        } else {
-          logtxt += `STANDOFF—tie or defender wins.`;
-        }
+          let logtxt = `🎯 CONTESTED/RESISTED ACTION\n\n`;
+          logtxt += `Attacker: Pool ${attacker_pool} vs Diff ${attacker_difficulty} → Rolls: [${atk.rolls.join(', ')}] (${atk.successes} successes)${atk.isBotch ? ' [BOTCH]' : ''}\n`;
+          logtxt += `Defender: Pool ${defender_pool} vs Diff ${defender_difficulty} → Rolls: [${def.rolls.join(', ')}] (${def.successes} successes)${def.isBotch ? ' [BOTCH]' : ''}\n\n`;
+
+          logtxt += `RESULT: `;
+          if (atk.isBotch) {
+            logtxt += `Attacker BOTCHES—automatic failure.`;
+          } else if (def.isBotch) {
+            logtxt += `Defender BOTCHES! Attacker wins automatically.`;
+          } else if (net > 0) {
+            logtxt += `Attacker wins by ${net} net success${net > 1 ? 'es' : ''}.`;
+          } else {
+            logtxt += `STANDOFF—tie or defender wins.`;
+          }
       
-        combatState.log.push(`Contested roll: Atk [${atk.successes}] vs Def [${def.successes}]`);
-        return { content: makeTextContentArray([logtxt]) };
+          // combatState.log.push(`Contested roll: Atk [${atk.successes}] vs Def [${def.successes}]`); // This line was correctly removed.
+          return { content: makeTextContentArray([logtxt]) };
       }
 
       // 1. roll_soak

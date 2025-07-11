@@ -71,10 +71,28 @@ export class CharacterRepository {
   public updateCharacter(id: number, updates: Partial<CharacterData>): CharacterData | null {
     const character = this.getCharacterById(id);
     if (!character) {
-      throw new Error(`Character with ID ${id} not found for update.`);
+        throw new Error(`Character with ID ${id} not found for update.`);
     }
 
-    const mainTableFields = ['name', 'concept', 'strength', 'dexterity', 'stamina', 'charisma', 'manipulation', 'appearance', 'perception', 'intelligence', 'wits', 'willpower_current', 'willpower_permanent', 'health_levels', 'experience'];
+    // Define a schema with expected types for validation
+    const validFields: { [key: string]: string } = {
+        name: 'string', concept: 'string', strength: 'number', dexterity: 'number', stamina: 'number',
+        charisma: 'number', manipulation: 'number', appearance: 'number', perception: 'number',
+        intelligence: 'number', wits: 'number', willpower_current: 'number', willpower_permanent: 'number',
+        experience: 'number', clan: 'string', generation: 'number', blood_pool_current: 'number',
+        blood_pool_max: 'number', humanity: 'number', breed: 'string', auspice: 'string',
+        tribe: 'string', gnosis_current: 'number', gnosis_permanent: 'number', rage_current: 'number',
+        rage_permanent: 'number', renown_glory: 'number', renown_honor: 'number', renown_wisdom: 'number',
+        tradition_convention: 'string', arete: 'number', quintessence: 'number', paradox: 'number',
+        kith: 'string', seeming: 'string', glamour_current: 'number', glamour_permanent: 'number',
+        banality_permanent: 'number'
+    };
+
+    const mainTableFields = [
+      'name', 'concept', 'strength', 'dexterity', 'stamina', 'charisma', 'manipulation', 'appearance',
+      'perception', 'intelligence', 'wits', 'willpower_current', 'willpower_permanent', 'experience'
+    ];
+
     const splatTableFields: Record<string, string[]> = {
       vampire: ['clan', 'generation', 'blood_pool_current', 'blood_pool_max', 'humanity'],
       werewolf: ['breed', 'auspice', 'tribe', 'gnosis_current', 'gnosis_permanent', 'rage_current', 'rage_permanent', 'renown_glory', 'renown_honor', 'renown_wisdom'],
@@ -86,29 +104,32 @@ export class CharacterRepository {
     const splatUpdates: Record<string, any> = {};
 
     for (const key in updates) {
-      if (mainTableFields.includes(key)) {
-        mainUpdates[key] = updates[key as keyof typeof updates];
-      } else if (splatTableFields[character.game_line]?.includes(key)) {
-        splatUpdates[key] = updates[key as keyof typeof updates];
-      }
-    }
-    
-    this.db.transaction(() => {
-      if (Object.keys(mainUpdates).length > 0) {
-        if (mainUpdates.health_levels && typeof mainUpdates.health_levels === 'object') {
-          mainUpdates.health_levels = JSON.stringify(mainUpdates.health_levels);
+        if (!validFields[key]) {
+            throw new Error(`Invalid field for update: '${key}'. Field does not exist or cannot be updated.`);
         }
-        const setClause = Object.keys(mainUpdates).map(field => `${field} = ?`).join(', ');
-        this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`).run(...Object.values(mainUpdates), id);
-      }
+        if (typeof updates[key as keyof typeof updates] !== validFields[key]) {
+            throw new Error(`Invalid data type for field '${key}'. Expected ${validFields[key]}, but got ${typeof updates[key as keyof typeof updates]}.`);
+        }
 
-      if (Object.keys(splatUpdates).length > 0) {
-        const splatTableName = `character_${character.game_line}_traits`;
-        const setClause = Object.keys(splatUpdates).map(field => `${field} = ?`).join(', ');
-        this.db.prepare(`UPDATE ${splatTableName} SET ${setClause} WHERE character_id = ?`).run(...Object.values(splatUpdates), id);
-      }
+        if (mainTableFields.includes(key)) {
+            mainUpdates[key] = updates[key as keyof typeof updates];
+        } else if (splatTableFields[character.game_line]?.includes(key)) {
+            splatUpdates[key] = updates[key as keyof typeof updates];
+        }
+    }
+
+    this.db.transaction(() => {
+        if (Object.keys(mainUpdates).length > 0) {
+            const setClause = Object.keys(mainUpdates).map(field => `${field} = ?`).join(', ');
+            this.db.prepare(`UPDATE characters SET ${setClause} WHERE id = ?`).run(...Object.values(mainUpdates), id);
+        }
+        if (Object.keys(splatUpdates).length > 0) {
+            const splatTableName = `character_${character.game_line}_traits`;
+            const setClause = Object.keys(splatUpdates).map(field => `${field} = ?`).join(', ');
+            this.db.prepare(`UPDATE ${splatTableName} SET ${setClause} WHERE character_id = ?`).run(...Object.values(splatUpdates), id);
+        }
     })();
-    
+
     return this.getCharacterById(id);
   }
 

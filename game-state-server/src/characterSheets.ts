@@ -158,7 +158,7 @@ function formatCoreBlocks(character: any): string {
     '────────────── ABILITIES ──────────────',
     character.abilities?.length
       ? character.abilities.map(
-          (ab: any) => `  - ${ab.ability_name} (${ab.ability_type}): ${ab.rating}${ab.specialty ? `, Specialty: ${ab.specialty}` : ''}`
+          (ab: any) => `  - ${ab.name} (${ab.type}): ${ab.rating}${ab.specialty ? `, Specialty: ${ab.specialty}` : ''}`
         ).join('\n')
       : '  (none recorded)',
     '',

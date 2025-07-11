@@ -3,35 +3,41 @@ import { makeTextContentArray } from '../index.js';
 import type { GameDatabase } from '../types/index.js';
 
 export async function spend_resource_handler(db: GameDatabase, args: any) {
-  const { character_id, resource_name, amount = 1 } = args;
-  if (typeof character_id !== 'number' || typeof resource_name !== 'string' || typeof amount !== 'number' || amount < 1) {
-    return { content: makeTextContentArray(["❌ Invalid arguments."]), isError: true };
-  }
+    const { character_id, resource_name, amount = 1 } = args;
 
-  const character = db.characters.getCharacterById(character_id);
-  if (!character) return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
-  
-  let updates: Record<string, any> = {};
-  let currentValue: number;
+    const character = db.characters.getCharacterById(character_id);
+    if (!character) return { content: makeTextContentArray([`❌ Character with ID ${character_id} not found.`]), isError: true };
 
-  if (resource_name.startsWith('willpower')) {
-      currentValue = character.willpower_current;
-      if(currentValue < amount) return { content: makeTextContentArray([`❌ Not enough Willpower. Has ${currentValue}, needs ${amount}.`]), isError: true };
-      updates.willpower_current = currentValue - amount;
-  } else if (resource_name.startsWith('blood') && character.game_line === 'vampire') {
-      currentValue = character.blood_pool_current;
-      if(currentValue < amount) return { content: makeTextContentArray([`❌ Not enough Blood. Has ${currentValue}, needs ${amount}.`]), isError: true };
-      updates.blood_pool_current = currentValue - amount;
-  } else if (resource_name.startsWith('rage') && character.game_line === 'werewolf') {
-      currentValue = character.rage_current;
-      if(currentValue < amount) return { content: makeTextContentArray([`❌ Not enough Rage. Has ${currentValue}, needs ${amount}.`]), isError: true };
-      updates.rage_current = currentValue - amount;
-  } else {
-    return { content: makeTextContentArray([`❌ Invalid or inapplicable resource '${resource_name}' for this character.`]), isError: true };
-  }
-  
-  await db.characters.updateCharacter(character_id, updates);
-  const updatedChar = db.characters.getCharacterById(character_id);
-  
-  return { content: makeTextContentArray([`✅ ${character.name} spent ${amount} ${resource_name.split('_')[0]}. New total: ${updatedChar ? updatedChar[resource_name] : 'N/A'}`]) };
+    const validResources: Record<string, string[]> = {
+        vampire: ['willpower', 'blood'],
+        werewolf: ['willpower', 'rage', 'gnosis'],
+        mage: ['willpower', 'quintessence'],
+        changeling: ['willpower', 'glamour']
+    };
+
+    if (!validResources[character.game_line]?.includes(resource_name)) {
+        return { content: makeTextContentArray([`❌ Invalid or inapplicable resource '${resource_name}' for this character's game line.`]), isError: true };
+    }
+
+    const resourceMap: Record<string, string> = {
+        willpower: 'willpower_current', blood: 'blood_pool_current', rage: 'rage_current',
+        gnosis: 'gnosis_current', glamour: 'glamour_current', quintessence: 'quintessence'
+    };
+
+    const col = resourceMap[resource_name];
+    if (!col) return { content: makeTextContentArray([`❌ Unknown resource '${resource_name}'`]), isError: true };
+
+    const currentValue = (character as any)[col] ?? 0;
+    if (currentValue < amount) {
+        return { content: makeTextContentArray([`❌ Not enough ${resource_name}. Has ${currentValue}, needs ${amount}.`]), isError: true };
+    }
+
+    const newValue = currentValue - amount;
+    await db.characters.updateCharacter(character_id, { [col]: newValue });
+
+    const updatedChar = db.characters.getCharacterById(character_id);
+    // FIX: Use the correct column name 'col' to get the new total
+    const newTotal = updatedChar ? (updatedChar as any)[col] : 'N/A';
+    
+    return { content: makeTextContentArray([`✅ ${character.name} spent ${amount} ${resource_name}. New total: ${newTotal}`]) };
 }

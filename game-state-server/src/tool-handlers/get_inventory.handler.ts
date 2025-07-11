@@ -2,28 +2,14 @@ import { makeTextContentArray } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function get_inventory_handler(db: GameDatabase, args: any) {
-  // Input validation
-  if (
-    !args ||
-    typeof args.target_type !== "string" ||
-    args.target_type !== "character" ||
-    !Object.prototype.hasOwnProperty.call(args, "target_id") ||
-    typeof args.target_id !== "number" ||
-    Number.isNaN(args.target_id)
-  ) {
-    return {
-      content: makeTextContentArray([
-        "❌ Invalid or missing arguments. 'target_type' must be 'character' and 'target_id' must be a valid number."
-      ]),
-      isError: true
-    };
-  }
-  const { target_type, target_id } = args;
-
-  if (target_type !== 'character') {
-    return { content: makeTextContentArray(["❌ Tool get_inventory only supports target_type 'character' at this time."]), isError: true };
-  }
-  const inventory = db.inventory.getInventory(target_id);
-
-  return { content: makeTextContentArray([JSON.stringify(inventory, null, 2)]) };
+    const { character_id } = args;
+    if (typeof character_id !== 'number') {
+        return { content: makeTextContentArray(["❌ Invalid 'character_id'."]), isError: true };
+    }
+    const inventory = db.inventory.getInventory(character_id);
+    const output = `🎒 Inventory for Character #${character_id}:\n` +
+        (inventory.length > 0
+        ? inventory.map((item: any) => `- ${item.item_name} (x${item.quantity}) [ID: ${item.id}]`).join('\n')
+        : '  (Empty)');
+    return { content: makeTextContentArray([output]) };
 }
