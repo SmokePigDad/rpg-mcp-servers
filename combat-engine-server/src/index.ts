@@ -27,16 +27,26 @@ function makeTextContentArray(contentArr: any[]): { type: 'text', text: string }
   });
 }
 
-function rollWodPool(pool_size: number, difficulty: number, has_specialty: boolean, force_result?: string): {
+function rollWodPool(
+  pool_size: number,
+  difficulty: number,
+  has_specialty: boolean,
+  force_result?: string,
+  wound_penalty: number = 0
+): {
   successes: number,
   rolls: number[],
   isBotch: boolean,
   isSpectacular: boolean,
-  resultText: string
+  resultText: string,
+  final_pool_size?: number
 } {
     if (pool_size < 0) {
       throw new Error("Pool size must be a non-negative integer.");
     }
+
+    // NEW LOGIC: apply wound penalty
+    const final_pool_size = Math.max(0, pool_size - wound_penalty);
 
     // Handle forced results for testing
     if (force_result) {
@@ -100,7 +110,7 @@ function rollWodPool(pool_size: number, difficulty: number, has_specialty: boole
     }
     if (difficulty < 2 || difficulty > 10) throw new Error("Difficulty must be between 2 and 10");
 
-    const rolls = Array.from({ length: pool_size }, () => Math.floor(Math.random() * 10) + 1);
+    const rolls = Array.from({ length: final_pool_size }, () => Math.floor(Math.random() * 10) + 1);
 
     let successes = 0;
     let botches = 0;
@@ -128,7 +138,7 @@ function rollWodPool(pool_size: number, difficulty: number, has_specialty: boole
         if (isSpectacular) resultText += " (Spectacular Success!)";
     }
 
-    return { successes: finalSuccesses, rolls, isBotch, isSpectacular, resultText };
+    return { successes: finalSuccesses, rolls, isBotch, isSpectacular, resultText, final_pool_size };
 }
 
 const toolDefinitions = [
@@ -141,6 +151,9 @@ const toolDefinitions = [
                 pool_size: { type: 'integer', minimum: 0, description: 'Number of dice to roll. 0 = chance die.' },
                 difficulty: { type: 'integer', minimum: 2, maximum: 10, description: 'Target number for success. Not used for chance die (pool_size 0).' },
                 has_specialty: { type: 'boolean', default: false, description: 'Whether the character has a specialty (10s count as 2 successes).' },
+                // --- ADD THIS LINE ---
+                wound_penalty: { type: 'integer', minimum: 0, default: 0, description: 'Wound penalties to subtract from the dice pool.' },
+                // ---
                 character_id: { type: 'integer', description: 'Character ID for context (optional).' },
                 actor_context: { type: 'object', description: 'Actor context for narrative modifiers (optional).' },
                 force_result: { type: 'string', enum: ['botch', 'failure', 'success', 'specialty_test'], description: 'For testing: force a specific result type', nullable: true }
@@ -563,7 +576,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       // Stateless tool: Generic WoD dice pool. Computes only; NO character/resource/world state mutation.
       // Any spending of Willpower, resource, or logging must be invoked externally by the consumer.
       case 'roll_wod_pool': {
-        const { pool_size, difficulty, has_specialty = false, character_id, actor_context, force_result, ...rest } = args;
+        const { pool_size, difficulty, has_specialty = false, character_id, actor_context, force_result, wound_penalty = 0, ...rest } = args;
 
         // [EXTRA-ADDED: Hardened validation per requirements]
         if (typeof pool_size !== "number" || !Number.isInteger(pool_size) || pool_size < 0) {
@@ -583,6 +596,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         if (typeof pool_size !== "number" || pool_size < 0 || !Number.isFinite(pool_size) || !Number.isInteger(pool_size)) {
           return { content: makeTextContentArray(
             ["Error: 'pool_size' must be a non-negative integer."]), isError: true };
+        }
+        if (typeof wound_penalty !== "number" || !Number.isFinite(wound_penalty) || wound_penalty < 0 || !Number.isInteger(wound_penalty)) {
+          return { content: makeTextContentArray(
+            ["Error: 'wound_penalty' must be a non-negative integer."]), isError: true };
         }
       
         // For chance die rolls (pool_size = 0), difficulty is not used, so we can be more lenient
@@ -627,11 +644,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         }
         */
       
-        const result = rollWodPool(narrativePool, narrativeDiff, has_specialty, force_result);
+        // WOUND PENALTY logic: display and apply, update narrativePool for output
+        let finalPool = Math.max(0, narrativePool - wound_penalty);
+
+        const result = rollWodPool(narrativePool, narrativeDiff, has_specialty, force_result, wound_penalty);
         let successes = result.successes;
       
         let output = `🎲 oWoD Dice Pool Roll\n\n`;
-        output += `Pool Size: ${narrativePool}`;
+        output += `Base Pool: ${narrativePool}`;
+        if (wound_penalty > 0) {
+          output += `, Wound Penalty: -${wound_penalty}`;
+          output += `\n**Final Pool:** ${finalPool}`;
+        }
         if (narrativePool > 0) output += `, Difficulty: ${narrativeDiff}`;
         output += `, Specialty: ${has_specialty ? '✅' : 'No'}\n`;
         if (narrativeApplied && narrativeDetail.length > 0) {
@@ -666,10 +690,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         // Basic result
         output += `${result.resultText}\n`;
       
-        // Removed combatState.log (no persistent or global state should be mutated in stateless tools)
-        // combatState.log.push(`Roll: [${result.rolls.join(', ')}] vs diff ${narrativeDiff} -> ${successes} successes.`);
-        
-        return { content: makeTextContentArray([output, JSON.stringify({})]) };
+        // Return both readable output and structured result object
+        return {
+          content: makeTextContentArray([
+            output,
+            JSON.stringify({ ...result, final_pool_size: finalPool })
+          ])
+        };
       }
       // Stateless tool: Computes both halves of a contested action, does not mutate attacker/defender
       // records or write world state. Consumer must apply outcome elsewhere.

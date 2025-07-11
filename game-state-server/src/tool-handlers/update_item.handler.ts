@@ -1,27 +1,29 @@
+// In game-state-server/src/tool-handlers/update_item.handler.ts
 import { makeTextContentArray } from '../index.js';
 import type { GameDatabase } from '../types/db.types.js';
 
 export async function update_item_handler(db: GameDatabase, args: any) {
-  const { target_type, target_id, item_id, updates } = args;
+  const { item_id, updates } = args;
 
-  if (target_type !== 'character') {
-    return { content: makeTextContentArray(["❌ Tool update_item only supports target_type 'character' at this time."]), isError: true };
+  // --- VALIDATION FIX ---
+  // The only parameters needed are the item's unique ID and the update payload.
+  if (typeof item_id !== 'number' || !updates || typeof updates !== 'object') {
+    return { 
+        content: makeTextContentArray(["❌ Invalid input: 'item_id' (number) and 'updates' (object) are required."]), 
+        isError: true 
+    };
   }
-  console.log('[UPDATE_ITEM] Attempting to update item:', item_id, updates);
+  // --- END FIX ---
+
   try {
     const result = await db.inventory.updateItem(item_id, updates);
-
-    // If the repo method returns null (should rarely happen), handle here for sanity.
     if (!result) {
-      console.warn('[UPDATE_ITEM] Null result - item may not exist:', item_id);
-      return { content: makeTextContentArray([`❌ Item with ID ${item_id} not found or not updated.`]), isError: true };
+      throw new Error(`Item with ID ${item_id} not found.`); // The repo now throws this, but we catch it.
     }
-
     return { content: makeTextContentArray([`✅ Updated item with ID ${item_id}.`]) };
   } catch (err: any) {
-    console.warn('[UPDATE_ITEM] Error during update:', err);
     return {
-      content: makeTextContentArray([`❌ Failed to update item: ${err.message || String(err)}`]),
+      content: makeTextContentArray([`❌ Failed to update item: ${err.message}`]),
       isError: true
     };
   }

@@ -173,7 +173,12 @@ constructor(db: Database) {
           break;
       }
 
-      // 3. Relational data (abilities, disciplines, gifts, spheres, arts, realms)
+      // 3. & 4. Relational data (abilities, disciplines, gifts, spheres, arts, realms)
+      // The following block is intentionally disabled due to Foreign Key errors:
+      // When creating an antagonist, do NOT insert into character_* tables,
+      // as these reference the "characters" table, not "npcs" (antagonists).
+      // See bugfix notes 2025-07-11.
+      /*
       if (data.abilities) {
         const abilities = template.abilities;
         const abilityStmt = this.db.prepare(`INSERT INTO character_abilities (character_id, ability_name, ability_type, rating, specialty) VALUES (?, ?, ?, ?, NULL)`);
@@ -194,7 +199,6 @@ constructor(db: Database) {
         }
       }
 
-      // 4. Supernatural powers (disciplines, gifts, spheres, arts, realms)
       if (template.supernatural?.disciplines) {
         const discStmt = this.db.prepare(`INSERT INTO character_disciplines (character_id, discipline_name, rating) VALUES (?, ?, ?)`);
         for (const [name, rating] of Object.entries(template.supernatural.disciplines)) {
@@ -225,6 +229,7 @@ constructor(db: Database) {
           realmStmt.run(npcId, name, rating);
         }
       }
+      */
     })();
 
     return this.getAntagonistById(npcId!);

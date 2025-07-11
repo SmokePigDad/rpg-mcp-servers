@@ -97,3 +97,13 @@ At each step, MCP tools ensure the correct rules, initiative order, and health t
 ## Expansion
 
 The MCP system is designed for future extensibility: add new splats, modular trait tables, antagonist templates, and tools as desired.
+### Initiative & Turn Management Workflow
+
+The system uses an explicit, stateful turn-tracking model. The correct sequence to begin and run a combat scene is as follows:
+
+1.  **Set the Order**: Call `set_initiative` once at the start of combat with the list of all combatants and their initiative scores.
+2.  **Start Combat**: Call `advance_turn` **once** to officially begin the combat and move the turn to the actor with the first turn order.
+3.  **Get Current Actor**: Call `get_current_turn` to see whose turn it is.
+4.  **Resolve Action**: The current actor takes their action (e.g., calls `roll_wod_pool`, `apply_damage`).
+5.  **Advance to Next Actor**: Call `advance_turn` again to end the current turn and proceed to the next actor in the order.
+6.  Repeat steps 3-5 until combat ends.

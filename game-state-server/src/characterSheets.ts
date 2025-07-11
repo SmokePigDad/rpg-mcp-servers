@@ -158,6 +158,7 @@ function formatCoreBlocks(character: any): string {
     '────────────── ABILITIES ──────────────',
     character.abilities?.length
       ? character.abilities.map(
+          // FIX: Use the correct property names ('name' and 'type') from the repository's aliased query result.
           (ab: any) => `  - ${ab.name} (${ab.type}): ${ab.rating}${ab.specialty ? `, Specialty: ${ab.specialty}` : ''}`
         ).join('\n')
       : '  (none recorded)',
