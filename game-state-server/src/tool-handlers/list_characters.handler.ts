@@ -4,7 +4,14 @@ import type { GameDatabase } from '../types/db.types.js';
 export async function list_characters_handler(db: GameDatabase, args: any) {
   const characters = db.characters.listCharacters();
 
-  const characterList = characters.map(character => `${character.name} (ID: ${character.id})`).join('\n');
+  if (!characters || characters.length === 0) {
+    return { content: makeTextContentArray(["No characters found."]) };
+  }
 
-  return { content: makeTextContentArray([characterList || "No characters found."]) };
+  const characterList = characters.map(
+    (char: any) => `- ${char.name} (${char.game_line}) [ID: ${char.id}]`
+  ).join('\n');
+
+  const output = `🎭 Character Roster:\n${characterList}`;
+  return { content: makeTextContentArray([output]) };
 }

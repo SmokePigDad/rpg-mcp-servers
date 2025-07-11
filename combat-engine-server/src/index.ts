@@ -677,14 +677,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const { attacker_pool, attacker_difficulty, attacker_specialty, defender_pool, defender_difficulty, defender_specialty } = args;
       
         // --- Input Validation ---
+        // Enhanced validation for clearer error messages
+        if (typeof attacker_difficulty !== "number" || !Number.isFinite(attacker_difficulty)) {
+          return { content: makeTextContentArray(
+            ["Error: 'attacker_difficulty' is required and must be a number."]), isError: true };
+        }
+        if (typeof defender_difficulty !== "number" || !Number.isFinite(defender_difficulty)) {
+          return { content: makeTextContentArray(
+            ["Error: 'defender_difficulty' is required and must be a number."]), isError: true };
+        }
         if (
           typeof attacker_pool !== "number" || attacker_pool < 0 || !Number.isFinite(attacker_pool) ||
-          typeof attacker_difficulty !== "number" || !Number.isFinite(attacker_difficulty) || attacker_difficulty < 2 || attacker_difficulty > 10 ||
+          attacker_difficulty < 2 || attacker_difficulty > 10 ||
           typeof defender_pool !== "number" || defender_pool < 0 || !Number.isFinite(defender_pool) ||
-          typeof defender_difficulty !== "number" || !Number.isFinite(defender_difficulty) || defender_difficulty < 2 || defender_difficulty > 10
+          defender_difficulty < 2 || defender_difficulty > 10
         ) {
           return { content: makeTextContentArray(
-            ["Error: All pools must be non-negative integers and all difficulties must be 2–10."]), isError: true };
+            ["Error: All pools must be non-negative integers and all difficulties must be in the range 2–10."]), isError: true };
         }
       
         const atk = rollWodPool(attacker_pool, attacker_difficulty, !!attacker_specialty);

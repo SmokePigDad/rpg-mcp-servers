@@ -58,7 +58,8 @@ export const toolDispatcher: Record<string, (db: GameDatabase, args: any) => Pro
   'get_world_state': get_world_state_handler,
   'improve_trait': improve_trait_handler,
   'list_antagonists': list_antagonists_handler,
-  
+  'list_characters': list_characters_handler,
+   
   'remove_character': remove_character_handler,
   
   'list_tools': async (db, args) => {

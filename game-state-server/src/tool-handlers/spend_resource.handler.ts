@@ -22,6 +22,10 @@ export async function spend_resource_handler(db: GameDatabase, args: any) {
       currentValue = character.blood_pool_current;
       if(currentValue < amount) return { content: makeTextContentArray([`❌ Not enough Blood. Has ${currentValue}, needs ${amount}.`]), isError: true };
       updates.blood_pool_current = currentValue - amount;
+  } else if (resource_name.startsWith('rage') && character.game_line === 'werewolf') {
+      currentValue = character.rage_current;
+      if(currentValue < amount) return { content: makeTextContentArray([`❌ Not enough Rage. Has ${currentValue}, needs ${amount}.`]), isError: true };
+      updates.rage_current = currentValue - amount;
   } else {
     return { content: makeTextContentArray([`❌ Invalid or inapplicable resource '${resource_name}' for this character.`]), isError: true };
   }

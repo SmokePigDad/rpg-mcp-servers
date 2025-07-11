@@ -131,7 +131,25 @@ function formatCoreBlocks(character: any): string {
   return [
     `👤 Name: ${character.name}`,
     character.concept ? `🧠 Concept: ${character.concept}` : '',
-    `🗂️  Game Line: ${character.game_line?.[0]?.toUpperCase() + character.game_line?.slice(1)}`,
+    (() => {
+      let splatInfo = '';
+      switch ((character.game_line || '').toLowerCase()) {
+        case 'vampire':
+          splatInfo = `${character.clan || 'Unknown Clan'}, Gen: ${character.generation || '?'}`;
+          break;
+        case 'werewolf':
+          splatInfo = `${character.tribe || 'Unknown Tribe'}, ${character.auspice || 'Unknown Auspice'}`;
+          break;
+        case 'mage':
+          splatInfo = `${character.tradition_convention || 'Unknown Tradition'}`;
+          break;
+        case 'changeling':
+          splatInfo = `${character.kith || 'Unknown Kith'}, ${character.seeming || 'Unknown Seeming'}`;
+          break;
+      }
+      const gameLine = character.game_line?.[0]?.toUpperCase() + character.game_line?.slice(1);
+      return `🗂️  Game Line: ${gameLine}${splatInfo ? ` (${splatInfo})` : ''}`;
+    })(),
     '',
     `💪 Strength: ${character.strength}\n🏃 Dexterity: ${character.dexterity}\n❤️ Stamina: ${character.stamina}`,
     `🎭 Charisma: ${character.charisma}\n🗣️ Manipulation: ${character.manipulation}\n🌟 Appearance: ${character.appearance}`,
@@ -140,7 +158,7 @@ function formatCoreBlocks(character: any): string {
     '────────────── ABILITIES ──────────────',
     character.abilities?.length
       ? character.abilities.map(
-          (ab: any) => `  - ${ab.ability_type}: ${ab.ability_name} (${ab.rating}${ab.specialty ? `, ${ab.specialty}` : ''})`
+          (ab: any) => `  - ${ab.ability_name} (${ab.ability_type}): ${ab.rating}${ab.specialty ? `, Specialty: ${ab.specialty}` : ''}`
         ).join('\n')
       : '  (none recorded)',
     '',

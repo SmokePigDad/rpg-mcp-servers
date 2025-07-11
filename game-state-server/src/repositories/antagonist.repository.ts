@@ -254,9 +254,44 @@ constructor(db: Database) {
     return rows as AntagonistRow[];
   }
 
-   removeAntagonist(id: number): boolean {
-    const stmt = this.db.prepare(`DELETE FROM npcs WHERE id = ?`);
-    const res = stmt.run(id);
-    return res.changes > 0;
+  /**
+   * Removes an antagonist (NPC) from the database, including all
+   * associated ability, discipline, and supernatural trait records.
+   * This ensures no lingering relational data causes UNIQUE constraint errors.
+   */
+  removeAntagonist(id: number): boolean {
+    // Run all removals in a transaction to preserve data integrity.
+    const transaction = this.db.transaction(() => {
+      // Remove NPC's abilities, powers, and related relational data.
+      this.db.prepare(`DELETE FROM character_abilities WHERE character_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM character_disciplines WHERE character_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM character_gifts WHERE character_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM character_spheres WHERE character_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM character_arts WHERE character_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM character_realms WHERE character_id = ?`).run(id);
+
+      // Remove splat-specific supernatural trait tables.
+      this.db.prepare(`DELETE FROM npc_vampire_traits WHERE npc_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM npc_werewolf_traits WHERE npc_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM npc_mage_traits WHERE npc_id = ?`).run(id);
+      this.db.prepare(`DELETE FROM npc_changeling_traits WHERE npc_id = ?`).run(id);
+
+      // Finally, remove the main NPC record.
+      const res = this.db.prepare('DELETE FROM npcs WHERE id = ?').run(id);
+
+      if (res.changes === 0) {
+        // The main NPC was not found; rollback.
+        throw new Error(`Antagonist with ID ${id} not found.`);
+      }
+      return res.changes > 0;
+    });
+
+    try {
+      return transaction();
+    } catch (error) {
+      // Log with explicit transaction failure
+      console.error(`[AntagonistRepository] Failed to remove antagonist ${id}:`, error);
+      return false;
+    }
   }
 }
